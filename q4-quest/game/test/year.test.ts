@@ -37,7 +37,7 @@ describe('buildYearReview', () => {
     badge('milestone_10000', 1_000, at('2026-03-10T18:00:00Z'), 'wereldreis'),
   ];
   const session = (iso: string, type: 'AC' | 'DC', kwh: number): ChargingSession => ({
-    start: at(iso), end: at(iso) + 3_600_000, ongoing: false, type, socStart: 20, socEnd: 60, kwh, kwhMethod: 'soc', avgKw: kwh,
+    start: at(iso), end: at(iso) + 3_600_000, ongoing: false, type, typeSource: 'sensor', socStart: 20, socEnd: 60, kwh, kwhMethod: 'soc', avgKw: kwh,
   });
   const sessions = [session('2025-12-01T10:00:00Z', 'AC', 30), session('2026-01-05T10:00:00Z', 'AC', 30), session('2026-02-01T10:00:00Z', 'DC', 50)];
   const now = at('2026-12-15T12:00:00Z');

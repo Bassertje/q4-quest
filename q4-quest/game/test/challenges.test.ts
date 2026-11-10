@@ -83,7 +83,7 @@ describe('evaluating a challenge', () => {
 
   it('decides charging challenges at the end of the week', () => {
     const session: ChargingSession = {
-      start: at('2026-11-10T20:00:00Z'), end: at('2026-11-10T23:00:00Z'), ongoing: false, type: 'AC',
+      start: at('2026-11-10T20:00:00Z'), end: at('2026-11-10T23:00:00Z'), ongoing: false, type: 'AC', typeSource: 'sensor' as const,
       socStart: 30, socEnd: 70, kwh: 30.8, kwhMethod: 'soc', avgKw: 10.3,
     };
     const c = { week: '2026-W46', type: 'max_charges' as const, target: 2 };

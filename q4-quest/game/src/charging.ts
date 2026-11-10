@@ -63,6 +63,8 @@ export interface ChargingSession {
   end: number;
   ongoing: boolean;
   type: 'AC' | 'DC';
+  /** Where the type comes from: the charging-type sensor, or derived from the average power. */
+  typeSource: 'sensor' | 'derived';
   socStart: number | null;
   socEnd: number | null;
   kwh: number | null;
@@ -212,9 +214,13 @@ function describeSession(input: ChargingInput, start: number, end: number, ongoi
   const typeSaysDc = input.type.some(
     (t) => t.ts >= start && t.ts <= end + TYPE_LAG_MS && normaliseType(t.state) === 'DC',
   );
+  const typeSaysAc = input.type.some(
+    (t) => t.ts >= start && t.ts <= end + TYPE_LAG_MS && normaliseType(t.state) === 'AC',
+  );
   const type: ChargingSession['type'] = typeSaysDc || (avgKw !== null && avgKw > DC_MIN_AVG_KW) ? 'DC' : 'AC';
+  const typeSource: ChargingSession['typeSource'] = typeSaysDc || (type === 'AC' && typeSaysAc) ? 'sensor' : 'derived';
 
-  return { start, end, ongoing, type, socStart, socEnd, kwh, kwhMethod, avgKw };
+  return { start, end, ongoing, type, typeSource, socStart, socEnd, kwh, kwhMethod, avgKw };
 }
 
 /** Trapezoidal integration (kWh) of power readings; the last value holds until `end`. */

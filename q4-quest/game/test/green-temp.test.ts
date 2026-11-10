@@ -43,7 +43,7 @@ describe('temperature', () => {
 
   it('combines monthly consumption (energy used ÷ km) with the average temperature', () => {
     const session = (iso: string, kwh: number): ChargingSession => ({
-      start: at(iso), end: at(iso) + 3_600_000, ongoing: false, type: 'AC', socStart: 20, socEnd: 60, kwh, kwhMethod: 'soc', avgKw: kwh,
+      start: at(iso), end: at(iso) + 3_600_000, ongoing: false, type: 'AC', typeSource: 'sensor' as const, socStart: 20, socEnd: 60, kwh, kwhMethod: 'soc', avgKw: kwh,
     });
     const odometer = [
       { ts: at('2026-01-01T08:00:00Z'), value: 5_000 },

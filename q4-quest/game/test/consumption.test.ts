@@ -7,7 +7,7 @@ const H = 3_600_000;
 const D = 24 * H;
 const at = (iso: string) => Date.parse(iso);
 const session = (iso: string, kwh: number): ChargingSession => ({
-  start: at(iso) - H, end: at(iso), ongoing: false, type: 'AC', socStart: 30, socEnd: 60, kwh, kwhMethod: 'soc', avgKw: kwh,
+  start: at(iso) - H, end: at(iso), ongoing: false, type: 'AC', typeSource: 'sensor' as const, socStart: 30, socEnd: 60, kwh, kwhMethod: 'soc', avgKw: kwh,
 });
 
 // Fictional data: 400 km in 10 days, SoC from 80% down to 50%, one charge of 40 kWh.

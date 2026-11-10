@@ -125,7 +125,7 @@ describe('charging badges', () => {
     start: at('2026-03-02T10:00:00Z') + n * 24 * H,
     end: at('2026-03-02T11:00:00Z') + n * 24 * H,
     ongoing: false,
-    type: 'AC',
+    type: 'AC', typeSource: 'sensor' as const,
     socStart: 40,
     socEnd: 80,
     kwh: 30.8,
@@ -181,7 +181,7 @@ describe('badge progress', () => {
   ];
   const sessions = Array.from({ length: 6 }, (_, n) => ({
     start: at('2026-03-02T20:00:00Z') + n * H, end: at('2026-03-02T20:30:00Z') + n * H, ongoing: false,
-    type: 'AC' as const, socStart: 40, socEnd: 60, kwh: 15.4, kwhMethod: 'soc' as const, avgKw: 30.8,
+    type: 'AC' as const, typeSource: 'sensor' as const, socStart: 40, socEnd: 60, kwh: 15.4, kwhMethod: 'soc' as const, avgKw: 30.8,
   }));
   const results = evaluateBadges(input(odo, { sessions, now: at('2026-03-03T18:00:00Z') }));
   const progress = (id: string) => results.find((b) => b.id === id)?.progress;
@@ -215,7 +215,7 @@ describe('temperature, green and challenge badges', () => {
     { ts: at('2026-01-07T12:00:00Z'), value: 3 },
   ];
   const session = (iso: string, kwh: number): ChargingSession => ({
-    start: at(iso), end: at(iso) + H, ongoing: false, type: 'AC', socStart: 30, socEnd: 60, kwh, kwhMethod: 'soc', avgKw: kwh,
+    start: at(iso), end: at(iso) + H, ongoing: false, type: 'AC', typeSource: 'sensor' as const, socStart: 30, socEnd: 60, kwh, kwhMethod: 'soc', avgKw: kwh,
   });
 
   it('awards IJskoud for a trip with two readings that started below 0 °C', () => {

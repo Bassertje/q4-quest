@@ -191,7 +191,7 @@ describe('chargingSessions', () => {
       ],
     });
     // Trapezoid: 11 + 11 + (11 + 0) / 2 = 27.5 kWh over 3 hours.
-    expect(sessions[0]).toMatchObject({ kwh: 27.5, kwhMethod: 'power', avgKw: 9.2, type: 'AC', socStart: null });
+    expect(sessions[0]).toMatchObject({ kwh: 27.5, kwhMethod: 'power', avgKw: 9.2, type: 'AC', typeSource: 'derived', socStart: null });
   });
 
   it('marks a session that is still running as ongoing', () => {
@@ -215,6 +215,7 @@ describe('totals, consumption and records', () => {
     end: start + H,
     ongoing: false,
     type,
+    typeSource: 'sensor',
     socStart: null,
     socEnd: null,
     kwh,

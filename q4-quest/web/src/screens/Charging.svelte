@@ -1,7 +1,6 @@
 <script lang="ts">
   import { getJson } from '../lib/api';
-  import { date, km, kw, num1 } from '../lib/format';
-  import PixelBattery from '../lib/PixelBattery.svelte';
+  import { dayNoYear, km, kw, monthTitle, num1 } from '../lib/format';
   import PixelIcon from '../lib/PixelIcon.svelte';
   import SocChart from '../lib/SocChart.svelte';
   import type { ChargingData, ChargingSession } from '../lib/types';
@@ -41,6 +40,19 @@
   }
 
   const pct = (v: number | null) => (v === null ? '?' : `${Math.round(v)}`);
+  const clamp = (v: number | null) => Math.max(0, Math.min(100, v ?? 0));
+  let openSession = $state<number | null>(null);
+  /** Shown sessions grouped per month (newest first). */
+  const groups = $derived.by(() => {
+    const out: { title: string; items: ChargingSession[] }[] = [];
+    for (const s of data?.sessions.slice(0, shown) ?? []) {
+      const title = monthTitle(s.start, tz);
+      const last = out.at(-1);
+      if (last && last.title === title) last.items.push(s);
+      else out.push({ title, items: [s] });
+    }
+    return out;
+  });
   const TREE_MAX = 20;
   let info = $state({ consumption: false, green: false });
 </script>
@@ -158,22 +170,39 @@
     {#if data.sessions.length === 0}
       <p class="muted small">Nog geen laadsessies gevonden.</p>
     {:else}
-      <ul class="rows sessions">
-        {#each data.sessions.slice(0, shown) as s (s.start)}
-          <li class:live={s.ongoing}>
-            <span class="row-main">{date(s.start, tz)}</span>
-            <span class="row-value">{s.kwh === null ? '–' : `~${num1(s.kwh)} kWh`}</span>
-            <span class="row-sub">
-              <span class="badge" class:dc={s.type === 'DC'}>{s.type}</span>
-              <span class="nw">{time(s.start)} · {s.ongoing ? 'bezig' : duration(s)}</span> ·
-              <span class="nw">gem. {s.avgKw === null ? '–' : `${kw(s.avgKw)} kW`}</span>
-              {#if s.socStart !== null || s.socEnd !== null}
-                · <span class="nw"><PixelBattery from={s.socStart} to={s.socEnd} /> {pct(s.socStart)} → {pct(s.socEnd)}%</span>
+      {#each groups as g (g.title)}
+        <h4 class="month">{g.title}</h4>
+        <ul class="sessions">
+          {#each g.items as s (s.start)}
+            {@const open = openSession === s.start}
+            <li class:live={s.ongoing}>
+              <button class="srow" aria-expanded={open} onclick={() => (openSession = open ? null : s.start)}>
+                <span class="badge" class:dc={s.type === 'DC'}>{s.type}</span>
+                <span class="mid">
+                  <span class="l1">{dayNoYear(s.start, tz)}</span>
+                  <span class="l2">{time(s.start)} · {s.ongoing ? 'bezig' : duration(s)}</span>
+                </span>
+                <span class="end">
+                  <span class="l1 strong">{s.kwh === null ? '–' : `~${num1(s.kwh)} kWh`}</span>
+                  <span class="l2">{pct(s.socStart)} → {pct(s.socEnd)}%</span>
+                </span>
+              </button>
+              <span class="socbar" aria-hidden="true">
+                <span class="from" style:width="{clamp(s.socStart)}%"></span>
+                <span class="added" style:width="{Math.max(0, clamp(s.socEnd) - clamp(s.socStart))}%"></span>
+              </span>
+              {#if open}
+                <dl class="detail">
+                  <dt>Begin</dt><dd>{time(s.start)}</dd>
+                  <dt>Einde</dt><dd>{s.ongoing ? 'bezig' : time(s.end)}</dd>
+                  <dt>Gemiddeld</dt><dd>{s.avgKw === null ? '–' : `${kw(s.avgKw)} kW`}</dd>
+                  <dt>Type</dt><dd>{s.type} · {s.typeSource === 'sensor' ? 'van de laadtype-sensor' : 'afgeleid uit het gemiddelde vermogen'}</dd>
+                </dl>
               {/if}
-            </span>
-          </li>
-        {/each}
-      </ul>
+            </li>
+          {/each}
+        </ul>
+      {/each}
       {#if shown < data.sessions.length}
         <button class="more" onclick={() => (shown += STEP)}>Meer tonen</button>
       {/if}
@@ -226,12 +255,106 @@
     flex-direction: column;
     min-width: 0;
   }
-  .sessions li.live {
-    border-left: 2px solid var(--accent);
-    padding-left: 10px;
+  .month {
+    margin: 14px 0 4px;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
   }
-  .sessions .row-sub {
+  .month:first-of-type {
+    margin-top: 0;
+  }
+  .sessions {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .sessions li {
+    border-top: 1px solid var(--line);
+  }
+  .sessions li:first-child {
+    border-top: 0;
+  }
+  .sessions li.live .srow {
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+  /* Three fixed columns, two lines; nothing wraps. */
+  .srow {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 10px;
+    width: 100%;
+    padding: 9px 0 6px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .srow:hover,
+  .srow:focus-visible {
+    box-shadow: none;
+  }
+  .srow:focus-visible .l1 {
+    text-decoration: underline;
+  }
+  .mid,
+  .end {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    white-space: nowrap;
+  }
+  .end {
+    align-items: flex-end;
+    text-align: right;
+  }
+  .mid .l1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .strong {
+    font-weight: 600;
+  }
+  .l2 {
+    font-size: 0.85rem;
+    color: var(--muted);
     font-variant-numeric: tabular-nums;
+  }
+  .socbar {
+    display: flex;
+    height: 4px;
+    margin-bottom: 8px;
+    background: var(--track);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .socbar .from {
+    background: var(--muted);
+    opacity: 0.6;
+  }
+  .socbar .added {
+    background: var(--accent);
+  }
+  .detail {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 2px 14px;
+    margin: 0 0 10px;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    background: var(--track);
+    border-radius: 8px;
+  }
+  .detail dt {
+    color: var(--muted);
+  }
+  .detail dd {
+    margin: 0;
   }
   .head {
     display: flex;
@@ -291,8 +414,9 @@
     background: var(--accent);
   }
   .badge {
-    margin-right: 6px;
-    vertical-align: 1px;
+    justify-self: center;
+    text-align: center;
+    width: 40px;
     font-family: var(--font-pixel);
     font-size: 1.1rem;
     line-height: 1;
