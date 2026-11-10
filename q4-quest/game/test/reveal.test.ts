@@ -42,6 +42,22 @@ describe('revealItems', () => {
     expect(again).toEqual([]);
   });
 
+  it('puts the weekly review first and shows completed challenges as challenge items', () => {
+    const challenge = { ...badge('challenge_2026-W45', 3), category: 'weekuitdaging' as const, xp: 100 };
+    const items = revealItems({
+      badges: [badge('first_100_day', 2), challenge],
+      timeline: { initial: [], events: [] },
+      records: [],
+      seen: new Set(),
+      now: 9,
+      weekReview: { week: '2026-W45', km: 312, sessions: 3, factKind: 'bestDay', fact: 'Beste dag: dinsdag met 120 km' },
+    });
+    expect(items.map((i) => i.kind)).toEqual(['week', 'badge', 'challenge']);
+    expect(items[0]).toMatchObject({ keys: ['week:2026-W45'], name: 'Vorige week', stats: [{ label: 'Gereden', value: '312 km' }, { label: 'Laadsessies', value: '3' }] });
+    const seen = revealItems({ badges: [], timeline: { initial: [], events: [] }, records: [], seen: new Set(['week:2026-W45']), now: 9, weekReview: items[0] && { week: '2026-W45', km: 1, sessions: null, factKind: 'quiet', fact: '' } });
+    expect(seen).toEqual([]);
+  });
+
   it('skips what has been seen', () => {
     const seen = new Set(['badge:first_100_day', 'level:1', 'level:2', 'level:3', 'record:bestDay:2026-03-02']);
     // (No rank item here: levels 1–4 stay within the starting rank Leerling.)

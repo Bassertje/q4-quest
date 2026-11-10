@@ -31,6 +31,18 @@ export interface CockpitData {
     unit: string;
     remaining: number;
   } | null;
+  challenge: {
+    week: string;
+    type: 'km' | 'days' | 'max_charges' | 'consumption';
+    title: string;
+    goal: string;
+    unit: string;
+    target: number;
+    current: number | null;
+    status: 'active' | 'done' | 'missed';
+    daysLeft: number;
+    xp: number;
+  } | null;
 }
 
 export interface StatusData {
@@ -97,6 +109,7 @@ export interface ChargingData {
   } | null;
   consumption: { kwhPer100km: number | null; km: number; kwh: number; sessions: number } | null;
   records: ChargingRecords | null;
+  green: GreenTotals | null;
 }
 
 export interface HistoryData {
@@ -113,10 +126,14 @@ export interface HistoryData {
       longestStreak: { days: number; start: string; end: string } | null;
       longestTrip: TripBlock | null;
     };
-    recentTrips: TripBlock[];
+    recentTrips: (TripBlock & { startTemp: number | null })[];
     timeline: { initial: TimelineEvent[]; events: TimelineEvent[] };
   } | null;
   chargingRecords: ChargingRecords | null;
+  monthly: MonthStats[];
+  dailyTemps: [string, number][];
+  hasTemperature: boolean;
+  challenges: ChallengeEntry[];
 }
 
 export interface BadgeView {
@@ -146,12 +163,13 @@ export interface BadgesData {
 
 export interface RevealItem {
   keys: string[];
-  kind: 'badge' | 'milestone' | 'level' | 'rank' | 'record';
+  kind: 'week' | 'badge' | 'milestone' | 'challenge' | 'level' | 'rank' | 'record';
   name: string;
   description: string;
   icon: string;
   ts: number;
   xp: number;
+  stats?: { label: string; value: string }[];
 }
 
 export interface YearsData {
@@ -182,6 +200,34 @@ export interface YearReview {
   newBadges: { id: string; name: string; icon: string; category: string; xp: number; ts: number }[];
   level: { start: number; end: number; startRank: string; endRank: string; xpGained: number };
   earth: { km: number; laps: number };
+  green: GreenTotals | null;
+  challengesDone: number;
+}
+
+export interface GreenTotals {
+  co2Kg: number | null;
+  liters: number;
+  trees: number | null;
+}
+
+export interface MonthStats {
+  month: string;
+  km: number;
+  kwh: number;
+  kwhPer100km: number | null;
+  avgTemp: number | null;
+}
+
+export interface ChallengeEntry {
+  week: string;
+  type: 'km' | 'days' | 'max_charges' | 'consumption';
+  target: number;
+  status: 'active' | 'done' | 'missed';
+  current: number | null;
+  completedTs: number | null;
+  title: string;
+  goal: string;
+  unit: string;
 }
 
 export interface YearData {

@@ -14,7 +14,7 @@ const at = (iso: string) => Date.parse(iso);
 function input(
   odometer: { ts: number; value: number }[],
   extra: Partial<BadgeInput> = {},
-  available: Requirement[] = ['odometer', 'charging', 'soc'],
+  available: Requirement[] = ['odometer', 'charging', 'soc', 'temperature'],
 ): BadgeInput {
   return {
     odometer,
@@ -22,6 +22,9 @@ function input(
     trips: tripBlocks(odometer),
     sessions: [],
     soc: [],
+    temperature: [],
+    green: { co2PetrolKgPerKm: 0.18, co2GridKgPerKwh: 0.33, petrolLPer100km: 6.5 },
+    challenges: [],
     timeZone: TZ,
     now: at('2026-12-31T00:00:00Z'),
     available: new Set(available),
@@ -193,6 +196,59 @@ describe('badge progress', () => {
   it('caps progress at the target and has none for other badges', () => {
     expect(progress('transsib')).toEqual({ current: 9_289, target: 9_289, unit: 'km' });
     expect(progress('first_100_day')).toBeNull();
+  });
+});
+
+describe('temperature, green and challenge badges', () => {
+  const odo = [
+    { ts: at('2026-01-04T12:00:00Z'), value: 20_000 },
+    { ts: at('2026-01-05T06:10:00Z'), value: 20_010 },
+    { ts: at('2026-01-05T06:30:00Z'), value: 20_030 },
+    { ts: at('2026-01-06T12:00:00Z'), value: 20_100 },
+    { ts: at('2026-01-07T12:00:00Z'), value: 20_200 },
+  ];
+  const temperature = [
+    { ts: at('2026-01-05T05:00:00Z'), value: -3 },
+    { ts: at('2026-01-06T12:00:00Z'), value: 2 },
+    { ts: at('2026-01-07T12:00:00Z'), value: 3 },
+  ];
+  const session = (iso: string, kwh: number): ChargingSession => ({
+    start: at(iso), end: at(iso) + H, ongoing: false, type: 'AC', socStart: 30, socEnd: 60, kwh, kwhMethod: 'soc', avgKw: kwh,
+  });
+
+  it('awards IJskoud for a trip with two readings that started below 0 °C', () => {
+    expect(unlocked(input(odo, { temperature }), 'ice_cold')).toBe(at('2026-01-05T06:30:00Z'));
+    expect(unlocked(input(odo, { temperature: [] }), 'ice_cold')).toBeNull();
+  });
+
+  it('awards Winterhard for a cold, efficient complete week', () => {
+    // Week 2 of 2026 (5–11 Jan): 200 km, 36 kWh = 18 kWh/100 km, average 0.7 °C.
+    const i = input(odo, { temperature, sessions: [session('2026-01-06T20:00:00Z', 36)] });
+    expect(unlocked(i, 'winter_hard')).toBe(at('2026-01-12T00:00:00Z'));
+    const thirsty = input(odo, { temperature, sessions: [session('2026-01-06T20:00:00Z', 44)] }); // 22 kWh/100 km
+    expect(unlocked(thirsty, 'winter_hard')).toBeNull();
+  });
+
+  it('dates the green badges when the CO₂ saving passes the threshold', () => {
+    const long = [{ ts: at('2026-03-01T08:00:00Z'), value: 1_000 }, { ts: at('2026-03-02T08:00:00Z'), value: 1_700 }];
+    const i = input(long, { sessions: [] });
+    // 700 km × 0.18 = 126 kg ≥ 100 kg at the second reading.
+    expect(unlocked(i, 'green_start')).toBe(at('2026-03-02T08:00:00Z'));
+    expect(evaluateBadges(i).find((b) => b.id === 'first_ton')?.progress).toEqual({ current: 126, target: 1000, unit: 'kg' });
+    expect(evaluateBadges(i).find((b) => b.id === 'never_refuel')?.progress).toEqual({ current: 45, target: 1000, unit: 'l' });
+  });
+
+  it('counts completed weekly challenges', () => {
+    const challenges = Array.from({ length: 10 }, (_, n) => ({ week: `w${n}`, completedTs: 1000 + n }));
+    expect(unlocked(input(odo, { challenges }), 'challenger')).toBe(1009);
+    expect(evaluateBadges(input(odo, { challenges })).find((b) => b.id === 'persistent')?.progress).toEqual({ current: 10, target: 25, unit: 'uitdagingen' });
+  });
+
+  it('hides temperature badges without a temperature sensor', () => {
+    const ids = evaluateBadges(input(odo, {}, ['odometer', 'charging'])).map((b) => b.id);
+    expect(ids).not.toContain('ice_cold');
+    expect(ids).not.toContain('winter_hard');
+    expect(ids).toContain('green_start');
   });
 });
 

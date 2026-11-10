@@ -16,4 +16,8 @@ export * from './reveal.ts';
 export * from './time.ts';
 export * from './timeline.ts';
 export * from './trips.ts';
+export * from './week-review.ts';
+export * from './challenges.ts';
+export * from './green.ts';
+export * from './temperature.ts';
 export * from './year.ts';

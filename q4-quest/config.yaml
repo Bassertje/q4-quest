@@ -1,5 +1,5 @@
 name: Q4 Quest
-version: "1.2.0"
+version: "1.3.0"
 slug: q4_quest
 description: Turn the kilometres and charging of your EV into XP, milestones and badges.
 arch:
@@ -16,6 +16,9 @@ homeassistant_api: true
 options:
   odometer_entity: ""
   battery_kwh: 77
+  co2_petrol_kg_per_km: 0.18
+  co2_grid_kg_per_kwh: 0.33
+  petrol_l_per_100km: 6.5
 schema:
   odometer_entity: str?
   soc_entity: str?
@@ -24,4 +27,8 @@ schema:
   charging_type_entity: str?
   range_entity: str?
   parking_brake_entity: str?
+  temperature_entity: str?
   battery_kwh: float(1,300)?
+  co2_petrol_kg_per_km: float(0,5)?
+  co2_grid_kg_per_kwh: float(0,5)?
+  petrol_l_per_100km: float(0,50)?

@@ -1,4 +1,6 @@
 import type { ChargingSession } from './charging.ts';
+import { co2Saved, litersSaved, type GreenFactors } from './green.ts';
+import { dailyTemperatures, temperatureAt } from './temperature.ts';
 import { currentStreak, periodTotals, STREAK_MIN_KM } from './distance.ts';
 import { MOON_KM, WORLD_TRIP, destinationXp, type TimedValue } from './milestones.ts';
 import { isoWeekStart, shiftPeriod } from './periods.ts';
@@ -6,10 +8,19 @@ import { dayProgress, dayReachTimes, firstGroupCrossing, type DayProgress } from
 import { addDays, dayKey, isWeekend, localHour, monthKey, weekKey, zonedMidnight } from './time.ts';
 import { MIN_READINGS_FOR_TIME_BADGES, type TripBlock } from './trips.ts';
 
-export type BadgeCategory = 'rijden' | 'laden' | 'zuinigheid' | 'wereldreis' | 'legendarisch';
+export type BadgeCategory =
+  | 'rijden'
+  | 'laden'
+  | 'zuinigheid'
+  | 'groen'
+  | 'uitdagingen'
+  | 'wereldreis'
+  | 'legendarisch'
+  /** Internal: a completed weekly challenge (100 XP), not shown in the badge grid. */
+  | 'weekuitdaging';
 
 /** A sensor key, or 'charging' for "charging power or charging state". */
-export type Requirement = 'odometer' | 'soc' | 'charging';
+export type Requirement = 'odometer' | 'soc' | 'charging' | 'temperature';
 
 /** Everything a badge check may look at. Pure data, no I/O. */
 export interface BadgeContext {
@@ -20,6 +31,11 @@ export interface BadgeContext {
   /** Finished charging sessions (ongoing ones are excluded), oldest first. */
   sessions: ChargingSession[];
   soc: TimedValue[];
+  /** Outdoor temperature readings (°C); empty when not configured. */
+  temperature: TimedValue[];
+  green: GreenFactors;
+  /** Completed weekly challenges. */
+  challenges: { week: string; completedTs: number }[];
   timeZone: string;
   now: number;
 }
@@ -140,6 +156,81 @@ function ecoWeek(ctx: BadgeContext): number | null {
   return null;
 }
 
+/** A complete ISO week colder than 5 °C on average with < 20 kWh/100 km over ≥ 150 km. */
+function winterWeek(ctx: BadgeContext): number | null {
+  const today = dayKey(ctx.now, ctx.timeZone);
+  const temps = dailyTemperatures(ctx.temperature, ctx.timeZone);
+  const weeks = new Map<string, { km: number; kwh: number; temps: number[] }>();
+  const get = (w: string) => {
+    let v = weeks.get(w);
+    if (!v) weeks.set(w, (v = { km: 0, kwh: 0, temps: [] }));
+    return v;
+  };
+  for (const [d, km] of ctx.dailyTotals) get(weekKey(d)).km += km;
+  for (const [d, t] of temps) get(weekKey(d)).temps.push(t);
+  for (const s of ctx.sessions) if (s.kwh !== null) get(weekKey(dayKey(s.start, ctx.timeZone))).kwh += s.kwh;
+  for (const w of [...weeks.keys()].sort()) {
+    const nextMonday = isoWeekStart(shiftPeriod('week', w, 1));
+    if (nextMonday > today) break;
+    const v = weeks.get(w)!;
+    if (!v.temps.length || v.km < WINTER_MIN_KM || v.kwh <= 0) continue;
+    const avgTemp = v.temps.reduce((a, b) => a + b, 0) / v.temps.length;
+    if (avgTemp < WINTER_MAX_AVG_TEMP && (v.kwh / v.km) * 100 < WINTER_MAX_KWH_PER_100) {
+      return zonedMidnight(nextMonday, ctx.timeZone);
+    }
+  }
+  return null;
+}
+
+/** First trip block (≥ 2 readings) that started below 0 °C. */
+function iceColdTrip(ctx: BadgeContext): number | null {
+  for (const t of ctx.trips) {
+    if (t.readings < MIN_READINGS_FOR_TIME_BADGES || t.confirmedTs === null) continue;
+    const temp = temperatureAt(ctx.temperature, t.start);
+    if (temp !== null && temp < 0) return t.confirmedTs;
+  }
+  return null;
+}
+
+/** Cumulative km and charged kWh over time, for the green badges. */
+function greenSteps(ctx: BadgeContext): { ts: number; km: number; kwh: number }[] {
+  const steps: { ts: number; dKm: number; dKwh: number }[] = [];
+  let lastDay: string | null = null;
+  let lastDayKm = 0;
+  for (const p of ctx.progress) {
+    if (p.day !== lastDay) {
+      lastDay = p.day;
+      lastDayKm = 0;
+    }
+    steps.push({ ts: p.ts, dKm: p.dayKm - lastDayKm, dKwh: 0 });
+    lastDayKm = p.dayKm;
+  }
+  for (const s of ctx.sessions) steps.push({ ts: s.end, dKm: 0, dKwh: s.kwh ?? 0 });
+  steps.sort((a, b) => a.ts - b.ts);
+  let km = 0;
+  let kwh = 0;
+  return steps.map((s) => ({ ts: s.ts, km: (km += s.dKm), kwh: (kwh += s.dKwh) }));
+}
+
+const co2Crossing = (kg: number) => (ctx: BadgeContext) =>
+  greenSteps(ctx).find((s) => co2Saved(s.km, s.kwh, ctx.green) >= kg)?.ts ?? null;
+
+function co2Now(ctx: BadgeContext): number {
+  const last = greenSteps(ctx).at(-1);
+  return last ? Math.max(0, Math.floor(co2Saved(last.km, last.kwh, ctx.green))) : 0;
+}
+
+function litersNow(ctx: BadgeContext): number {
+  const last = greenSteps(ctx).at(-1);
+  return last ? Math.floor(litersSaved(last.km, ctx.green)) : 0;
+}
+
+const nthChallenge = (n: number) => (ctx: BadgeContext) =>
+  [...ctx.challenges].sort((a, b) => a.completedTs - b.completedTs)[n - 1]?.completedTs ?? null;
+
+export const WINTER_MAX_AVG_TEMP = 5;
+export const WINTER_MAX_KWH_PER_100 = 20;
+export const WINTER_MIN_KM = 150;
 export const ECO_WEEK_MIN_KM = 150;
 export const ECO_WEEK_MAX_KWH_PER_100 = 17;
 export const DC_FULL_AVG_KW = 75;
@@ -160,6 +251,9 @@ export const BADGES: BadgeDef[] = [
   { id: 'early_bird', name: 'Vroege vogel', description: 'Een rit die begon tussen 05:00 en 06:00.', hint: 'Vertrek heel vroeg in de ochtend.', category: 'rijden', xp: 75, requires: ['odometer'], icon: 'sunrise', check: (c) => tripStartingBetween(c, 5, 6) },
   { id: 'rest_day', name: 'Rustdag', description: '7 dagen op rij niet gereden.', hint: '???', category: 'rijden', xp: 25, requires: ['odometer'], hidden: true, icon: 'zz', check: (c) => restDays(c, 7) },
 
+  { id: 'ice_cold', name: 'IJskoud', description: 'Een rit die begon bij een temperatuur onder 0 °C.', hint: 'Ga op pad als het vriest.', category: 'rijden', xp: 75, requires: ['odometer', 'temperature'], icon: 'snowflake', check: iceColdTrip },
+  { id: 'winter_hard', name: 'Winterhard', description: `Een week met gemiddeld minder dan ${WINTER_MAX_AVG_TEMP} °C en toch een verbruik onder ${WINTER_MAX_KWH_PER_100} kWh/100 km (minstens ${WINTER_MIN_KM} km).`, hint: 'Rij een koude week toch zuinig.', category: 'rijden', xp: 150, requires: ['odometer', 'temperature', 'charging'], icon: 'snowman', check: winterWeek },
+
   // Laden
   { id: 'first_charge', name: 'Eerste prik', description: 'Je eerste laadsessie.', hint: 'Laad de auto op.', category: 'laden', xp: 25, requires: ['charging'], icon: 'plug', check: nthSession(1) },
   { id: 'first_dc', name: 'Snelle jongen', description: 'Je eerste DC-snellaadsessie.', hint: 'Laad een keer aan een snellader.', category: 'laden', xp: 50, requires: ['charging'], icon: 'bolt', check: (c) => firstSession(c, (s) => s.type === 'DC') },
@@ -170,6 +264,17 @@ export const BADGES: BadgeDef[] = [
   { id: 'running_on_fumes', name: 'Op de valreep', description: 'Een accupercentage van 10% of lager gemeten.', hint: 'Rij de accu bijna leeg.', category: 'laden', xp: 75, requires: ['soc'], icon: 'batteryLow', check: (c) => c.soc.find((r) => r.value <= 10)?.ts ?? null },
   { id: 'dc_150', name: 'Volle bak', description: `Gemiddeld ${DC_FULL_AVG_KW} kW of meer in één laadsessie.`, hint: 'Laad met een hoog gemiddeld vermogen.', category: 'laden', xp: 100, requires: ['charging'], icon: 'bolts', check: (c) => firstSession(c, (s) => (s.avgKw ?? 0) >= DC_FULL_AVG_KW) },
   { id: 'mwh_1', name: 'Eerste megawattuur', description: 'In totaal 1.000 kWh geladen.', hint: 'Laad in totaal 1.000 kWh.', category: 'laden', xp: 250, requires: ['charging'], icon: 'medal', check: (c) => cumulativeKwh(c, 1000), progress: (c) => progressOf(Math.round(c.sessions.reduce((sum, s) => sum + (s.kwh ?? 0), 0)), 1000, 'kWh') },
+
+  // Groen
+  { id: 'green_start', name: 'Groene start', description: '100 kg CO₂ bespaard ten opzichte van een benzineauto.', hint: 'Bespaar 100 kg CO₂.', category: 'groen', xp: 50, requires: ['odometer', 'charging'], icon: 'seedling', check: co2Crossing(100), progress: (c) => progressOf(co2Now(c), 100, 'kg') },
+  { id: 'first_ton', name: 'Eerste ton', description: '1.000 kg CO₂ bespaard.', hint: 'Bespaar een ton CO₂.', category: 'groen', xp: 200, requires: ['odometer', 'charging'], icon: 'weight', check: co2Crossing(1000), progress: (c) => progressOf(co2Now(c), 1000, 'kg') },
+  { id: 'climate_champion', name: 'Klimaatkampioen', description: '5.000 kg CO₂ bespaard.', hint: 'Bespaar 5 ton CO₂.', category: 'groen', xp: 500, requires: ['odometer', 'charging'], icon: 'globeLeaf', check: co2Crossing(5000), progress: (c) => progressOf(co2Now(c), 5000, 'kg') },
+  { id: 'never_refuel', name: 'Nooit meer tanken', description: '1.000 liter benzine niet verbrand.', hint: 'Rij 1.000 liter benzine bij elkaar.', category: 'groen', xp: 250, requires: ['odometer'], icon: 'pumpX', check: (c) => greenSteps(c).find((s) => litersSaved(s.km, c.green) >= 1000)?.ts ?? null, progress: (c) => progressOf(litersNow(c), 1000, 'l') },
+
+  // Uitdagingen
+  { id: 'challenger', name: 'Uitdager', description: '10 weekuitdagingen gehaald.', hint: 'Haal 10 weekuitdagingen.', category: 'uitdagingen', xp: 150, requires: ['odometer'], icon: 'target', check: nthChallenge(10), progress: (c) => progressOf(c.challenges.length, 10, 'uitdagingen') },
+  { id: 'persistent', name: 'Doorzetter', description: '25 weekuitdagingen gehaald.', hint: 'Haal 25 weekuitdagingen.', category: 'uitdagingen', xp: 300, requires: ['odometer'], icon: 'boot', check: nthChallenge(25), progress: (c) => progressOf(c.challenges.length, 25, 'uitdagingen') },
+  { id: 'challenge_year', name: 'Een jaar vol uitdagingen', description: '52 weekuitdagingen gehaald.', hint: 'Haal 52 weekuitdagingen.', category: 'uitdagingen', xp: 600, requires: ['odometer'], icon: 'calendar52', check: nthChallenge(52), progress: (c) => progressOf(c.challenges.length, 52, 'uitdagingen') },
 
   // Legendarisch
   { id: 'moon_trip', name: 'Maanreis', description: 'De afstand tot de maan op de teller: 384.400 km.', hint: 'Rij in totaal de afstand tot de maan (384.400 km).', category: 'legendarisch', xp: 5000, requires: ['odometer'], icon: 'moonTrip', check: (c) => c.odometer.find((r) => r.value >= MOON_KM)?.ts ?? null, progress: (c) => progressOf(Math.floor(c.odometer.at(-1)?.value ?? 0), MOON_KM, 'km') },

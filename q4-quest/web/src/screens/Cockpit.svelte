@@ -1,7 +1,7 @@
 <script lang="ts">
   import { getJson } from '../lib/api';
   import Bar from '../lib/Bar.svelte';
-  import { ago, date, km } from '../lib/format';
+  import { ago, date, km, num1 } from '../lib/format';
   import Odometer from '../lib/Odometer.svelte';
   import PixelIcon from '../lib/PixelIcon.svelte';
   import RankOverview from '../lib/RankOverview.svelte';
@@ -122,6 +122,37 @@
     {/if}
   </a>
 
+  {#if data.challenge}
+    {@const ch = data.challenge}
+    {@const cur = ch.current ?? 0}
+    <section class="panel challenge" class:done={ch.status === 'done'}>
+      <div class="row">
+        <div class="unlocked">
+          <PixelIcon icon="target" size={36} />
+          <span>
+            <span class="label">Weekuitdaging · {ch.title}</span>
+            <span class="badge-name block">{ch.goal}</span>
+          </span>
+        </div>
+        <div class="muted small right">
+          {#if ch.status === 'done'}<strong class="accent">Gehaald!</strong><br />+{ch.xp} XP{:else}nog {ch.daysLeft} {ch.daysLeft === 1 ? 'dag' : 'dagen'}<br />+{ch.xp} XP{/if}
+        </div>
+      </div>
+      {#if ch.type === 'max_charges'}
+        <Bar fraction={Math.min(1, cur / ch.target)} label="Laadsessies deze week" />
+        <div class="muted small count">{cur} van max. {ch.target} {ch.unit} · wordt zondag beoordeeld</div>
+      {:else if ch.type === 'consumption'}
+        <Bar fraction={ch.current === null ? 0 : Math.min(1, ch.target / Math.max(ch.current, 0.1))} label="Verbruik deze week" />
+        <div class="muted small count">
+          {ch.current === null ? 'nog te weinig data deze week' : `nu ${num1(ch.current)} ${ch.unit}`} · doel ≤ {num1(ch.target)} · wordt zondag beoordeeld
+        </div>
+      {:else}
+        <Bar fraction={Math.min(1, cur / ch.target)} label="Voortgang weekuitdaging" />
+        <div class="muted small count">{km(cur)} / {km(ch.target)} {ch.unit}</div>
+      {/if}
+    </section>
+  {/if}
+
   <section class="tiles">
     <div class="panel tile">
       <div class="label">Vandaag</div>
@@ -236,13 +267,21 @@
     color: var(--muted);
     margin-left: 4px;
   }
+  .challenge.done {
+    border-color: var(--accent);
+    box-shadow: var(--glow);
+  }
+  .accent {
+    color: var(--accent);
+  }
   .followed .row {
     align-items: center;
   }
   .block {
     display: block;
   }
-  .destination .count {
+  .destination .count,
+  .challenge .count {
     text-align: left;
   }
   .count {

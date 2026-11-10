@@ -16,7 +16,7 @@
   let index = $state(0);
   let track: HTMLDivElement | undefined = $state();
 
-  type Card = 'intro' | 'km' | 'bestDay' | 'bestWeek' | 'streak' | 'charging' | 'acdc' | 'badges' | 'level' | 'earth' | 'outro' | 'share';
+  type Card = 'intro' | 'km' | 'bestDay' | 'bestWeek' | 'streak' | 'charging' | 'acdc' | 'green' | 'badges' | 'level' | 'earth' | 'outro' | 'share';
 
   /** Only cards that have something to show. */
   function cardsFor(r: YearReview): Card[] {
@@ -25,6 +25,7 @@
     if (r.bestWeek) cards.push('bestWeek');
     if (r.longestStreak) cards.push('streak');
     if (r.charging && r.charging.sessions > 0) cards.push('charging', 'acdc');
+    if (r.green) cards.push('green');
     cards.push('badges', 'level', 'earth', 'outro', 'share');
     return cards;
   }
@@ -176,6 +177,20 @@
                 <span><strong class="lcd mid">{acPct}%</strong> AC<br /><span class="muted small">{r.charging.ac.sessions} sessies · ~{km(r.charging.ac.kwh)} kWh</span></span>
                 <span class="right"><strong class="lcd mid accent">{100 - acPct}%</strong> DC<br /><span class="muted small">{r.charging.dc.sessions} sessies · ~{km(r.charging.dc.kwh)} kWh</span></span>
               </div>
+            {:else if card === 'green' && r.green}
+              <PixelIcon icon="globeLeaf" size={80} />
+              <p class="kicker">Groen</p>
+              {#if r.green.co2Kg !== null}
+                <p class="huge lcd">{km(r.green.co2Kg)}<span class="unit">kg CO₂</span></p>
+                <p>bespaard ten opzichte van een benzineauto</p>
+              {/if}
+              <div class="green-row">
+                <span><strong class="lcd mid">{km(r.green.liters)}</strong> liter<br /><span class="muted small">benzine niet verbrand</span></span>
+                {#if r.green.trees !== null}
+                  <span><strong class="lcd mid">{num1(r.green.trees)}</strong> bomen<br /><span class="muted small">een jaar lang CO₂ opnemen</span></span>
+                {/if}
+              </div>
+              <p class="muted small">schatting</p>
             {:else if card === 'badges'}
               <p class="kicker">Nieuwe badges</p>
               <p class="huge lcd">{r.newBadges.length}</p>
@@ -414,6 +429,12 @@
   }
   .split-legend .right {
     text-align: right;
+  }
+  .green-row {
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    margin-top: 10px;
   }
   .badge-grid {
     list-style: none;

@@ -34,8 +34,17 @@ export function shareContent(r: YearReview) {
     { label: 'Level', value: String(r.level.end) },
     { label: 'Rang', value: r.level.endRank },
   ];
+  const g = r.green;
+  const green: ShareTile[] = g
+    ? [
+        ...(g.co2Kg !== null ? [{ label: 'CO₂ bespaard', value: nf.format(g.co2Kg), unit: 'kg' }] : []),
+        { label: 'Niet verbrand', value: nf.format(g.liters), unit: 'liter' },
+        ...(g.trees !== null ? [{ label: 'Bomen', value: new Intl.NumberFormat('nl-NL', { maximumFractionDigits: 1 }).format(g.trees) }] : []),
+      ]
+    : [];
   return {
     title: 'Q4 QUEST',
+    green,
     year: String(r.year),
     km: nf.format(r.totalKm),
     kmDigits: String(Math.round(r.totalKm)),
@@ -138,7 +147,7 @@ export async function renderShareCard(review: YearReview): Promise<Blob> {
 
   // LCD with the kilometres driven this year (not the odometer).
   const lcdY = 300;
-  const lcdH = 340;
+  const lcdH = 300;
   roundRect(ctx, M, lcdY, W, lcdH, 36);
   ctx.fillStyle = v.lcdBg;
   ctx.fill();
@@ -173,10 +182,10 @@ export async function renderShareCard(review: YearReview): Promise<Blob> {
   ctx.textAlign = 'left';
 
   // Highlights: 2 × 4 tiles.
-  const gridY = lcdY + lcdH + 104;
-  const gap = 20;
+  const gridY = lcdY + lcdH + 96;
+  const gap = 18;
   const tileW = (W - gap) / 2;
-  const tileH = 150;
+  const tileH = 136;
   content.tiles.forEach((t, i) => {
     const x = M + (i % 2) * (tileW + gap);
     const y = gridY + Math.floor(i / 2) * (tileH + gap);
@@ -188,21 +197,51 @@ export async function renderShareCard(review: YearReview): Promise<Blob> {
     ctx.stroke();
     ctx.fillStyle = v.muted;
     ctx.font = `400 34px ${SANS}`;
-    ctx.fillText(t.label, x + 32, y + 50);
-    const valueSize = fitFont(ctx, t.value + (t.unit ? ` ${t.unit}` : ''), PIXEL, 88, tileW - 64);
+    ctx.fillText(t.label, x + 32, y + 46);
+    const valueSize = fitFont(ctx, t.value + (t.unit ? ` ${t.unit}` : ''), PIXEL, 80, tileW - 64);
     ctx.font = `${valueSize}px ${PIXEL}`;
     ctx.fillStyle = t.label === 'Level' || t.label === 'Rang' ? v.accent : v.text;
-    ctx.fillText(t.value, x + 32, y + 124);
+    ctx.fillText(t.value, x + 32, y + 112);
     if (t.unit) {
       const w = ctx.measureText(t.value).width;
       ctx.fillStyle = v.muted;
       ctx.font = `${Math.round(valueSize * 0.5)}px ${PIXEL}`;
-      ctx.fillText(t.unit, x + 32 + w + 12, y + 124);
+      ctx.fillText(t.unit, x + 32 + w + 12, y + 112);
     }
   });
 
+  // Green row: CO₂ saved, litres not burned, trees (estimates).
+  let afterGrid = gridY + 4 * (tileH + gap);
+  if (content.green.length) {
+    const gw = (W - gap * (content.green.length - 1)) / content.green.length;
+    const gh = 120;
+    content.green.forEach((t, i) => {
+      const x = M + i * (gw + gap);
+      roundRect(ctx, x, afterGrid, gw, gh, 24);
+      ctx.fillStyle = v.panel;
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = v.accent;
+      ctx.stroke();
+      ctx.fillStyle = v.muted;
+      ctx.font = `400 30px ${SANS}`;
+      ctx.fillText(t.label, x + 24, afterGrid + 42);
+      const size = fitFont(ctx, t.value + (t.unit ? ` ${t.unit}` : ''), PIXEL, 70, gw - 48);
+      ctx.font = `${size}px ${PIXEL}`;
+      ctx.fillStyle = v.text;
+      ctx.fillText(t.value, x + 24, afterGrid + 100);
+      if (t.unit) {
+        const w = ctx.measureText(t.value).width;
+        ctx.fillStyle = v.muted;
+        ctx.font = `${Math.round(size * 0.5)}px ${PIXEL}`;
+        ctx.fillText(t.unit, x + 24 + w + 10, afterGrid + 100);
+      }
+    });
+    afterGrid += gh + gap;
+  }
+
   // Badges earned this year.
-  const badgesY = gridY + 4 * (tileH + gap) + 44;
+  const badgesY = afterGrid + 40;
   ctx.fillStyle = v.text;
   ctx.font = `600 40px ${SANS}`;
   ctx.fillText(

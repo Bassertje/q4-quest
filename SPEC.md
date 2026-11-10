@@ -24,7 +24,11 @@ Een rustige maar verslavende game rond je elektrische auto: kilometers worden XP
 | `charging_type_entity` | entity | nee | AC/DC |
 | `range_entity` | entity | nee | actieradius |
 | `parking_brake_entity` | entity | nee | hulp bij het afbakenen van ritten |
+| `temperature_entity` | entity | nee | buitentemperatuur (°C of °F; opgeslagen in °C) |
 | `battery_kwh` | float | nee, standaard 77 | bruikbare accucapaciteit, voor kWh-schattingen |
+| `co2_petrol_kg_per_km` | float | nee, standaard 0.18 | CO₂ van een benzineauto per km |
+| `co2_grid_kg_per_kwh` | float | nee, standaard 0.33 | CO₂ van stroom uit het net per kWh |
+| `petrol_l_per_100km` | float | nee, standaard 6.5 | verbruik van een vergelijkbare benzineauto |
 
 Defaults zijn leeg. Zonder `odometer_entity` toont de app een vriendelijk instelscherm met uitleg.
 
@@ -137,11 +141,63 @@ Badges die op tijdstip gebaseerd zijn (`night_owl`, `early_bird`) tellen alleen 
 |---|---|---|---|
 | eco_week | Zuinige week | weekschatting ≤ 17 kWh/100 km bij ≥ 150 km | 100 |
 
+**Rijden – temperatuur** (alleen met `temperature_entity`)
+
+| id | Naam | Voorwaarde | XP |
+|---|---|---|---|
+| ice_cold | IJskoud | ritblok gestart bij < 0 °C, met minstens twee odometer-metingen | 75 |
+| winter_hard | Winterhard | afgeronde week met gemiddeld < 5 °C en verbruiksschatting < 20 kWh/100 km bij ≥ 150 km (ook laadsensoren nodig) | 150 |
+
+**Groen** (schattingen; zie Groen hieronder)
+
+| id | Naam | Voorwaarde | XP |
+|---|---|---|---|
+| green_start | Groene start | 100 kg CO₂ bespaard (laadsensoren nodig) | 50 |
+| first_ton | Eerste ton | 1.000 kg CO₂ bespaard (laadsensoren nodig) | 200 |
+| climate_champion | Klimaatkampioen | 5.000 kg CO₂ bespaard (laadsensoren nodig) | 500 |
+| never_refuel | Nooit meer tanken | 1.000 liter benzine niet verbrand | 250 |
+
+**Uitdagingen**
+
+| id | Naam | Voorwaarde | XP |
+|---|---|---|---|
+| challenger | Uitdager | 10 weekuitdagingen gehaald | 150 |
+| persistent | Doorzetter | 25 weekuitdagingen gehaald | 300 |
+| challenge_year | Een jaar vol uitdagingen | 52 weekuitdagingen gehaald | 600 |
+
+Alle nieuwe badges hebben een eigen pixel-art icoon en worden met terugwerkende kracht berekend. Badges met voortgang (Groen, Uitdagingen) zijn te volgen; IJskoud en Winterhard zijn ja/nee-badges zonder meetbare voortgang.
+
 **Legendarisch**
 
 | id | Naam | Voorwaarde | XP |
 |---|---|---|---|
 | moon_trip | Maanreis | kilometerstand ≥ 384.400 km (de afstand tot de maan), met voortgang | 5.000 |
+
+### Temperatuur (alleen met `temperature_entity`)
+- De temperatuur wordt meegelezen zoals de andere sensoren (ook in de backfill) en opgeslagen in °C.
+- Elk ritblok krijgt de temperatuur bij de start (de laatste meting vóór de start, mits niet ouder dan 3 uur). Elke dag krijgt het daggemiddelde (gemiddelde van de metingen van die dag).
+- Historie toont de temperatuur bij de recente ritblokken en in de daggrafiek, en een grafiek met verbruik per maand (staven) en de gemiddelde temperatuur (lijn). Het maandverbruik is een schatting en wordt pas getoond vanaf 100 km in die maand.
+
+### Groen
+- CO₂ bespaard = km × `co2_petrol_kg_per_km` − geladen kWh × `co2_grid_kg_per_kwh`; nooit negatief getoond. Zonder laadsensoren wordt geen CO₂ getoond.
+- Liters niet verbrand = km × `petrol_l_per_100km` / 100.
+- Bomen = CO₂ ÷ 20 kg (wat één boom per jaar opneemt).
+- De km zijn de gemeten km (som van de dagtotalen), niet de totale kilometerstand.
+- Getoond op het Laden-scherm (met "schatting"), in een slide van het jaaroverzicht en op de deelkaart.
+
+### Weekuitdaging
+- Elke week (maandag 00:00 in de HA-tijdzone) wordt één uitdaging gekozen. De keuze gebeurt de eerste keer dat de app in die week rekent, met alleen de gegevens van vóór die maandag; een week waarin de app niet draait, krijgt geen uitdaging. Bij de eerste start na de update krijgt de lopende week meteen een uitdaging.
+- Pool (laaduitdagingen alleen met laadsensoren):
+  - **km** – rij deze week minstens X km. Doel = gemiddelde van de laatste 4 volledige weken × 1,1, afgerond op 10 (minimaal 50). Startwaarde 200 km.
+  - **days** – rij op minstens X dagen. Doel = afgerond gemiddelde + 1 (tussen 2 en 7). Startwaarde 4.
+  - **max_charges** – laad hooguit X keer. Doel = gemiddelde × 0,9, naar beneden (minimaal 1). Startwaarde 3.
+  - **consumption** – verbruiksschatting ≤ X kWh/100 km bij minstens 100 km. Doel = gemiddelde × 0,95. Startwaarde 18.
+- Zonder 4 volledige weken meting worden de startwaarden gebruikt. Het type wordt deterministisch per week gekozen en is nooit hetzelfde als vorige week.
+- km- en dagen-uitdagingen zijn gehaald zodra het doel bereikt is; laad- en verbruiksuitdagingen worden aan het eind van de week beoordeeld. Gehaald = 100 bonus-XP (telt mee voor het level) en een item in het reveal-scherm. Niet gehaald aan het eind van de week = gemist.
+- Uitdagingen en resultaten staan in de database (tabel `challenges`) en blijven als geschiedenis zichtbaar in Historie. De cockpit toont de uitdaging van deze week met doel, voortgang en resterende dagen.
+
+### Weekterugblik
+- Bij de eerste keer openen in een nieuwe week verschijnt vóór de reveal-items één kaart "Vorige week": gereden km, aantal laadsessies (met laadsensoren) en het meest opvallende feit. Volgorde: een nieuw record dat vorige week is gezet > de weekuitdaging (gehaald of gemist) > de beste dag van de week. De kaart heeft een eigen seen-vlag per week en verschijnt pas als er een volledige week meting achter ligt.
 
 ### Gevolgde badge
 - Op de cockpit staat één **gevolgde badge**: icoon, naam, voortgangsbalk "huidig / doel" en wat er nog resteert. Een tik opent het Badges-scherm.
@@ -157,6 +213,7 @@ Beste dag, beste week, beste maand, langste streak, langste ritblok, snelste laa
 - Bij het openen van de app verschijnt eerst een **reveal-scherm**: niet-geziene items één voor één (oudste eerst), met een korte retro-animatie (pixel-burst, geen geluid). Elk item wordt als gezien gemarkeerd zodra je verder gaat.
 - Na 3 items verschijnt een knop **"Toon alles"**: de overige items staan dan in één lijst en worden met "Klaar" allemaal als gezien gemarkeerd. Zo wordt een grote inhaalslag (bijv. de eerste keer na de badge-update) geen reeks van 20 losse schermen.
 - Level-ups worden samengevoegd tot één item: het hoogste nieuwe level, met het aantal gestegen levels.
+- Een gehaalde weekuitdaging is een eigen item ("Uitdaging gehaald", +100 XP). De weekterugblik staat altijd vooraan.
 - Een nieuwe rang is een eigen item ("Nieuwe rang", met het pixel-art icoon van die rang). Zijn er meerdere nieuwe rangen tegelijk, dan verschijnt alleen de hoogste.
 - Ook records die al bestonden vóór de eerste reveal, verschijnen daarin (net als badges, bestemmingen en level-ups). Daarna verschijnt een record alleen opnieuw als het wordt verbeterd in een andere periode of rit.
 - Daarbuiten is alles rustig: geen meldingen.
@@ -175,19 +232,22 @@ Navigatie onderaan (mobiel-eerst), bovenaan op desktop, met de tabs Cockpit, Bad
    - De huidige streak.
    - Laatst ontgrendelde badge.
    - SoC en actieradius, als die zijn ingesteld.
+   - De weekuitdaging van deze week: doel, voortgang, resterende dagen en +100 XP.
    - De gevolgde badge (zie Badges → Gevolgde badge). Er is geen aparte maanreis-kaart meer; de Maanreis is een badge.
 2. **Badges**
-   - Raster per categorie (Rijden, Laden, Zuinigheid, Wereldreis, Legendarisch). Ontgrendeld: icoon in kleur met datum en bonus-XP. Vergrendeld: silhouet met hint. Verborgen badges tonen "???" (naam en hint blijven geheim tot ontgrendeling). Badges die van een niet-ingestelde sensor afhangen, verschijnen niet.
+   - Raster per categorie (Rijden, Laden, Zuinigheid, Groen, Uitdagingen, Wereldreis, Legendarisch). Ontgrendeld: icoon in kleur met datum en bonus-XP. Vergrendeld: silhouet met hint. Verborgen badges tonen "???" (naam en hint blijven geheim tot ontgrendeling). Badges die van een niet-ingestelde sensor afhangen, verschijnen niet.
    - Voortgang: vergrendelde telbare badges (Wereldreis, Maanreis, laadaantallen, streaks, maand-/week-km, megawattuur) tonen een dun voortgangsbalkje met "huidig / doel". Streaks tellen de huidige reeks, maand/week de lopende periode.
    - Kaarten: twee kolommen op schermen smaller dan 420px, anders drie (vier vanaf 560px). Namen worden nooit midden in een woord afgebroken.
    - Teller "x / y".
 3. **Historie**
    - Staafgrafiek km per dag, week en maand (schakelbaar).
    - Recordlijst.
+   - Verbruik per maand met gemiddelde temperatuur (zie Temperatuur), recente ritblokken met de temperatuur bij de start, en de geschiedenis van de weekuitdagingen.
    - Tijdlijn van gebeurtenissen (badges, Wereldreis-bestemmingen, level-ups).
 4. **Laden**
    - Lijst met sessies (datum, AC/DC, kWh-schatting, SoC van → naar, gem. kW).
    - Totalen en de verbruiksschatting.
+   - Groen: CO₂ bespaard, liters niet verbrand en bomen, met het label "schatting".
 5. **Instellingen** (klein, via een tandwiel)
    - Status van de HA-verbinding.
    - Welke sensoren zijn ingesteld.
@@ -196,8 +256,8 @@ Navigatie onderaan (mobiel-eerst), bovenaan op desktop, met de tabs Cockpit, Bad
    - Weergave: Automatisch / Licht / Donker (standaard Automatisch, via `prefers-color-scheme`). De keuze wordt in de database opgeslagen.
    - Knop "Voorbeeld jaaroverzicht": toont het jaaroverzicht van het lopende jaar met de data tot nu toe, ook vóór 1 december.
 6. **Jaaroverzicht** (volledig scherm, geen tab)
-   - Swipebare kaarten (vegen, pijlen, toetsenbord of stippen): intro, totaal km (en aantal rijdagen), beste dag, beste week, langste streak, aantal laadsessies en geladen kWh, AC/DC-verhouding, nieuwe badges (met iconen en bonus-XP), level-groei (level aan het begin → nu/eind, met XP en rang), "Rondje aarde"-vergelijking (km ÷ 40.075) en een afsluiter. Kaarten zonder gegevens (bijv. laden zonder laadsensoren) vallen weg.
-   - **Deelkaart** als laatste slide: een PNG van 1080×1920, getekend met canvas (geen screenshot-library) in de huisstijl van het actieve thema, pas nadat de fonts geladen zijn. Inhoud: "Q4 Quest" + jaar, grote LCD-weergave van de gereden km dat jaar, een raster met hoogtepunten (beste dag, beste week, langste streak, laadsessies, geladen kWh, AC/DC-verhouding, level en rang aan het eind van het jaar) en de in dat jaar gehaalde badges als pixel-iconen. Niets herleidbaars: geen totale kilometerstand van de auto, geen ritdatums of -tijden. De slide toont een voorbeeld; de knop **Delen** gebruikt `navigator.share` met het bestand als `canShare({ files })` dat ondersteunt, en downloadt anders `q4-quest-<jaar>.png`.
+   - Swipebare kaarten (vegen, pijlen, toetsenbord of stippen): intro, totaal km (en aantal rijdagen), beste dag, beste week, langste streak, aantal laadsessies en geladen kWh, AC/DC-verhouding, Groen (CO₂, liters, bomen), nieuwe badges (met iconen en bonus-XP), level-groei (level aan het begin → nu/eind, met XP en rang), "Rondje aarde"-vergelijking (km ÷ 40.075) en een afsluiter. Kaarten zonder gegevens (bijv. laden zonder laadsensoren) vallen weg.
+   - **Deelkaart** als laatste slide: een PNG van 1080×1920, getekend met canvas (geen screenshot-library) in de huisstijl van het actieve thema, pas nadat de fonts geladen zijn. Inhoud: "Q4 Quest" + jaar, grote LCD-weergave van de gereden km dat jaar, een raster met hoogtepunten (beste dag, beste week, langste streak, laadsessies, geladen kWh, AC/DC-verhouding, level en rang aan het eind van het jaar), een rij met CO₂ bespaard, liters niet verbrand en bomen, en de in dat jaar gehaalde badges als pixel-iconen. Niets herleidbaars: geen totale kilometerstand van de auto, geen ritdatums of -tijden. De slide toont een voorbeeld; de knop **Delen** gebruikt `navigator.share` met het bestand als `canShare({ files })` dat ondersteunt, en downloadt anders `q4-quest-<jaar>.png`.
    - Alles per kalenderjaar in de tijdzone van HA. Begon de meting in dat jaar, dan loopt het overzicht vanaf de eerste meting; badges die al bij de eerste meting gehaald waren, tellen niet als nieuw.
    - Beschikbaar vanaf 1 december van dat jaar; eerdere jaren blijven altijd terug te kijken (lijst "Jaaroverzichten" in Historie). In december (en in januari voor het vorige jaar) staat een melding op de Cockpit.
 

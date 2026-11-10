@@ -1,4 +1,13 @@
-import { pickFollowedBadge, type Cockpit } from '../../game/src/index.ts';
+import {
+  CHALLENGE_XP,
+  dayKey,
+  daysLeft,
+  describeChallenge,
+  pickFollowedBadge,
+  weekKey,
+  type ChallengeType,
+  type Cockpit,
+} from '../../game/src/index.ts';
 import type { GameState } from './game-state.ts';
 import type { Options, SensorKey } from './options.ts';
 import type { ReadingStore } from './readings.ts';
@@ -20,6 +29,19 @@ export interface CockpitResponse {
     unit: string;
     remaining: number;
   } | null;
+  /** This week's challenge. */
+  challenge: {
+    week: string;
+    type: ChallengeType;
+    title: string;
+    goal: string;
+    unit: string;
+    target: number;
+    current: number | null;
+    status: 'active' | 'done' | 'missed';
+    daysLeft: number;
+    xp: number;
+  } | null;
 }
 
 function latestNumber(store: ReadingStore, options: Options, key: SensorKey) {
@@ -36,7 +58,21 @@ export function cockpitResponse(
   followedId: string | null = null,
 ): CockpitResponse {
   const f = pickFollowedBadge(state.badges, followedId);
+  const week = weekKey(dayKey(state.now, state.timeZone));
+  const ch = state.challenges.find((c) => c.week === week);
   return {
+    challenge: ch
+      ? {
+          week: ch.week,
+          type: ch.type,
+          ...describeChallenge(ch.type, ch.target),
+          target: ch.target,
+          current: ch.current,
+          status: ch.status,
+          daysLeft: daysLeft(ch.week, state.now, state.timeZone),
+          xp: CHALLENGE_XP,
+        }
+      : null,
     followed: f
       ? {
           id: f.badge.id,

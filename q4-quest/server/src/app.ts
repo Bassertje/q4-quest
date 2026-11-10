@@ -37,7 +37,7 @@ const KEEPALIVE_MS = 30_000;
 /** Build the HTTP app. Kept free of side effects so it can be tested with inject(). */
 export function buildApp(deps: AppDeps): FastifyInstance {
   const app = Fastify({ logger: false });
-  const cache = new GameStateCache(deps.store, deps.options);
+  const cache = new GameStateCache(deps.store, deps.options, deps.db);
   const state = () => cache.get(deps.timeZone());
 
   app.get('/api/status', async () => ({

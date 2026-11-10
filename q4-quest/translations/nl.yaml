@@ -20,6 +20,18 @@ configuration:
   parking_brake_entity:
     name: Parkeerrem-sensor
     description: Helpt om ritten van elkaar te scheiden. Optioneel.
+  temperature_entity:
+    name: Buitentemperatuur-sensor
+    description: Entity met de buitentemperatuur (°C of °F). Optioneel; zet de temperatuurfuncties aan.
   battery_kwh:
     name: Bruikbare accucapaciteit (kWh)
     description: Wordt gebruikt voor kWh-schattingen. Standaard 77.
+  co2_petrol_kg_per_km:
+    name: CO₂ van een benzineauto (kg/km)
+    description: Voor de schatting van bespaarde CO₂. Standaard 0,18.
+  co2_grid_kg_per_kwh:
+    name: CO₂ van stroom uit het net (kg/kWh)
+    description: Voor de schatting van bespaarde CO₂. Standaard 0,33.
+  petrol_l_per_100km:
+    name: Verbruik van een vergelijkbare benzineauto (l/100 km)
+    description: Voor de schatting van "liters niet verbrand". Standaard 6,5.

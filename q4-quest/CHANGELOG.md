@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0
+
+- **Weekuitdaging:** elke week (vanaf maandag 00:00) krijg je één uitdaging: een aantal km, een aantal rijdagen, hooguit een aantal keer laden, of zuinig rijden. Het doel past zich aan aan je laatste vier weken (met vaste startwaarden zolang die er nog niet zijn), en het type wisselt elke week. De cockpit toont doel, voortgang en resterende dagen. Gehaald = 100 bonus-XP en een melding in het reveal-scherm. Alle uitdagingen en resultaten staan in Historie. Nieuwe badges: Uitdager (10), Doorzetter (25) en Een jaar vol uitdagingen (52).
+- **Weekterugblik:** de eerste keer dat je de app in een nieuwe week opent, zie je eerst een kaart "Vorige week" met je km, laadsessies en het opvallendste feit (een nieuw record, je weekuitdaging, of je beste dag).
+- **Temperatuur:** met de nieuwe optie `temperature_entity` leest de app de buitentemperatuur mee (ook terug in de tijd). Je ziet de temperatuur bij je ritten en per dag, en in Historie een grafiek met verbruik per maand en de gemiddelde temperatuur. Nieuwe badges: IJskoud (rit gestart onder 0 °C) en Winterhard (een koude week toch zuinig).
+- **Groen:** schatting van de CO₂ die je bespaart ten opzichte van een benzineauto, de liters benzine die je niet verbrandt, en hoeveel bomen dat zijn. Te zien op het Laden-scherm, in het jaaroverzicht en op de deelkaart. De factoren zijn in te stellen met `co2_petrol_kg_per_km`, `co2_grid_kg_per_kwh` en `petrol_l_per_100km`. Nieuwe badges: Groene start, Eerste ton, Klimaatkampioen en Nooit meer tanken.
+- Alle nieuwe badges hebben een eigen pixel-art icoon en worden met terugwerkende kracht berekend; badges met voortgang zijn te volgen. XP en levels worden automatisch herberekend.
+
 ## 1.2.0
 
 - **Wereldreis:** de categorie Mijlpalen is vervangen door een wereldreis met bestemmingen, elk met een eigen pixel-art icoon en een kort verhaal: Kármánlijn (100 km), Aanmeren bij het ISS (408 km), 1.000 km, Alle wegen leiden naar Rome (1.650 km), Route 66 (3.940 km), Over de plas (5.860 km), Trans-Siberië Express (9.289 km), Down Under (16.600 km), De Chinese Muur (21.196 km), Pan-Americana (30.000 km) en Rondje aarde (40.075 km). XP = km ÷ 10. De Maanreis blijft legendarisch.

@@ -20,6 +20,18 @@ configuration:
   parking_brake_entity:
     name: Parking brake sensor
     description: Helps to split trips. Optional.
+  temperature_entity:
+    name: Outdoor temperature sensor
+    description: Entity with the outdoor temperature (°C or °F). Optional; enables temperature features.
   battery_kwh:
     name: Usable battery capacity (kWh)
     description: Used for kWh estimates. Default 77.
+  co2_petrol_kg_per_km:
+    name: CO₂ of a petrol car (kg/km)
+    description: For the CO₂ saving estimate. Default 0.18.
+  co2_grid_kg_per_kwh:
+    name: CO₂ of grid electricity (kg/kWh)
+    description: For the CO₂ saving estimate. Default 0.33.
+  petrol_l_per_100km:
+    name: Fuel use of a comparable petrol car (l/100 km)
+    description: For the "litres not burned" estimate. Default 6.5.

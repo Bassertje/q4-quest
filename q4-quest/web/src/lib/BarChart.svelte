@@ -6,7 +6,7 @@
   import { km, periodLabel } from './format';
   import { THEME_EVENT } from './theme';
 
-  let { bars, height = 200 }: { bars: ChartBar[]; height?: number } = $props();
+  let { bars, height = 200, notes }: { bars: ChartBar[]; height?: number; notes?: Map<string, string> } = $props();
 
   const MAX_BAR_PX = 28;
   const BAR_FRACTION = 0.6;
@@ -147,7 +147,9 @@
 <div class="readout" aria-live="polite">
   {#if shown}
     <span class="pixel">{shown.beforeStart ? '–' : km(shown.km)}<span class="unit">km</span></span>
-    <span class="muted small">{periodLabel(shown.key, true)}{shown.beforeStart ? ' · nog geen meting' : ''}</span>
+    <span class="muted small">
+      {periodLabel(shown.key, true)}{shown.beforeStart ? ' · nog geen meting' : ''}{notes?.get(shown.key) ? ` · ${notes.get(shown.key)}` : ''}
+    </span>
   {/if}
 </div>
 <div class="chart" bind:this={container} role="img" aria-label="Staafgrafiek van gereden kilometers"></div>

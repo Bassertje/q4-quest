@@ -14,6 +14,7 @@
     charging_type: 'Laadtype (AC/DC)',
     range: 'Actieradius',
     parking_brake: 'Parkeerrem',
+    temperature: 'Buitentemperatuur',
   };
 
   const STATE_LABELS: Record<string, string> = {

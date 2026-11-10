@@ -116,7 +116,7 @@ describe('GET /api/charging', () => {
 describe('badges and reveal', () => {
   it('lists badges per category with a counter, without charging badges if not configured', async () => {
     const all = (await make(MOCK_OPTIONS_RAW, true).app.inject({ url: '/api/badges' })).json();
-    expect(all.categories.map((c: { id: string }) => c.id)).toEqual(['rijden', 'laden', 'zuinigheid', 'wereldreis', 'legendarisch']);
+    expect(all.categories.map((c: { id: string }) => c.id)).toEqual(['rijden', 'laden', 'zuinigheid', 'groen', 'uitdagingen', 'wereldreis', 'legendarisch']);
     const moon = all.categories.at(-1).badges[0];
     expect(moon).toMatchObject({ id: 'moon_trip', name: 'Maanreis', xp: 5000, unlockedTs: null, followable: true });
     expect(moon.progress.target).toBe(384_400);
@@ -127,7 +127,12 @@ describe('badges and reveal', () => {
     if (rest.unlockedTs === null) expect(rest.name).toBeNull();
 
     const odoOnly = (await make({ odometer_entity: 'sensor.my_ev_odometer' }, true).app.inject({ url: '/api/badges' })).json();
-    expect(odoOnly.categories.map((c: { id: string }) => c.id)).toEqual(['rijden', 'wereldreis', 'legendarisch']);
+    // Without charging or temperature sensors: no charging, CO₂ or temperature badges.
+    expect(odoOnly.categories.map((c: { id: string }) => c.id)).toEqual(['rijden', 'groen', 'uitdagingen', 'wereldreis', 'legendarisch']);
+    const odoIds = odoOnly.categories.flatMap((c: { badges: { id: string }[] }) => c.badges.map((b) => b.id));
+    expect(odoIds).toContain('never_refuel');
+    expect(odoIds).not.toContain('green_start');
+    expect(odoIds).not.toContain('ice_cold');
   });
 
   it('adds badge XP to the cockpit level', async () => {
@@ -186,6 +191,46 @@ describe('year overview', () => {
     const { app } = make(MOCK_OPTIONS_RAW, true);
     expect((await app.inject({ url: '/api/year/1999?preview=1' })).statusCode).toBe(404);
     expect((await app.inject({ url: '/api/year/abc' })).statusCode).toBe(400);
+  });
+});
+
+describe('weekly challenges, green and temperature', () => {
+  it('creates a challenge for the current week and shows it on the cockpit', async () => {
+    const { app } = make(MOCK_OPTIONS_RAW, true);
+    const c = (await app.inject({ url: '/api/cockpit' })).json().challenge;
+    expect(['km', 'days', 'max_charges', 'consumption']).toContain(c.type);
+    expect(c.status).toBe('active');
+    expect(c.daysLeft).toBeGreaterThanOrEqual(1);
+    expect(c.daysLeft).toBeLessThanOrEqual(7);
+    expect(c.xp).toBe(100);
+    const history = (await app.inject({ url: '/api/history' })).json();
+    expect(history.challenges[0].week).toBe(c.week);
+  });
+
+  it('keeps one challenge per week and never offers charging challenges without charging sensors', async () => {
+    const { app } = make({ odometer_entity: 'sensor.my_ev_odometer' }, true);
+    await app.inject({ url: '/api/cockpit' });
+    const again = (await app.inject({ url: '/api/history' })).json().challenges;
+    expect(again).toHaveLength(1);
+    expect(['km', 'days']).toContain(again[0].type);
+  });
+
+  it('reports green totals, monthly consumption with temperature, and trip start temperatures', async () => {
+    const { app } = make(MOCK_OPTIONS_RAW, true);
+    const charging = (await app.inject({ url: '/api/charging' })).json();
+    expect(charging.green.co2Kg).toBeGreaterThan(0);
+    expect(charging.green.liters).toBeGreaterThan(0);
+    const history = (await app.inject({ url: '/api/history' })).json();
+    expect(history.hasTemperature).toBe(true);
+    expect(history.monthly.some((m: { avgTemp: number | null }) => m.avgTemp !== null)).toBe(true);
+    expect(history.history.recentTrips.some((t: { startTemp: number | null }) => t.startTemp !== null)).toBe(true);
+  });
+
+  it('puts the weekly review first in the reveal once a full week lies behind', async () => {
+    const items = (await make(MOCK_OPTIONS_RAW, true).app.inject({ url: '/api/reveal' })).json().items;
+    expect(items[0].kind).toBe('week');
+    expect(items[0].name).toBe('Vorige week');
+    expect(items[0].stats[0].label).toBe('Gereden');
   });
 });
 
