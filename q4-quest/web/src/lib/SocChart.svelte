@@ -21,6 +21,11 @@
     height?: number;
   } = $props();
 
+  /** Charging bands: accent red at a fixed coverage, identical in the legend and in both themes. */
+  const BAND_RED = '#E30613';
+  const AC_ALPHA = 0.18;
+  const DC_ALPHA = 0.35;
+
   let container: HTMLDivElement;
   let chart: uPlot | null = null;
   let themeVersion = $state(0);
@@ -37,12 +42,12 @@
   function bands(u: uPlot) {
     const ctx = u.ctx;
     ctx.save();
-    ctx.fillStyle = css('--accent');
+    ctx.fillStyle = BAND_RED;
     for (const s of sessions) {
       const x1 = u.valToPos(s.start / 1000, 'x', true);
       const x2 = u.valToPos(s.end / 1000, 'x', true);
       if (x2 < u.bbox.left || x1 > u.bbox.left + u.bbox.width) continue;
-      ctx.globalAlpha = s.type === 'DC' ? 0.24 : 0.12;
+      ctx.globalAlpha = s.type === 'DC' ? DC_ALPHA : AC_ALPHA;
       const l = Math.max(x1, u.bbox.left);
       ctx.fillRect(l, u.bbox.top, Math.max(2, Math.min(x2, u.bbox.left + u.bbox.width) - l), u.bbox.height);
     }
@@ -85,13 +90,13 @@
 </script>
 
 <div class="chart" bind:this={container} role="img" aria-label="Accupercentage met laadsessies"></div>
-<p class="legend muted small"><span class="sw line"></span>accu <span class="sw ac"></span>AC-laden <span class="sw dc"></span>DC-laden</p>
+<p class="legend muted small" style:--band={BAND_RED} style:--ac-alpha={AC_ALPHA} style:--dc-alpha={DC_ALPHA}><span class="sw line"></span>accu <span class="sw ac"></span>AC-laden <span class="sw dc"></span>DC-laden</p>
 
 <style>
   .chart { width: 100%; touch-action: pan-y; }
   .legend { display: flex; align-items: center; gap: 6px; margin: 6px 0 0; flex-wrap: wrap; }
   .sw { display: inline-block; width: 12px; height: 10px; margin-left: 8px; }
   .sw.line { height: 2px; background: var(--text); margin-left: 0; }
-  .sw.ac { background: var(--accent); opacity: 0.18; }
-  .sw.dc { background: var(--accent); opacity: 0.38; }
+  .sw.ac { background: var(--band); opacity: var(--ac-alpha); }
+  .sw.dc { background: var(--band); opacity: var(--dc-alpha); }
 </style>

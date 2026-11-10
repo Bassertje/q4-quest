@@ -131,6 +131,24 @@
   </section>
 {:else}
   {@const p = data.period}
+  {#if data.hasSoc}
+    <section class="panel">
+      <div class="panel-head">
+        <h3>Accu</h3>
+        <div class="segmented small-seg" role="group" aria-label="Bereik accugrafiek">
+          {#each SOC_RANGES as r (r.id)}
+            <button class:active={socRange === r.id} aria-pressed={socRange === r.id} onclick={() => setSocRange(r.id)}>{r.label}</button>
+          {/each}
+        </div>
+      </div>
+      {#if soc && soc.soc.length > 1}
+        <SocChart soc={soc.soc} sessions={soc.sessions} from={soc.from} to={soc.to} timeZone={tz} />
+      {:else}
+        <p class="muted small">Nog te weinig accumetingen in dit bereik.</p>
+      {/if}
+    </section>
+  {/if}
+
   <div class="toolbar">
     <div class="segmented" role="group" aria-label="Periode">
       {#each MODES as m (m.id)}
@@ -198,39 +216,18 @@
     </section>
   {/if}
 
-  {#if data.hasSoc || (data.green && data.green.co2Kg !== null)}
-    <div class="divider" role="separator"><span>Los van de periode</span></div>
-  {/if}
-
-  {#if data.hasSoc}
-    <section class="panel">
-      <div class="panel-head">
-        <h3>Accu</h3>
-        <div class="segmented small-seg" role="group" aria-label="Bereik accugrafiek">
-          {#each SOC_RANGES as r (r.id)}
-            <button class:active={socRange === r.id} aria-pressed={socRange === r.id} onclick={() => setSocRange(r.id)}>{r.label}</button>
-          {/each}
-        </div>
-      </div>
-      {#if soc && soc.soc.length > 1}
-        <SocChart soc={soc.soc} sessions={soc.sessions} from={soc.from} to={soc.to} timeZone={tz} />
-      {:else}
-        <p class="muted small">Nog te weinig accumetingen in deze periode.</p>
-      {/if}
-    </section>
-  {/if}
-
-  {#if data.green && data.green.co2Kg !== null}
-    {@const g = data.green}
+  {#if p?.green && p.green.co2Kg !== null}
+    {@const g = p.green}
     <section class="panel green">
       <h3 class="head">
-        Groen <span class="muted small">(schatting)</span>
+        <span>Groen<span class="muted per">· {p.label}</span></span>
         <button class="info" aria-label="Uitleg Groen" aria-expanded={info.green} onclick={() => (info.green = !info.green)}>ⓘ</button>
       </h3>
       {#if info.green}
         <p class="muted small note">
-          Vergeleken met een benzineauto: km × CO₂ per km min verbruikte kWh × CO₂ per kWh, en km × liters per
-          100 km. Eén boom neemt ongeveer 20 kg CO₂ per jaar op. De factoren stel je in bij de add-on-opties.
+          Schatting over de gekozen periode, vergeleken met een benzineauto: km × CO₂ per km min verbruikte kWh ×
+          CO₂ per kWh, en km × liters per 100 km. Verbruikte energie zoals bij Verbruik. Eén boom neemt ongeveer
+          20 kg CO₂ per jaar op. De factoren stel je in bij de add-on-opties.
         </p>
       {/if}
       <div class="green-grid">
@@ -251,11 +248,16 @@
           {#if g.trees > TREE_MAX}<span class="muted small more-trees">+ {km(Math.ceil(g.trees) - TREE_MAX)}</span>{/if}
         </div>
       {/if}
-      {#if data.nextGreen}
-        {@const n = data.nextGreen}
+      {#if data.greenProgress}
+        {@const gp = data.greenProgress}
         <div class="next">
-          <span class="muted small">Volgende badge: <strong>{n.name}</strong> · {km(n.current)} / {km(n.target)} {n.unit}</span>
-          <span class="next-bar"><span style:width="{(n.current / n.target) * 100}%"></span></span>
+          {#if gp.next}
+            <span class="muted small">Totaal {km(gp.totalKg)} kg · nog {km(Math.max(0, gp.next.target - gp.totalKg))} kg tot <strong>{gp.next.name}</strong></span>
+            <span class="next-bar"><span style:width="{Math.min(100, (gp.totalKg / gp.next.target) * 100)}%"></span></span>
+          {:else}
+            <span class="muted small">Totaal {km(gp.totalKg)} kg · Alle Groen-badges gehaald</span>
+            <span class="next-bar"><span style:width="100%"></span></span>
+          {/if}
         </div>
       {/if}
     </section>
@@ -292,7 +294,7 @@
                   <dt>Begin</dt><dd>{time(s.start)}</dd>
                   <dt>Einde</dt><dd>{s.ongoing ? 'bezig' : time(s.end)}</dd>
                   <dt>Gemiddeld</dt><dd>{s.avgKw === null ? '–' : `${kw(s.avgKw)} kW`}</dd>
-                  <dt>Type</dt><dd>{s.type} · {s.typeSource === 'sensor' ? 'van de laadtype-sensor' : 'afgeleid uit het gemiddelde vermogen'}</dd>
+                  <dt>Type</dt><dd>{s.type}</dd>
                 </dl>
               {/if}
             </li>
@@ -409,25 +411,6 @@
   .per {
     margin-left: 0.3em;
     font-weight: 400;
-  }
-  /* Separates the period-bound part from the parts with their own range. */
-  .divider {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 20px 2px 4px;
-    color: var(--muted);
-    font-size: 0.75rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-  .divider::before,
-  .divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--line);
   }
   .panel-head {
     display: flex;

@@ -225,8 +225,12 @@ describe('weekly challenges, green and temperature', () => {
     const soc = (await app.inject({ url: '/api/charging/soc?range=7d' })).json();
     expect(soc.soc.length).toBeGreaterThan(5);
     expect(soc.soc.every(([, v]: [number, number]) => v >= 0 && v <= 100)).toBe(true);
-    expect(charging.green.co2Kg).toBeGreaterThan(0);
-    expect(charging.green.liters).toBeGreaterThan(0);
+    expect(charging.period.green.co2Kg).toBeGreaterThan(0);
+    expect(charging.period.green.liters).toBeGreaterThan(0);
+    expect(charging.greenProgress.totalKg).toBe(charging.period.green.co2Kg);
+    const month = (await app.inject({ url: '/api/charging?period=month' })).json();
+    expect(month.period.green.co2Kg).toBeLessThan(charging.period.green.co2Kg);
+    expect(month.greenProgress).toEqual(charging.greenProgress);
     const history = (await app.inject({ url: '/api/history' })).json();
     expect(history.hasTemperature).toBe(true);
     expect(history.monthly.some((m: { avgTemp: number | null }) => m.avgTemp !== null)).toBe(true);

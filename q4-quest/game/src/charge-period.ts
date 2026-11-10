@@ -1,5 +1,6 @@
 import { chargingTotals, type ChargingSession, type ChargingTotals } from './charging.ts';
 import { periodEnergy, type EnergyInput } from './consumption.ts';
+import { greenTotals, type GreenFactors, type GreenTotals } from './green.ts';
 import { periodLabel } from './labels.ts';
 import { isoWeekStart, shiftPeriod } from './periods.ts';
 import { addDays, dayKey, monthKey, weekKey, zonedMidnight } from './time.ts';
@@ -82,6 +83,8 @@ export interface ChargePeriodView {
   } | null;
   /** Sessions that started in the period, newest first. */
   sessions: ChargingSession[];
+  /** CO₂ saved, petrol not burned and trees over the period (null without odometer data or factors). */
+  green: GreenTotals | null;
 }
 
 export interface ChargePeriodInput {
@@ -91,6 +94,10 @@ export interface ChargePeriodInput {
   firstDay: string;
   timeZone: string;
   now: number;
+  /** Factors for the Groen estimate; omit to skip it. */
+  green?: GreenFactors;
+  /** Override for the "all" period, so it matches the all-time totals exactly. */
+  greenAll?: GreenTotals | null;
 }
 
 /**
@@ -139,6 +146,13 @@ export function chargePeriodView(input: ChargePeriodInput, mode: ChargePeriodMod
     ? { kwhPer100km: p.km >= PERIOD_CONSUMPTION_MIN_KM ? p.kwhPer100km : null, km: p.km, usedKwh: p.usedKwh }
     : null;
 
+  let green: GreenTotals | null = null;
+  if (mode === 'all' && input.greenAll !== undefined) green = input.greenAll;
+  else if (input.green && input.energy.odometer.length) {
+    // Same energy as the consumption: charged kWh + SoC difference × battery.
+    green = greenTotals(p?.km ?? 0, p?.usedKwh ?? 0, input.green);
+  }
+
   return {
     mode,
     key,
@@ -150,5 +164,6 @@ export function chargePeriodView(input: ChargePeriodInput, mode: ChargePeriodMod
     totals: chargingTotals(sessions),
     consumption,
     sessions: [...sessions].reverse(),
+    green,
   };
 }
