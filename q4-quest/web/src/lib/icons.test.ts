@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BADGES, milestoneBadges } from '../../../game/src/badges.ts';
+import { BADGES, worldTripBadges } from '../../../game/src/badges.ts';
 import { ICONS, pixelPath, pixelRuns } from './icons.ts';
 
 describe('pixel icons', () => {
@@ -11,7 +11,7 @@ describe('pixel icons', () => {
   });
 
   it('exist for every badge, milestone and reveal item', () => {
-    const needed = [...BADGES, ...milestoneBadges(100_000)].map((b) => b.icon).concat(['levelUp', 'crown']);
+    const needed = [...BADGES, ...worldTripBadges()].map((b) => b.icon).concat(['levelUp', 'crown']);
     for (const icon of needed) expect(ICONS[icon], icon).toBeDefined();
   });
 

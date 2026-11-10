@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BADGES, bonusEvents, evaluateBadges, milestoneBadges, milestoneXp, type BadgeInput, type Requirement } from '../src/badges.ts';
+import { BADGES, bonusEvents, evaluateBadges, worldTripBadges, type BadgeInput, type Requirement } from '../src/badges.ts';
 import type { ChargingSession } from '../src/charging.ts';
 import { dailyTotals } from '../src/distance.ts';
 import { timeline } from '../src/timeline.ts';
@@ -55,15 +55,15 @@ describe('badge definitions', () => {
     expect(BADGES.find((b) => b.id === 'moon_trip')?.category).toBe('legendarisch');
   });
 
-  it('milestone badges give km ÷ 10 XP and include the next milestone', () => {
-    const m = milestoneBadges(130_000);
-    expect(m.find((b) => b.id === 'milestone_1000')?.xp).toBe(100);
-    expect(m.find((b) => b.id === 'milestone_40075')?.xp).toBe(4_007); // Rondje aarde, rounded down
-    expect(m.find((b) => b.id === 'milestone_100000')?.xp).toBe(10_000);
-    expect(milestoneXp(125_000)).toBe(12_500);
-    expect(m.map((b) => b.id)).toContain('milestone_150000');
-    expect(m.map((b) => b.id)).not.toContain('milestone_175000');
-    expect(milestoneBadges(500)).toHaveLength(12);
+  it('world-trip badges give km ÷ 10 XP and tell their story', () => {
+    const w = worldTripBadges();
+    expect(w).toHaveLength(11);
+    expect(w.every((b) => b.category === 'wereldreis' && b.description === b.hint)).toBe(true);
+    expect(w.find((b) => b.id === 'karman')).toMatchObject({ xp: 10, name: 'Kármánlijn', description: 'Recht omhoog was je nu in de ruimte.', icon: 'rocket' });
+    expect(w.find((b) => b.id === 'milestone_1000')?.xp).toBe(100);
+    expect(w.find((b) => b.id === 'milestone_40075')?.xp).toBe(4_007);
+    // The removed plain milestones are gone.
+    expect(w.map((b) => b.id)).not.toContain('milestone_2500');
   });
 });
 
@@ -182,7 +182,7 @@ describe('badge progress', () => {
   const progress = (id: string) => results.find((b) => b.id === id)?.progress;
 
   it('reports current / target for countable badges', () => {
-    expect(progress('milestone_15000')).toEqual({ current: 12_460, target: 15_000, unit: 'km' });
+    expect(progress('downunder')).toEqual({ current: 12_460, target: 16_600, unit: 'km' });
     expect(progress('charges_10')).toEqual({ current: 6, target: 10, unit: 'sessies' });
     expect(progress('streak_7')).toEqual({ current: 2, target: 7, unit: 'dagen' });
     expect(progress('month_1000')).toEqual({ current: 115, target: 1000, unit: 'km' });
@@ -191,7 +191,7 @@ describe('badge progress', () => {
   });
 
   it('caps progress at the target and has none for other badges', () => {
-    expect(progress('milestone_10000')).toEqual({ current: 10_000, target: 10_000, unit: 'km' });
+    expect(progress('transsib')).toEqual({ current: 9_289, target: 9_289, unit: 'km' });
     expect(progress('first_100_day')).toBeNull();
   });
 });

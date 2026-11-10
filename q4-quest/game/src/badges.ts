@@ -1,12 +1,12 @@
 import type { ChargingSession } from './charging.ts';
 import { currentStreak, periodTotals, STREAK_MIN_KM } from './distance.ts';
-import { FIXED_MILESTONES, MOON_KM, milestoneAt, milestonesReached, type TimedValue } from './milestones.ts';
+import { MOON_KM, WORLD_TRIP, destinationXp, type TimedValue } from './milestones.ts';
 import { isoWeekStart, shiftPeriod } from './periods.ts';
 import { dayProgress, dayReachTimes, firstGroupCrossing, type DayProgress } from './progress.ts';
 import { addDays, dayKey, isWeekend, localHour, monthKey, weekKey, zonedMidnight } from './time.ts';
 import { MIN_READINGS_FOR_TIME_BADGES, type TripBlock } from './trips.ts';
 
-export type BadgeCategory = 'rijden' | 'laden' | 'zuinigheid' | 'mijlpalen' | 'legendarisch';
+export type BadgeCategory = 'rijden' | 'laden' | 'zuinigheid' | 'wereldreis' | 'legendarisch';
 
 /** A sensor key, or 'charging' for "charging power or charging state". */
 export type Requirement = 'odometer' | 'soc' | 'charging';
@@ -178,34 +178,23 @@ export const BADGES: BadgeDef[] = [
   { id: 'eco_week', name: 'Zuinige week', description: `Een week met een geschat verbruik van ${ECO_WEEK_MAX_KWH_PER_100} kWh/100 km of minder (minstens ${ECO_WEEK_MIN_KM} km).`, hint: 'Rij een week lang zuinig.', category: 'zuinigheid', xp: 100, requires: ['charging'], icon: 'leaf', check: ecoWeek },
 ];
 
-/** Bonus XP of a milestone badge: the milestone in km ÷ 10, rounded down. */
-export function milestoneXp(km: number): number {
-  return Math.floor(km / 10);
-}
-
 /**
- * Milestone badges: all fixed milestones, plus every milestone beyond them
- * that was reached, plus the next one. XP = milestone km ÷ 10.
+ * World-trip badges: one per destination, with its story as description and
+ * hint. XP = distance in km ÷ 10.
  */
-export function milestoneBadges(currentKm: number): BadgeDef[] {
-  const out: BadgeDef[] = [];
-  const count = Math.max(FIXED_MILESTONES.length, milestonesReached(currentKm).length + 1);
-  for (let i = 0; i < count; i++) {
-    const m = milestoneAt(i);
-    out.push({
-      id: `milestone_${m.km}`,
-      name: m.name,
-      description: `Kilometerstand van ${m.km.toLocaleString('nl-NL')} km bereikt.`,
-      hint: `Bereik ${m.km.toLocaleString('nl-NL')} km op de teller.`,
-      category: 'mijlpalen',
-      xp: milestoneXp(m.km),
-      requires: ['odometer'],
-      icon: m.name === 'Rondje aarde' ? 'earth' : 'flag',
-      check: (c) => c.odometer.find((r) => r.value >= m.km)?.ts ?? null,
-      progress: (c) => progressOf(Math.floor(c.odometer.at(-1)?.value ?? 0), m.km, 'km'),
-    });
-  }
-  return out;
+export function worldTripBadges(): BadgeDef[] {
+  return WORLD_TRIP.map((d) => ({
+    id: d.id,
+    name: d.name,
+    description: d.story,
+    hint: d.story,
+    category: 'wereldreis' as const,
+    xp: destinationXp(d.km),
+    requires: ['odometer' as const],
+    icon: d.icon,
+    check: (c: BadgeContext) => c.odometer.find((r) => r.value >= d.km)?.ts ?? null,
+    progress: (c: BadgeContext) => progressOf(Math.floor(c.odometer.at(-1)?.value ?? 0), d.km, 'km'),
+  }));
 }
 
 export interface BadgeResult {
@@ -230,8 +219,7 @@ export interface BadgeInput extends Omit<BadgeContext, 'progress'> {
 /** Evaluate all badges whose required sensors are configured. */
 export function evaluateBadges(input: BadgeInput): BadgeResult[] {
   const ctx: BadgeContext = { ...input, progress: dayProgress(input.odometer, input.timeZone) };
-  const current = input.odometer.at(-1)?.value ?? 0;
-  return [...BADGES, ...milestoneBadges(current)]
+  return [...BADGES, ...worldTripBadges()]
     .filter((b) => b.requires.every((r) => input.available.has(r)))
     .map((b) => {
       const ts = b.check(ctx);

@@ -1,42 +1,51 @@
 import { describe, expect, it } from 'vitest';
-import { milestoneAt, milestoneDates, milestoneProgress, milestonesReached } from '../src/milestones.ts';
+import { WORLD_TRIP, destinationDates, destinationProgress, destinationXp } from '../src/milestones.ts';
 
-describe('milestones', () => {
-  it('continues every 25,000 km after 100,000', () => {
-    expect(milestoneAt(11).km).toBe(100_000);
-    expect(milestoneAt(12).km).toBe(125_000);
-    expect(milestoneAt(13).km).toBe(150_000);
-  });
-
-  it('names the earth milestone', () => {
-    expect(milestoneAt(8)).toEqual({ km: 40_075, name: 'Rondje aarde' });
-  });
-
-  it('lists reached milestones', () => {
-    expect(milestonesReached(999)).toEqual([]);
-    expect(milestonesReached(17_421).map((m) => m.km)).toEqual([1_000, 2_500, 5_000, 7_500, 10_000, 15_000]);
-  });
-
-  it('computes progress to the next milestone', () => {
-    const p = milestoneProgress(17_500);
-    expect(p.previous?.km).toBe(15_000);
-    expect(p.next.km).toBe(20_000);
-    expect(p.fraction).toBeCloseTo(0.5);
-    expect(p.remainingKm).toBe(2_500);
-    expect(milestoneProgress(0).fraction).toBe(0);
-  });
-
-  it('dates milestones by the first reading at or above them', () => {
-    const dates = milestoneDates([
-      { ts: 1, value: 900 },
-      { ts: 2, value: 1_000 },
-      { ts: 3, value: 2_400 },
-      { ts: 4, value: 5_100 },
+describe('world trip', () => {
+  it('has the destinations from the spec in order of distance', () => {
+    expect(WORLD_TRIP.map((d) => [d.km, d.id])).toEqual([
+      [100, 'karman'],
+      [408, 'iss'],
+      [1_000, 'milestone_1000'],
+      [1_650, 'rome'],
+      [3_940, 'route66'],
+      [5_860, 'atlantic'],
+      [9_289, 'transsib'],
+      [16_600, 'downunder'],
+      [21_196, 'greatwall'],
+      [30_000, 'panam'],
+      [40_075, 'milestone_40075'],
     ]);
-    expect(dates.map((d) => [d.milestone.km, d.ts])).toEqual([
-      [1_000, 2],
-      [2_500, 4],
-      [5_000, 4],
+    expect(WORLD_TRIP.every((d) => d.story.endsWith('.'))).toBe(true);
+    expect(new Set(WORLD_TRIP.map((d) => d.icon)).size).toBe(WORLD_TRIP.length);
+  });
+
+  it('gives km ÷ 10 XP, rounded down', () => {
+    expect(destinationXp(100)).toBe(10);
+    expect(destinationXp(9_289)).toBe(928);
+    expect(destinationXp(40_075)).toBe(4_007);
+  });
+
+  it('computes progress to the next destination', () => {
+    const p = destinationProgress(2_795);
+    expect(p.previous?.id).toBe('rome');
+    expect(p.next?.id).toBe('route66');
+    expect(p.fraction).toBeCloseTo(0.5);
+    expect(p.remainingKm).toBe(1_145);
+    expect(destinationProgress(0)).toMatchObject({ previous: null, fraction: 0, remainingKm: 100 });
+    expect(destinationProgress(50_000)).toMatchObject({ next: null, fraction: 1, remainingKm: 0 });
+  });
+
+  it('dates destinations by the first reading at or above them', () => {
+    const dates = destinationDates([
+      { ts: 1, value: 50 },
+      { ts: 2, value: 100 },
+      { ts: 3, value: 1_200 },
+    ]);
+    expect(dates.map((d) => [d.destination.id, d.ts])).toEqual([
+      ['karman', 2],
+      ['iss', 3],
+      ['milestone_1000', 3],
     ]);
   });
 });

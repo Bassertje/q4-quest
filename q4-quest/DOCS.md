@@ -1,7 +1,7 @@
 # Q4 Quest
 
 Een rustige maar verslavende game rond je elektrische auto. Gereden kilometers worden XP,
-mijlpalen en badges. De add-on leest alleen gegevens uit Home Assistant en schrijft nooit iets terug.
+een wereldreis en badges. De add-on leest alleen gegevens uit Home Assistant en schrijft nooit iets terug.
 
 ## Installatie
 
@@ -38,8 +38,10 @@ Na het wijzigen van opties moet je de add-on herstarten.
 
 - **XP en levels:** je krijgt 1 XP per kilometer op de teller. Voor level *L* heb je in totaal
   50 × L × (L + 1) XP nodig. Per 5 levels krijg je een nieuwe rangtitel.
-- **Mijlpalen:** 1.000, 2.500, 5.000, 7.500, 10.000, 15.000, 20.000, 25.000, 40.075 ("Rondje aarde"),
-  50.000, 75.000 en 100.000 km, daarna elke 25.000 km. De Maanreis loopt tot 384.400 km.
+- **Wereldreis:** bestemmingen op de kilometerstand, elk met een kort verhaal: Kármánlijn (100 km),
+  het ISS (408), 1.000 km, Rome (1.650), Route 66 (3.940), Over de plas (5.860), Trans-Siberië
+  Express (9.289), Down Under (16.600), De Chinese Muur (21.196), Pan-Americana (30.000) en Rondje
+  aarde (40.075). Daarna wacht de Maanreis (384.400 km). De cockpit toont je volgende bestemming.
 - **Dagtotaal:** de laatste kilometerstand van een dag min de laatste stand van de vorige dag met
   gegevens. Dagen, weken (maandag t/m zondag) en maanden volgen de tijdzone van Home Assistant.
 - **Streak:** het aantal dagen op rij dat je minstens 1 km hebt gereden. Heb je vandaag nog niet
@@ -51,17 +53,17 @@ Na het wijzigen van opties moet je de add-on herstarten.
   kilometerstand niet realtime doorgeeft.
 - **Records:** beste dag, week en maand, langste streak, grootste ritblok (indicatief), snelste
   laadsessie (gemiddeld vermogen) en meeste laadsessies in een maand.
-- **Tijdlijn:** mijlpalen en level-ups, gedateerd op het moment dat ze voor het eerst werden gehaald.
+- **Tijdlijn:** badges, bestemmingen en level-ups, gedateerd op het moment dat ze voor het eerst werden gehaald.
 
 ## Badges
 
-Op de tab **Badges** zie je alle badges per categorie: Rijden, Laden, Zuinigheid en Mijlpalen.
+Op de tab **Badges** zie je alle badges per categorie: Rijden, Laden, Zuinigheid, Wereldreis en Legendarisch.
 
 - Badges worden met terugwerkende kracht berekend uit je opgeslagen gegevens. De datum is het moment
   waarop je de badge voor het eerst verdiende.
-- Het bonus-XP van een badge telt mee voor je level. Een mijlpaal geeft mijlpaal-km ÷ 10 XP
-  (1.000 km = 100 XP, Rondje aarde = 4.007 XP).
-- Bij telbare badges die je nog niet hebt (mijlpalen, aantal laadsessies, streaks, km per maand of
+- Het bonus-XP van een badge telt mee voor je level. Een Wereldreis-bestemming geeft km ÷ 10 XP
+  (Kármánlijn = 10 XP, 1.000 km = 100 XP, Rondje aarde = 4.007 XP).
+- Bij telbare badges die je nog niet hebt (Wereldreis, Maanreis, aantal laadsessies, streaks, km per maand of
   week, megawattuur) zie je hoe ver je bent.
 - Vergrendelde badges tonen een silhouet met een hint. Eén badge is verborgen en verschijnt pas als je
   hem hebt.
@@ -76,7 +78,7 @@ een legendarische badge van 5.000 XP.
 
 **Rangen:** tik op je rang op de cockpit voor een overzicht van alle rangen.
 
-Bij het openen van de app verschijnt eerst wat er nieuw is: badges, mijlpalen, level-ups en nieuwe
+Bij het openen van de app verschijnt eerst wat er nieuw is: badges, bestemmingen, level-ups, nieuwe rangen en nieuwe
 records, één voor één. Na drie items kun je met **Toon alles** de rest in één keer zien.
 
 ## Jaaroverzicht

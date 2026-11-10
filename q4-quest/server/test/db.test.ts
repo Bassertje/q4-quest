@@ -36,6 +36,37 @@ describe('database migrations', () => {
     expect(db.prepare("SELECT 1 FROM meta WHERE key = 'reveal.records_baseline'").get()).toBeUndefined();
   });
 
+  it('migration 5 removes the dropped milestone badges but keeps the rest', () => {
+    const db = new DatabaseSync(':memory:');
+    db.exec('CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL)');
+    for (const m of MIGRATIONS.filter((m) => m.version <= 4)) {
+      db.exec(m.sql);
+      db.prepare('INSERT INTO schema_migrations VALUES (?, ?, ?)').run(m.version, m.name, 'x');
+    }
+    const add = db.prepare('INSERT INTO seen_items (item_key, seen_at) VALUES (?, ?)');
+    for (const key of ['badge:milestone_1000', 'badge:milestone_2500', 'badge:milestone_125000', 'badge:milestone_40075', 'badge:first_charge', 'level:3']) {
+      add.run(key, '2026-11-10T10:00:00.000Z');
+    }
+    db.prepare('INSERT INTO meta (key, value) VALUES (?, ?)').run('setting.followed_badge', 'milestone_20000');
+
+    migrate(db);
+    const keys = (db.prepare('SELECT item_key FROM seen_items ORDER BY item_key').all() as { item_key: string }[]).map((r) => r.item_key);
+    expect(keys).toEqual(['badge:first_charge', 'badge:milestone_1000', 'badge:milestone_40075', 'level:3']);
+    expect((db.prepare("SELECT value FROM meta WHERE key = 'setting.followed_badge'").get() as { value: string }).value).toBe('');
+  });
+
+  it('migration 5 keeps a followed badge that still exists', () => {
+    const db = new DatabaseSync(':memory:');
+    db.exec('CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL)');
+    for (const m of MIGRATIONS.filter((m) => m.version <= 4)) {
+      db.exec(m.sql);
+      db.prepare('INSERT INTO schema_migrations VALUES (?, ?, ?)').run(m.version, m.name, 'x');
+    }
+    db.prepare('INSERT INTO meta (key, value) VALUES (?, ?)').run('setting.followed_badge', 'milestone_40075');
+    migrate(db);
+    expect((db.prepare("SELECT value FROM meta WHERE key = 'setting.followed_badge'").get() as { value: string }).value).toBe('milestone_40075');
+  });
+
   it('has strictly increasing migration numbers', () => {
     MIGRATIONS.forEach((m, i) => expect(m.version).toBe(i + 1));
   });

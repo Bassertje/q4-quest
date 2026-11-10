@@ -116,7 +116,7 @@ describe('GET /api/charging', () => {
 describe('badges and reveal', () => {
   it('lists badges per category with a counter, without charging badges if not configured', async () => {
     const all = (await make(MOCK_OPTIONS_RAW, true).app.inject({ url: '/api/badges' })).json();
-    expect(all.categories.map((c: { id: string }) => c.id)).toEqual(['rijden', 'laden', 'zuinigheid', 'mijlpalen', 'legendarisch']);
+    expect(all.categories.map((c: { id: string }) => c.id)).toEqual(['rijden', 'laden', 'zuinigheid', 'wereldreis', 'legendarisch']);
     const moon = all.categories.at(-1).badges[0];
     expect(moon).toMatchObject({ id: 'moon_trip', name: 'Maanreis', xp: 5000, unlockedTs: null, followable: true });
     expect(moon.progress.target).toBe(384_400);
@@ -127,7 +127,7 @@ describe('badges and reveal', () => {
     if (rest.unlockedTs === null) expect(rest.name).toBeNull();
 
     const odoOnly = (await make({ odometer_entity: 'sensor.my_ev_odometer' }, true).app.inject({ url: '/api/badges' })).json();
-    expect(odoOnly.categories.map((c: { id: string }) => c.id)).toEqual(['rijden', 'mijlpalen', 'legendarisch']);
+    expect(odoOnly.categories.map((c: { id: string }) => c.id)).toEqual(['rijden', 'wereldreis', 'legendarisch']);
   });
 
   it('adds badge XP to the cockpit level', async () => {

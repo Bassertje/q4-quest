@@ -94,16 +94,33 @@
     <Bar fraction={c.level.fraction} label="Voortgang naar het volgende level" />
   </section>
 
-  <section class="panel">
-    <div class="row">
-      <div>
-        <div class="label">Volgende mijlpaal</div>
-        <div class="pixel mid">{c.milestone.next.name}</div>
+  <a class="panel link destination" href="#/badges">
+    {#if c.destination.next}
+      {@const d = c.destination.next}
+      <div class="row">
+        <div class="unlocked">
+          <PixelIcon icon={d.icon} size={36} />
+          <span>
+            <span class="label">Volgende bestemming</span>
+            <span class="badge-name block">{d.name}</span>
+          </span>
+        </div>
+        <div class="muted small right">nog {km(c.destination.remainingKm)} km</div>
       </div>
-      <div class="muted small right">nog {km(c.milestone.remainingKm)} km</div>
-    </div>
-    <Bar fraction={c.milestone.fraction} label="Voortgang naar de volgende mijlpaal" />
-  </section>
+      <Bar fraction={c.destination.fraction} label="Voortgang naar {d.name}" />
+      <div class="muted small count">{d.story}</div>
+    {:else}
+      <div class="row">
+        <div class="unlocked">
+          <PixelIcon icon="moonTrip" size={36} />
+          <span>
+            <span class="label">Wereldreis voltooid</span>
+            <span class="badge-name block">Volgende stop: de maan</span>
+          </span>
+        </div>
+      </div>
+    {/if}
+  </a>
 
   <section class="tiles">
     <div class="panel tile">
@@ -224,6 +241,9 @@
   }
   .block {
     display: block;
+  }
+  .destination .count {
+    text-align: left;
   }
   .count {
     margin-top: 6px;

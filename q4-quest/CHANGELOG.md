@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0
+
+- **Wereldreis:** de categorie Mijlpalen is vervangen door een wereldreis met bestemmingen, elk met een eigen pixel-art icoon en een kort verhaal: Kármánlijn (100 km), Aanmeren bij het ISS (408 km), 1.000 km, Alle wegen leiden naar Rome (1.650 km), Route 66 (3.940 km), Over de plas (5.860 km), Trans-Siberië Express (9.289 km), Down Under (16.600 km), De Chinese Muur (21.196 km), Pan-Americana (30.000 km) en Rondje aarde (40.075 km). XP = km ÷ 10. De Maanreis blijft legendarisch.
+- Het verhaal staat bij de badge, in het reveal-scherm, en als hint bij badges die je nog niet hebt (met je voortgang).
+- **Cockpit:** "Volgende mijlpaal" is nu **Volgende bestemming**, met icoon, naam, voortgang, "nog X km" en het verhaal.
+- De kale mijlpalen (2.500 tot en met 100.000 km en de doorlopende per 25.000 km) zijn verdwenen. 1.000 km en Rondje aarde behouden hun datum. Volgde je een verwijderde mijlpaal, dan kiest de app weer automatisch. Nieuwe bestemmingen die je al hebt gehaald, verschijnen bij het volgende openen in het reveal-scherm.
+- XP en levels worden automatisch herberekend.
+
 ## 1.1.0
 
 - **Deel je jaar:** het jaaroverzicht eindigt met een deelkaart (een afbeelding van 1080×1920 in de stijl van je thema) met je gereden km van dat jaar, je hoogtepunten, je level en rang en de badges van dat jaar. Er staat niets herleidbaars op: geen kilometerstand van de auto en geen datums of tijden. Met **Delen** gaat de afbeelding naar het deelmenu van je telefoon; waar dat niet kan, wordt hij gedownload als `q4-quest-<jaar>.png`.

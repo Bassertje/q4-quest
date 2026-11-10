@@ -17,7 +17,7 @@ describe('buildCockpit', () => {
     })!;
     expect(c.odometer).toBe(15_020);
     expect(c.level.level).toBe(16);
-    expect(c.milestone.next.km).toBe(20_000);
+    expect(c.destination.next?.id).toBe('downunder'); // 16,600 km
     expect(c.lastUnlocked).toBeNull(); // no badges passed in
     expect(c.bonusXp).toBe(0);
     expect(c.distance).toEqual({ today: 70, week: 70, month: 70 });
