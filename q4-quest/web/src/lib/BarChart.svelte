@@ -4,6 +4,7 @@
   import 'uplot/dist/uPlot.min.css';
   import type { ChartBar } from '../../../game/src/periods.ts';
   import { km, periodLabel } from './format';
+  import { THEME_EVENT } from './theme';
 
   let { bars, height = 200 }: { bars: ChartBar[]; height?: number } = $props();
 
@@ -14,6 +15,7 @@
   let container: HTMLDivElement;
   let chart: uPlot | null = null;
   let selected = $state<number | null>(null);
+  let themeVersion = $state(0); // bumped when the theme changes, to redraw with new colours
 
   const css = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
@@ -32,7 +34,7 @@
       const cx = u.valToPos(i, 'x', true);
       if (bar.beforeStart) {
         // Faint band: there was no measurement yet.
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.025)';
+        ctx.fillStyle = css('--chart-dim');
         ctx.fillRect(left + slot * i + 1, top, slot - 2, h);
         ctx.fillStyle = css('--line');
         ctx.fillRect(cx - barWidth / 2, y0 - ZERO_STUB_PX * devicePixelRatio, barWidth, ZERO_STUB_PX * devicePixelRatio);
@@ -118,6 +120,7 @@
 
   // (Re)create the chart whenever the bars change.
   $effect(() => {
+    void themeVersion;
     const data: uPlot.AlignedData = [bars.map((_, i) => i), bars.map((b) => Math.round(b.km))];
     chart = new uPlot(options(container.clientWidth), data, container);
     selected = null;
@@ -130,7 +133,12 @@
   onMount(() => {
     const ro = new ResizeObserver(() => chart?.setSize({ width: container.clientWidth, height }));
     ro.observe(container);
-    return () => ro.disconnect();
+    const onTheme = () => themeVersion++;
+    window.addEventListener(THEME_EVENT, onTheme);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener(THEME_EVENT, onTheme);
+    };
   });
 
   const shown = $derived(bars[selected ?? bars.length - 1]);

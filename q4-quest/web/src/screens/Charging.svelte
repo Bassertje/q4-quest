@@ -102,16 +102,12 @@
                 {date(s.start, tz)}
                 <span class="muted small">· {time(s.start)} · {s.ongoing ? 'bezig' : duration(s)}</span>
               </span>
-              {#if s.type}
-                <span class="badge" class:dc={s.type === 'DC'} title={s.typeInferred ? 'Afgeleid uit het vermogen' : undefined}>
-                  {s.type}{s.typeInferred ? '?' : ''}
-                </span>
-              {/if}
+              <span class="badge" class:dc={s.type === 'DC'}>{s.type}</span>
             </div>
             <div class="facts">
               <span><span class="muted">kWh</span> {s.kwh === null ? '–' : `~${num1(s.kwh)}`}</span>
               <span><span class="muted">SoC</span> {soc(s.socStart)} → {soc(s.socEnd)}</span>
-              <span><span class="muted">piek</span> {s.peakKw === null ? '–' : `${kw(s.peakKw)} kW`}</span>
+              <span><span class="muted">gem.</span> {s.avgKw === null ? '–' : `${kw(s.avgKw)} kW`}</span>
             </div>
           </li>
         {/each}
@@ -120,9 +116,9 @@
         <button class="more" onclick={() => (shown += STEP)}>Meer tonen</button>
       {/if}
       <p class="muted small note">
-        kWh is een schatting uit het gemeten vermogen. Bij minder dan 3 vermogensmetingen wordt het
-        verschil in accupercentage × {num1(data.batteryKwh)} kWh gebruikt. Een vraagteken bij AC/DC betekent
-        dat het type is afgeleid uit het piekvermogen.
+        Een sessie telt alleen als het accupercentage minstens 2 procentpunt stijgt. kWh is een schatting:
+        de stijging van het accupercentage × {num1(data.batteryKwh)} kWh. "Gem." is kWh gedeeld door de duur.
+        DC als de laadtype-sensor dat meldt of als het gemiddelde boven 22 kW ligt.
       </p>
     {/if}
   </section>

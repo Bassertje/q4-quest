@@ -46,7 +46,7 @@
     justify-content: center;
     gap: 8px;
     padding: 6px 16px calc(6px + env(safe-area-inset-bottom));
-    background: rgba(10, 10, 12, 0.94);
+    background: var(--nav-bg);
     border-top: 1px solid var(--line);
     backdrop-filter: blur(6px);
   }
@@ -68,7 +68,7 @@
   }
   a.active svg {
     fill: var(--accent);
-    filter: drop-shadow(0 0 6px rgba(227, 6, 19, 0.6));
+    filter: drop-shadow(0 0 6px var(--accent-glow-color));
   }
   a:focus-visible {
     outline: 1px solid var(--accent);

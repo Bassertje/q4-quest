@@ -17,15 +17,15 @@
 <style>
   .bar {
     height: 10px;
-    background: #0d0e11;
+    background: var(--track);
     border: 1px solid var(--line);
     border-radius: 2px;
     overflow: hidden;
   }
   .fill {
     height: 100%;
-    background: repeating-linear-gradient(90deg, var(--accent) 0 6px, #b8050f 6px 8px);
-    box-shadow: 0 0 10px rgba(227, 6, 19, 0.5);
+    background: repeating-linear-gradient(90deg, var(--accent) 0 6px, var(--accent-dark) 6px 8px);
+    box-shadow: 0 0 10px var(--accent-glow-color);
     transition: width 0.8s ease-out;
   }
 </style>

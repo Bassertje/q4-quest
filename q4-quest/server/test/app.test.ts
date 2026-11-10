@@ -95,7 +95,10 @@ describe('GET /api/charging', () => {
     expect(body.totals.sessions).toBe(body.sessions.length);
     expect(body.consumption.kwhPer100km).toBeGreaterThan(10);
     expect(body.consumption.kwhPer100km).toBeLessThan(30);
-    expect(body.records.fastest.peakKw).toBeGreaterThan(50);
+    expect(body.records.fastest.avgKw).toBeGreaterThan(30);
+    // The generated 3.7 kW blips (no SoC rise) must not show up as sessions.
+    expect(body.sessions.every((s: { kwhMethod: string }) => s.kwhMethod === 'soc')).toBe(true);
+    expect(body.sessions.every((s: { socEnd: number; socStart: number }) => s.socEnd - s.socStart >= 2)).toBe(true);
   });
 
   it('is unavailable without charging sensors', async () => {
@@ -107,6 +110,21 @@ describe('GET /api/charging', () => {
   it('adds charging records to the history', async () => {
     const body = (await make(MOCK_OPTIONS_RAW, true).app.inject({ url: '/api/history' })).json();
     expect(body.chargingRecords.busiestMonth.sessions).toBeGreaterThan(0);
+  });
+});
+
+describe('/api/settings', () => {
+  it('defaults to the automatic theme and stores a choice', async () => {
+    const { app } = make({});
+    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'auto' });
+    const put = await app.inject({ method: 'PUT', url: '/api/settings', payload: { theme: 'light' } });
+    expect(put.json()).toEqual({ theme: 'light' });
+    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'light' });
+  });
+
+  it('rejects an unknown theme', async () => {
+    const res = await make({}).app.inject({ method: 'PUT', url: '/api/settings', payload: { theme: 'pink' } });
+    expect(res.statusCode).toBe(400);
   });
 });
 

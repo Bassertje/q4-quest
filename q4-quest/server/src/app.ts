@@ -8,6 +8,7 @@ import { cockpitResponse } from './cockpit.ts';
 import type { BackfillStatus } from './collector/collector.ts';
 import { schemaVersion } from './db.ts';
 import { historyResponse } from './history.ts';
+import { isTheme, readSettings, writeSettings } from './settings.ts';
 import type { HaStatus } from './ha/types.ts';
 import { SENSOR_KEYS, type Options } from './options.ts';
 import type { ReadingStore } from './readings.ts';
@@ -55,6 +56,16 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   app.get('/api/history', async () => historyResponse(deps.store, deps.options, deps.timeZone()));
 
   app.get('/api/charging', async () => chargingResponse(deps.store, deps.options, deps.timeZone()));
+
+  app.get('/api/settings', async () => readSettings(deps.db));
+
+  app.put('/api/settings', async (req, reply) => {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    if (body.theme !== undefined && !isTheme(body.theme)) {
+      return reply.code(400).send({ error: 'theme must be auto, light or dark' });
+    }
+    return writeSettings(deps.db, { theme: body.theme as 'auto' | 'light' | 'dark' | undefined });
+  });
 
   app.post('/api/backfill', async (_req, reply) => {
     if (deps.backfill.status().state === 'running') return reply.code(409).send({ error: 'already running' });

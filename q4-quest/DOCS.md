@@ -50,22 +50,25 @@ Na het wijzigen van opties moet je de add-on herstarten.
   laadstop onderweg hoort dus bij hetzelfde ritblok. Ritblokken zijn indicatief, omdat de auto de
   kilometerstand niet realtime doorgeeft.
 - **Records:** beste dag, week en maand, langste streak, grootste ritblok (indicatief), snelste
-  laadsessie en meeste laadsessies in een maand.
+  laadsessie (gemiddeld vermogen) en meeste laadsessies in een maand.
 - **Tijdlijn:** mijlpalen en level-ups, gedateerd op het moment dat ze voor het eerst werden gehaald.
 
 ## Laden
 
 Het scherm **Laden** verschijnt als je een sensor voor het laadvermogen of de laadstatus hebt ingesteld.
 
-- **Laadsessie:** een aaneengesloten periode met laadvermogen boven 0 of status "laden". Een
-  onderbreking van maximaal 15 minuten hoort nog bij dezelfde sessie. Als statuswaarde voor laden
-  worden onder meer `charging`, `laden` en `on` herkend.
-- **Vermogen:** de eenheid (W of kW) wordt uit de sensor gelezen. Zonder eenheid gelden waarden
-  boven 1000 als W.
-- **kWh-schatting:** het gemeten vermogen wordt over de sessie opgeteld (trapeziumregel). Zijn er
-  minder dan 3 vermogensmetingen, dan wordt het verschil in accupercentage × `battery_kwh` gebruikt.
-- **AC/DC:** komt uit de laadtype-sensor. Zonder die sensor geldt een piek boven 22 kW als DC;
-  dat staat dan met een vraagteken in de lijst.
+- **Laadsessie:** een periode met status "laden" of laadvermogen boven 0 is een kandidaat. Kandidaten
+  die minder dan 30 minuten uit elkaar liggen worden samengevoegd. Een kandidaat telt alleen als het
+  accupercentage minstens 2 procentpunt stijgt (de laatste waarde vóór de start vergeleken met de
+  hoogste waarde tot 30 minuten na het einde). Zo vallen valse meldingen weg. Zonder
+  accupercentage-sensor telt elke kandidaat. Als statuswaarde voor laden worden onder meer
+  `charging`, `laden` en `on` herkend.
+- **kWh-schatting:** de stijging van het accupercentage × `battery_kwh`. Alleen zonder
+  accupercentage-sensor wordt het gemeten vermogen opgeteld (trapeziumregel); de eenheid (W of kW)
+  komt uit de sensor.
+- **Gemiddeld vermogen ("gem."):** kWh gedeeld door de duur van de sessie.
+- **AC/DC:** DC als de laadtype-sensor tijdens de sessie of tot 10 minuten erna "DC" meldt, of als het
+  gemiddelde vermogen boven 22 kW ligt. Anders AC.
 - **Verbruiksschatting:** geladen kWh gedeeld door gereden km over de laatste 30 dagen. Deze
   wordt pas getoond vanaf 300 km en 3 sessies en is altijd een schatting (laadverliezen, laden
   zonder gemeten sessie).
@@ -76,6 +79,11 @@ Bij de eerste start haalt de app de geschiedenis op uit Home Assistant: de lange
 van de kilometerstand (per uur) en de gedetailleerde historie van alle ingestelde sensoren, zo ver als
 de recorder teruggaat. Via **Instellingen → Backfill opnieuw starten** kun je dit later herhalen;
 bestaande gegevens blijven bewaard en dubbele metingen worden overgeslagen.
+
+## Weergave
+
+Onder **Instellingen → Weergave** kies je Automatisch (volgt de licht/donker-instelling van je
+apparaat), Licht of Donker. De keuze wordt in de database van de add-on bewaard.
 
 ## Export
 

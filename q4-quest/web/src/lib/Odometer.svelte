@@ -87,8 +87,8 @@
     justify-content: center;
     gap: 8px;
     padding: 14px 12px 10px;
-    background: #050506;
-    border: 1px solid var(--line);
+    background: var(--lcd-bg);
+    border: 1px solid var(--lcd-line);
     border-radius: 8px;
     overflow: hidden;
     font-family: var(--font-pixel);
@@ -102,8 +102,8 @@
   }
   .digits {
     position: relative;
-    color: var(--accent);
-    text-shadow: 0 0 12px rgba(227, 6, 19, 0.65);
+    color: var(--lcd-digit);
+    text-shadow: 0 0 12px var(--lcd-glow);
   }
   .stack {
     display: grid;
@@ -112,23 +112,23 @@
     grid-area: 1 / 1;
   }
   .ghost {
-    color: rgba(227, 6, 19, 0.07);
+    color: var(--lcd-ghost);
   }
   .dim {
-    color: rgba(227, 6, 19, 0.25);
+    color: var(--lcd-dim);
     text-shadow: none;
   }
   .unit {
     position: relative;
     font-size: 1.6rem;
-    color: var(--muted);
+    color: var(--lcd-muted);
   }
   /* Subtle scanlines, only on the odometer. */
   .lcd::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 3px);
+    background: repeating-linear-gradient(to bottom, var(--lcd-scanline) 0 1px, transparent 1px 3px);
     pointer-events: none;
   }
 </style>

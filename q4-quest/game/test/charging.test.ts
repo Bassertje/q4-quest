@@ -13,7 +13,7 @@ import {
 
 const MIN = 60_000;
 const H = 60 * MIN;
-const base = { state: [], type: [], soc: [], batteryKwh: 77, now: 100 * H };
+const base = { state: [], type: [], soc: [], power: [], hasSoc: false, batteryKwh: 77, now: 100 * H };
 
 describe('helpers', () => {
   it('converts power to kW using the unit', () => {
@@ -39,103 +39,169 @@ describe('helpers', () => {
 });
 
 describe('chargingSessions', () => {
-  it('builds a session from power readings and estimates kWh by integration', () => {
+  const withSoc = { ...base, hasSoc: true };
+
+  it('rejects a false positive: short "charging" blip at 3.7 kW while the SoC drops', () => {
     const sessions = chargingSessions({
-      ...base,
+      ...withSoc,
+      state: [
+        { ts: 10 * H, state: 'charging' },
+        { ts: 10 * H + 15 * MIN, state: 'not_charging' },
+      ],
+      power: [
+        { ts: 10 * H, kw: 3.7 },
+        { ts: 10 * H + 15 * MIN, kw: 0 },
+      ],
+      soc: [
+        { ts: 9 * H, value: 64 },
+        { ts: 10 * H + 20 * MIN, value: 63 },
+      ],
+    });
+    expect(sessions).toEqual([]);
+  });
+
+  it('needs a rise of at least 2 percentage points', () => {
+    const run = (after: number) =>
+      chargingSessions({
+        ...withSoc,
+        state: [
+          { ts: 10 * H, state: 'charging' },
+          { ts: 11 * H, state: 'not_charging' },
+        ],
+        soc: [
+          { ts: 9 * H, value: 50 },
+          { ts: 11 * H, value: after },
+        ],
+      });
+    expect(run(51.9)).toEqual([]);
+    expect(run(52)).toHaveLength(1);
+  });
+
+  it('uses ΔSoC × battery size for kWh and the highest SoC up to 30 minutes after the end', () => {
+    const sessions = chargingSessions({
+      ...withSoc,
       power: [
         { ts: 10 * H, kw: 11 },
-        { ts: 11 * H, kw: 11 },
-        { ts: 12 * H, kw: 11 },
-        { ts: 13 * H, kw: 0 },
+        { ts: 12 * H, kw: 0 },
       ],
       soc: [
         { ts: 9 * H, value: 30 },
-        { ts: 13 * H + 5 * MIN, value: 72 },
+        { ts: 11 * H, value: 50 },
+        { ts: 12 * H + 25 * MIN, value: 60 }, // reported late, still counts
+        { ts: 12 * H + 45 * MIN, value: 90 }, // too late
       ],
       type: [{ ts: 10 * H, state: 'AC' }],
     });
     expect(sessions).toHaveLength(1);
     expect(sessions[0]).toMatchObject({
       start: 10 * H,
-      end: 13 * H,
-      ongoing: false,
-      type: 'AC',
-      typeInferred: false,
+      end: 12 * H,
       socStart: 30,
-      socEnd: 72,
-      peakKw: 11,
-      // Trapezoid: 11 + 11 + (11 + 0) / 2 = 27.5 kWh.
-      kwh: 27.5,
-      kwhMethod: 'power',
+      socEnd: 60,
+      kwh: 23.1, // 30% of 77 kWh
+      kwhMethod: 'soc',
+      avgKw: 11.6, // 23.1 kWh in 2 hours
+      type: 'AC',
     });
   });
 
-  it('bridges gaps of up to 15 minutes, but not longer', () => {
-    const power = [
-      { ts: 0, kw: 50 },
-      { ts: 10 * MIN, kw: 0 },
-      { ts: 20 * MIN, kw: 60 }, // 10 min gap: same session
-      { ts: 30 * MIN, kw: 0 },
-      { ts: 60 * MIN, kw: 40 }, // 30 min gap: new session
-      { ts: 70 * MIN, kw: 0 },
-    ];
-    const sessions = chargingSessions({ ...base, power });
-    expect(sessions.map((s) => [s.start, s.end])).toEqual([
-      [0, 30 * MIN],
-      [60 * MIN, 70 * MIN],
-    ]);
-    // No type sensor: inferred from the peak power.
-    expect(sessions[0]).toMatchObject({ type: 'DC', typeInferred: true, peakKw: 60 });
-  });
-
-  it('falls back to ΔSoC × battery size with fewer than 3 power readings', () => {
+  it('ignores a power value stuck at a low level during DC charging', () => {
     const sessions = chargingSessions({
-      ...base,
-      power: [],
-      state: [
-        { ts: 10 * H, state: 'charging' },
-        { ts: 12 * H, state: 'not_charging' },
+      ...withSoc,
+      power: [
+        { ts: 10 * H, kw: 7.2 }, // stuck: the real power was much higher
+        { ts: 10 * H + 30 * MIN, kw: 0 },
       ],
       soc: [
         { ts: 9 * H, value: 20 },
-        { ts: 12 * H, value: 70 },
+        { ts: 10 * H + 35 * MIN, value: 70 },
       ],
     });
-    expect(sessions).toHaveLength(1);
-    expect(sessions[0]).toMatchObject({ kwh: 38.5, kwhMethod: 'soc', peakKw: null, type: null });
+    // 50% of 77 kWh = 38.5 kWh in 30 min = 77 kW average: DC.
+    expect(sessions[0]).toMatchObject({ kwh: 38.5, avgKw: 77, type: 'DC' });
   });
 
-  it('lets a "not charging" state end a stale power value', () => {
+  it('merges candidates less than 30 minutes apart before checking the SoC', () => {
     const sessions = chargingSessions({
-      ...base,
-      power: [{ ts: 10 * H, kw: 11 }],
-      state: [
-        { ts: 10 * H, state: 'charging' },
-        { ts: 11 * H, state: 'not_charging' },
+      ...withSoc,
+      power: [
+        { ts: 0, kw: 50 },
+        { ts: 10 * MIN, kw: 0 },
+        { ts: 35 * MIN, kw: 60 }, // 25 min gap: merged
+        { ts: 45 * MIN, kw: 0 },
+        { ts: 90 * MIN, kw: 40 }, // 45 min gap: separate candidate
+        { ts: 100 * MIN, kw: 0 },
+      ],
+      soc: [
+        { ts: -MIN, value: 20 },
+        { ts: 45 * MIN, value: 40 },
+        { ts: 100 * MIN, value: 41 }, // only +1: rejected
       ],
     });
-    expect(sessions.map((s) => [s.start, s.end, s.ongoing])).toEqual([[10 * H, 11 * H, false]]);
+    expect(sessions.map((s) => [s.start, s.end])).toEqual([[0, 45 * MIN]]);
+  });
+
+  it('is DC when the type sensor reports dc during or up to 10 minutes after the session', () => {
+    const run = (typeTs: number) =>
+      chargingSessions({
+        ...withSoc,
+        state: [
+          { ts: 10 * H, state: 'charging' },
+          { ts: 13 * H, state: 'not_charging' },
+        ],
+        soc: [
+          { ts: 9 * H, value: 40 },
+          { ts: 13 * H, value: 60 }, // slow: 15.4 kWh in 3 h, about 5 kW
+        ],
+        type: [{ ts: typeTs, state: 'dc' }],
+      })[0].type;
+    expect(run(11 * H)).toBe('DC');
+    expect(run(13 * H + 9 * MIN)).toBe('DC');
+    expect(run(13 * H + 11 * MIN)).toBe('AC');
+    expect(run(9 * H)).toBe('AC'); // reported before the session
+  });
+
+  it('integrates power only when no SoC sensor is configured', () => {
+    const sessions = chargingSessions({
+      ...base,
+      hasSoc: false,
+      power: [
+        { ts: 10 * H, kw: 11 },
+        { ts: 11 * H, kw: 11 },
+        { ts: 12 * H, kw: 11 },
+        { ts: 13 * H, kw: 0 },
+      ],
+    });
+    // Trapezoid: 11 + 11 + (11 + 0) / 2 = 27.5 kWh over 3 hours.
+    expect(sessions[0]).toMatchObject({ kwh: 27.5, kwhMethod: 'power', avgKw: 9.2, type: 'AC', socStart: null });
   });
 
   it('marks a session that is still running as ongoing', () => {
-    const sessions = chargingSessions({ ...base, now: 12 * H, power: [{ ts: 11 * H, kw: 7 }] });
+    const sessions = chargingSessions({
+      ...withSoc,
+      now: 12 * H,
+      power: [{ ts: 11 * H, kw: 7 }],
+      soc: [
+        { ts: 10 * H, value: 50 },
+        { ts: 11 * H + 50 * MIN, value: 56 },
+      ],
+    });
     expect(sessions).toHaveLength(1);
     expect(sessions[0]).toMatchObject({ ongoing: true, end: 12 * H });
   });
 });
 
 describe('totals, consumption and records', () => {
-  const s = (start: number, kwh: number | null, type: 'AC' | 'DC', peakKw: number): ChargingSession => ({
+  const s = (start: number, kwh: number | null, type: 'AC' | 'DC', avgKw: number): ChargingSession => ({
     start,
     end: start + H,
     ongoing: false,
     type,
-    typeInferred: false,
     socStart: null,
     socEnd: null,
-    peakKw,
     kwh,
-    kwhMethod: kwh === null ? null : 'power',
+    kwhMethod: kwh === null ? null : 'soc',
+    avgKw,
   });
   const now = Date.parse('2026-11-10T12:00:00Z');
   const sessions = [
@@ -168,7 +234,7 @@ describe('totals, consumption and records', () => {
 
   it('finds the fastest session and the busiest month', () => {
     const r = chargingRecords(sessions, 'UTC');
-    expect(r.fastest?.peakKw).toBe(150.5);
+    expect(r.fastest?.avgKw).toBe(150.5);
     expect(r.busiestMonth).toEqual({ key: '2026-10', sessions: 2 });
   });
 });
