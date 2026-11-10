@@ -43,6 +43,8 @@ export class HaClient {
   private attempt = 0;
   private timer: NodeJS.Timeout | null = null;
   private stopped = false;
+  private subscriptions = new Map<number, (event: unknown) => void>();
+  private connectHandlers: (() => void)[] = [];
 
   constructor(url: string, token: string) {
     this.url = url;
@@ -58,6 +60,27 @@ export class HaClient {
     this.stopped = true;
     if (this.timer) clearTimeout(this.timer);
     this.ws?.close();
+  }
+
+  /** Register a handler that runs after every successful (re)connect. */
+  onConnect(handler: () => void): void {
+    this.connectHandlers.push(handler);
+  }
+
+  /** Subscribe to a stream of events; resolves once HA confirms the subscription. */
+  async subscribe(
+    type: string,
+    payload: Record<string, unknown>,
+    handler: (event: unknown) => void,
+  ): Promise<void> {
+    const id = this.nextId;
+    this.subscriptions.set(id, handler);
+    try {
+      await this.call(type, payload);
+    } catch (err) {
+      this.subscriptions.delete(id);
+      throw err;
+    }
   }
 
   /** Send a WebSocket command and wait for its result. */
@@ -100,6 +123,7 @@ export class HaClient {
       this.ws = null;
       for (const p of this.pending.values()) p.reject(new Error('connection closed'));
       this.pending.clear();
+      this.subscriptions.clear();
       if (this.status.state !== 'auth_failed') this.status.state = 'disconnected';
       this.status.connectedSince = null;
       this.scheduleReconnect();
@@ -124,6 +148,9 @@ export class HaClient {
         this.status.lastError = 'authentication failed';
         this.ws?.close();
         break;
+      case 'event':
+        this.subscriptions.get(msg.id)?.(msg.event);
+        break;
       case 'result': {
         const p = this.pending.get(msg.id);
         if (!p) break;
@@ -143,6 +170,13 @@ export class HaClient {
       this.status.haVersion = config.version ?? this.status.haVersion;
     } catch (err) {
       this.status.lastError = `get_config: ${(err as Error).message}`;
+    }
+    for (const handler of this.connectHandlers) {
+      try {
+        handler();
+      } catch (err) {
+        console.error('[ha] connect handler failed:', err);
+      }
     }
   }
 

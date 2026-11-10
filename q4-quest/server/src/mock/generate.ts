@@ -48,7 +48,7 @@ export function generateMockHistory(opts: MockOptions = {}): MockReading[] {
   let odometer = opts.startOdometer ?? 8_250;
   let soc = 80;
   const push = (key: SensorKey, ts: number, value: string, attrs: Record<string, unknown> = {}) => {
-    if (ts <= endTs) out.push({ key, ts, value, attrs });
+    if (ts <= endTs) out.push({ key, ts: Math.round(ts), value, attrs });
   };
   const pushSoc = (ts: number) => {
     push('soc', ts, soc.toFixed(0), { unit_of_measurement: '%' });

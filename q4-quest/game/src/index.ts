@@ -1,4 +1,6 @@
-// Pure game logic (XP, levels, milestones, badges) lives here.
-// Every function in this folder must be testable without Home Assistant and
-// without a database. Filled in from phase 1 onwards.
-export {};
+// Pure game logic: no Home Assistant, no database, no I/O.
+export * from './cockpit.ts';
+export * from './distance.ts';
+export * from './levels.ts';
+export * from './milestones.ts';
+export * from './time.ts';

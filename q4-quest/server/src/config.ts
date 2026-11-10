@@ -30,7 +30,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     mock,
     port: Number(env.PORT ?? 8099),
     host: env.HOST ?? '0.0.0.0',
-    dbPath: env.DB_PATH ?? (inAddon ? '/data/q4quest.db' : mock ? './data/q4quest-mock.db' : './data/q4quest.db'),
+    dbPath: env.DB_PATH ?? (inAddon ? '/data/q4quest.db' : mock ? ':memory:' : './data/q4quest.db'),
     optionsPath: env.OPTIONS_PATH ?? (inAddon ? '/data/options.json' : './options.local.json'),
     webDir: env.WEB_DIR ?? new URL('../../web/dist/', import.meta.url).pathname,
     ha,
