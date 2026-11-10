@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1
+
+- De kaart "Volgende bestemming" is van de cockpit verwijderd. De Wereldreis-bestemmingen zijn gewoon badges en blijven te volgen via de kaart met de gevolgde badge (tik op een badge en kies Volgen). De automatische keuze van de gevolgde badge is ongewijzigd.
+
 ## 1.3.0
 
 - **Weekuitdaging:** elke week (vanaf maandag 00:00) krijg je één uitdaging: een aantal km, een aantal rijdagen, hooguit een aantal keer laden, of zuinig rijden. Het doel past zich aan aan je laatste vier weken (met vaste startwaarden zolang die er nog niet zijn), en het type wisselt elke week. De cockpit toont doel, voortgang en resterende dagen. Gehaald = 100 bonus-XP en een melding in het reveal-scherm. Alle uitdagingen en resultaten staan in Historie. Nieuwe badges: Uitdager (10), Doorzetter (25) en Een jaar vol uitdagingen (52).
