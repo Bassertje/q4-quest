@@ -57,13 +57,12 @@ export interface ChargingSession {
   start: number;
   end: number;
   ongoing: boolean;
-  type: 'AC' | 'DC' | null;
-  typeInferred: boolean;
+  type: 'AC' | 'DC';
   socStart: number | null;
   socEnd: number | null;
-  peakKw: number | null;
   kwh: number | null;
-  kwhMethod: 'power' | 'soc' | null;
+  kwhMethod: 'soc' | 'power' | null;
+  avgKw: number | null;
 }
 
 export interface ChargingRecords {

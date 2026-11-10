@@ -45,11 +45,17 @@ Functies die afhangen van een optionele sensor die niet is ingesteld, worden ver
 3. Na de backfill worden alle afgeleide tabellen en badges opnieuw berekend.
 
 ### Afgeleide gegevens (pure functies, getest)
-- **Dagtotaal:** maximale minus minimale odometer per kalenderdag. Dit is de primaire maat; OEM-data is niet realtime.
+Afgeleide gegevens worden altijd uit de opgeslagen ruwe metingen berekend. Na een update van de add-on (bijv. een gewijzigde definitie van een laadsessie) worden alle afgeleide gegevens, sessies en badges dus opnieuw berekend; ontgrendeldata volgen uit de nieuwe berekening.
+
+- **Dagtotaal:** de laatste odometerstand van de dag minus de laatste stand van de vorige dag met data (voor de allereerste dag: max − min). Dit is de primaire maat; OEM-data is niet realtime en komt soms pas na een rit binnen.
 - **Ritblok:** opeenvolgende odometerstijgingen met minder dan 45 minuten ertussen. Gebruik de parkeerrem-sensor als extra scheidingssignaal als die is ingesteld. Ritblokken zijn indicatief.
-- **Laadsessie:** een aaneengesloten periode met laadvermogen > 0 of status "laden" (een gat van maximaal 15 min hoort er nog bij).
-  - Per sessie: start, eind, type (AC/DC), SoC begin en eind, piekvermogen.
-  - Geschatte kWh: trapezium-integratie van het vermogen. Als dat onbetrouwbaar is (minder dan 3 metingen), gebruik dan ΔSoC × `battery_kwh`.
+- **Laadsessie:**
+  - Kandidaat: een periode met status "laden" of laadvermogen > 0. Kandidaten die minder dan 30 minuten uit elkaar liggen, worden eerst samengevoegd.
+  - Een kandidaat is alleen een echte laadsessie als de SoC met **≥ 2 procentpunt** stijgt. Vergelijk daarvoor de laatste SoC vóór de start met de hoogste SoC tot 30 minuten na het einde (SoC-updates lopen achter). Zo vallen vals-positieve meldingen af (bijv. ±15 min "laden" op een vast vermogen terwijl de SoC daalt). Zonder SoC-sensor telt elke kandidaat.
+  - Per sessie: start, eind, type (AC/DC), SoC begin en eind, geschatte kWh en gemiddeld vermogen.
+  - Geschatte kWh: ΔSoC / 100 × `battery_kwh`. Het gemeten vermogen is onbetrouwbaar (het kan bijvoorbeeld tijdens DC-laden op een te lage waarde blijven hangen); vermogensintegratie (trapeziumregel) wordt alleen gebruikt als er geen SoC-sensor is ingesteld.
+  - Gemiddeld vermogen ("gem."): kWh ÷ duur.
+  - Type: DC als de laadtype-sensor tijdens de sessie of tot 10 minuten erna "dc" meldt, óf als het gemiddelde vermogen > 22 kW is. Anders AC.
 - **Verbruiksschatting:** geladen kWh ÷ gereden km over voortschrijdende 30 dagen. Toon dit alleen bij minstens 300 km en 3 sessies, en altijd met het label "schatting".
 
 ---
@@ -57,7 +63,7 @@ Functies die afhangen van een optionele sensor die niet is ingesteld, worden ver
 ## 3. Game-mechaniek
 
 ### XP en levels
-- 1 XP per gereden km, plus het bonus-XP van elke badge.
+- 1 XP per km op de teller (XP = totale kilometerstand), plus het bonus-XP van elke badge.
 - De cumulatieve XP die nodig is voor level *L* is `50 × L × (L + 1)` (level 1 = 100 XP, level 10 = 5.500, level 20 = 21.000).
 - Rangtitels per 5 levels:
   - Leerling (1–4), Pendelaar (5–9), Wegvreter (10–14), Kilometervreter (15–19), Snelwegridder (20–24), Asfaltlegende (25–29), Orbitaal (30+).
@@ -100,7 +106,7 @@ Badges die op tijdstip gebaseerd zijn (`night_owl`, `early_bird`) tellen alleen 
 | charges_10 / _50 / _100 | Stekkervaste I/II/III | 10/50/100 sessies | 50/150/300 |
 | full_tank | Tot de nok | sessie eindigt op 100% | 50 |
 | running_on_fumes | Op de valreep | SoC ≤ 10% gemeten | 75 |
-| dc_150 | Volle bak | piekvermogen ≥ 150 kW | 100 |
+| dc_150 | Volle bak | gemiddeld ≥ 75 kW in één sessie | 100 |
 | mwh_1 | Eerste megawattuur | cumulatief ≥ 1.000 kWh geladen | 250 |
 
 **Zuinigheid** (indicatief)
@@ -110,7 +116,7 @@ Badges die op tijdstip gebaseerd zijn (`night_owl`, `early_bird`) tellen alleen 
 | eco_week | Zuinige week | weekschatting ≤ 17 kWh/100 km bij ≥ 150 km | 100 |
 
 ### Records
-Beste dag, beste week, beste maand, langste streak, langste ritblok, snelste laadsessie (piek-kW) en meeste laadsessies in een maand.
+Beste dag, beste week, beste maand, langste streak, langste ritblok, snelste laadsessie (gem. kW) en meeste laadsessies in een maand.
 
 ### "Nieuw"-moment
 - Elke badge, mijlpaal, level-up en elk nieuw record heeft een `seen`-vlag.
@@ -139,19 +145,23 @@ Navigatie onderaan (mobiel-eerst), bovenaan op desktop.
    - Recordlijst.
    - Tijdlijn van gebeurtenissen (badges, mijlpalen, level-ups).
 4. **Laden**
-   - Lijst met sessies (datum, AC/DC, kWh-schatting, SoC van → naar, piek-kW).
+   - Lijst met sessies (datum, AC/DC, kWh-schatting, SoC van → naar, gem. kW).
    - Totalen en de verbruiksschatting.
 5. **Instellingen** (klein, via een tandwiel)
    - Status van de HA-verbinding.
    - Welke sensoren zijn ingesteld.
    - Backfill opnieuw starten.
    - Export van de eigen data als JSON (download, nooit naar de repo).
+   - Weergave: Automatisch / Licht / Donker (standaard Automatisch, via `prefers-color-scheme`). De keuze wordt in de database opgeslagen.
 
 ---
 
 ## 5. Vormgeving: "Night Drive Retro"
 
-- **Basis:** donker. Achtergrond `#0A0A0C`, panelen `#141519`, lijnen `#24262C`, tekst `#E8E8EA`, gedempte tekst `#8A8D96`.
+- **Thema's:** alle kleuren lopen via CSS-variabelen. De gebruiker kiest Automatisch, Licht of Donker (zie Instellingen).
+  - **Donker:** achtergrond `#0A0A0C`, panelen `#141519`, lijnen `#24262C`, tekst `#E8E8EA`, gedempte tekst `#8A8D96`.
+  - **Licht:** achtergrond `#F4F4F2`, panelen `#FFFFFF`, lijnen `#E2E2E0`, tekst `#141519`, gedempte tekst `#6A6D76`.
+  - De kilometerteller blijft in beide modi een donker instrument met rode LCD-cijfers. Grafieken passen mee.
 - **Accent:** signaalrood `#E30613` voor voortgang, focus en nieuwe items. Daarnaast een zachte gloed (`box-shadow` in rood met lage opaciteit).
 - **Retro:** LCD-/pixelfont voor cijfers en koppen (bijv. VT323 of "Press Start 2P", spaarzaam gebruikt), een strakke moderne sans-serif voor de rest (bijv. Inter of Space Grotesk). Subtiele scanlines alleen op de kilometerteller en het reveal-scherm.
 - **Badge-iconen:** eigen pixel-art in SVG (16×16 of 24×24 raster), opgeschaald met `image-rendering: pixelated`.

@@ -166,7 +166,7 @@
   .big {
     font-size: 2.4rem;
     color: var(--accent);
-    text-shadow: 0 0 10px rgba(227, 6, 19, 0.45);
+    text-shadow: var(--accent-text-glow);
   }
   .mid {
     font-size: 1.9rem;

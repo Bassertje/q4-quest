@@ -57,13 +57,15 @@ export function generateMockHistory(opts: MockOptions = {}): MockReading[] {
 
   const charge = (start: number, dc: boolean, targetSoc: number) => {
     const maxKw = dc ? 50 + rng() * 125 : 11;
+    // Some DC sessions report a power value that gets stuck at a low level.
+    const stuckKw = dc && rng() < 0.4 ? 5 + rng() * 5 : null;
     push('charging_state', start, 'charging');
     push('charging_type', start, dc ? 'DC' : 'AC');
     let t = start;
     while (soc < targetSoc) {
       // DC tapers off at high SoC.
       const kw = dc ? Math.max(20, maxKw * (soc < 60 ? 1 : (100 - soc) / 40)) : maxKw * (0.95 + rng() * 0.05);
-      push('charging_power', t, kw.toFixed(1), { unit_of_measurement: 'kW' });
+      push('charging_power', t, (stuckKw ?? kw).toFixed(1), { unit_of_measurement: 'kW' });
       const step = dc ? 5 * MIN : 15 * MIN;
       soc = Math.min(targetSoc, soc + (kw * (step / HOUR) / batteryKwh) * 100);
       t += step;
@@ -110,6 +112,15 @@ export function generateMockHistory(opts: MockOptions = {}): MockReading[] {
       push('parking_brake', t, 'on');
       hour = (t - dayStart) / HOUR + 1 + rng() * 5;
       if (hour > 22) break;
+    }
+
+    // False positive: a short "charging" blip at 3.7 kW while nothing is charged.
+    if (rng() < 0.12) {
+      const t = dayStart + (12 + rng() * 6) * HOUR;
+      push('charging_state', t, 'charging');
+      push('charging_power', t, '3.7', { unit_of_measurement: 'kW' });
+      push('charging_power', t + 15 * MIN, '0', { unit_of_measurement: 'kW' });
+      push('charging_state', t + 15 * MIN, 'not_charging');
     }
 
     // Home charging in the evening when the battery is getting low.

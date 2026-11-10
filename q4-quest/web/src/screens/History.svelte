@@ -155,8 +155,8 @@
       {/if}
       {#if data.chargingRecords?.fastest}
         <li>
-          <span>Snelste laadsessie</span>
-          <span class="right"><strong>{kw(data.chargingRecords.fastest.peakKw ?? 0)} kW</strong><span class="muted small">{date(data.chargingRecords.fastest.start, tz)}</span></span>
+          <span>Snelste laadsessie <span class="muted small">(gem.)</span></span>
+          <span class="right"><strong>{kw(data.chargingRecords.fastest.avgKw ?? 0)} kW</strong><span class="muted small">{date(data.chargingRecords.fastest.start, tz)}</span></span>
         </li>
       {/if}
       {#if data.chargingRecords?.busiestMonth}
@@ -230,25 +230,6 @@
     gap: 8px;
     margin-bottom: 8px;
   }
-  .segmented {
-    display: inline-flex;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  .segmented button {
-    border: 0;
-    border-radius: 0;
-    padding: 6px 12px;
-  }
-  .segmented button + button {
-    border-left: 1px solid var(--line);
-  }
-  .segmented button.active {
-    background: var(--accent);
-    color: #fff;
-    box-shadow: none;
-  }
   .paging {
     display: flex;
     gap: 6px;
@@ -312,7 +293,7 @@
   }
   .timeline li.accent .marker {
     background: var(--accent);
-    box-shadow: 0 0 8px rgba(227, 6, 19, 0.6);
+    box-shadow: 0 0 8px var(--accent-glow-color);
   }
   .timeline li.start .marker {
     background: var(--panel);

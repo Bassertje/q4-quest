@@ -2,14 +2,18 @@ import { addDays, dayKey, monthKey } from './time.ts';
 import type { TimedValue } from './milestones.ts';
 import type { TimedState } from './trips.ts';
 
-/** A gap of at most this long still belongs to the same charging session. */
-export const SESSION_GAP_MS = 15 * 60_000;
-/** Sessions shorter than this (and not ongoing) are treated as noise. */
+/** Candidate periods less than this far apart are merged first. */
+export const CANDIDATE_MERGE_MS = 30 * 60_000;
+/** SoC updates lag behind: look this long after the end for the highest SoC. */
+export const SOC_LAG_MS = 30 * 60_000;
+/** A candidate is only a real session if the SoC rises at least this much. */
+export const MIN_SOC_RISE = 2;
+/** A type sensor reporting "dc" up to this long after the end still counts. */
+export const TYPE_LAG_MS = 10 * 60_000;
+/** An average power above this means DC. */
+export const DC_MIN_AVG_KW = 22;
+/** Candidates shorter than this (and not ongoing) are treated as noise. */
 const MIN_SESSION_MS = 60_000;
-/** Fewer power readings than this make the integration unreliable. */
-const MIN_POWER_READINGS = 3;
-/** Without a type sensor, a peak above this is assumed to be DC. */
-const AC_MAX_KW = 22;
 
 export interface PowerReading {
   ts: number;
@@ -57,15 +61,14 @@ export interface ChargingSession {
   start: number;
   end: number;
   ongoing: boolean;
-  type: 'AC' | 'DC' | null;
-  /** True when the type was derived from the peak power instead of a sensor. */
-  typeInferred: boolean;
+  type: 'AC' | 'DC';
   socStart: number | null;
   socEnd: number | null;
-  peakKw: number | null;
   kwh: number | null;
-  /** How kWh was estimated: integrated power, or ΔSoC × battery size. */
-  kwhMethod: 'power' | 'soc' | null;
+  /** How kWh was estimated: ΔSoC × battery size, or integrated power (no SoC sensor). */
+  kwhMethod: 'soc' | 'power' | null;
+  /** Average power: kWh ÷ duration. */
+  avgKw: number | null;
 }
 
 export interface ChargingInput {
@@ -73,6 +76,8 @@ export interface ChargingInput {
   state: TimedState[];
   type: TimedState[];
   soc: TimedValue[];
+  /** Whether a SoC sensor is configured (enables the SoC check and SoC-based kWh). */
+  hasSoc: boolean;
   batteryKwh: number;
   now: number;
 }
@@ -88,40 +93,49 @@ function activeIntervals<T extends { ts: number }>(readings: T[], active: (r: T)
   return out;
 }
 
-function lastAtOrBefore<T extends { ts: number }>(readings: T[], ts: number): T | null {
+function lastBefore<T extends { ts: number }>(readings: T[], ts: number): T | null {
   let found: T | null = null;
   for (const r of readings) {
-    if (r.ts > ts) break;
+    if (r.ts >= ts) break;
     found = r;
   }
   return found;
 }
 
 /**
- * Detect charging sessions: periods with charging power > 0 or a "charging"
- * state, where gaps of up to 15 minutes are bridged. All inputs sorted by time.
+ * Candidate charging periods: "charging" state or power > 0. Candidates less
+ * than 30 minutes apart are merged. A "not charging" state ends a power
+ * interval early, so a stale power value cannot keep a candidate open.
  */
-export function chargingSessions(input: ChargingInput): ChargingSession[] {
+export function chargingCandidates(input: Pick<ChargingInput, 'power' | 'state' | 'now'>): Interval[] {
   const { power, state, now } = input;
-  let intervals = activeIntervals(state, (s) => isChargingState(s.state), now);
-
-  // Power intervals; a "not charging" state ends a power interval early, so a
-  // stale power value cannot keep a session open forever.
+  const intervals = activeIntervals(state, (s) => isChargingState(s.state), now);
   const stops = state.filter((s) => !isChargingState(s.state)).map((s) => s.ts);
   for (const [a, b] of activeIntervals(power, (p) => p.kw > 0, now)) {
     const stop = stops.find((t) => t > a && t < b);
     intervals.push([a, stop ?? b]);
   }
-
-  intervals = intervals.sort((x, y) => x[0] - y[0]);
+  intervals.sort((x, y) => x[0] - y[0]);
   const merged: Interval[] = [];
   for (const iv of intervals) {
     const last = merged.at(-1);
-    if (last && iv[0] - last[1] <= SESSION_GAP_MS) last[1] = Math.max(last[1], iv[1]);
+    if (last && iv[0] - last[1] < CANDIDATE_MERGE_MS) last[1] = Math.max(last[1], iv[1]);
     else merged.push([iv[0], iv[1]]);
   }
+  return merged;
+}
 
-  // A session is ongoing if a signal is still active at the latest reading.
+/**
+ * Detect charging sessions. A candidate only counts when the SoC rises by at
+ * least 2 percentage points: the last SoC before the start compared with the
+ * highest SoC up to 30 minutes after the end. Without a SoC sensor every
+ * candidate counts. All inputs must be sorted by time.
+ */
+export function chargingSessions(input: ChargingInput): ChargingSession[] {
+  const { power, state, now } = input;
+  const candidates = chargingCandidates(input);
+
+  // The last candidate is ongoing if a signal is still active at the latest reading.
   const lastPower = power.at(-1);
   const lastState = state.at(-1);
   const activeNow =
@@ -129,60 +143,62 @@ export function chargingSessions(input: ChargingInput): ChargingSession[] {
     (lastPower ? lastPower.kw > 0 && !(lastState && lastState.ts > lastPower.ts && !isChargingState(lastState.state)) : false);
 
   const sessions: ChargingSession[] = [];
-  merged.forEach(([start, end], i) => {
-    const ongoing = activeNow && i === merged.length - 1 && end >= now;
+  candidates.forEach(([start, end], i) => {
+    const ongoing = activeNow && i === candidates.length - 1 && end >= now;
     if (!ongoing && end - start < MIN_SESSION_MS) return;
-    sessions.push(describeSession(input, start, ongoing ? now : end, ongoing));
+    const session = describeSession(input, start, ongoing ? now : end, ongoing);
+    if (session) sessions.push(session);
   });
   return sessions;
 }
 
-function describeSession(input: ChargingInput, start: number, end: number, ongoing: boolean): ChargingSession {
-  const inSession = input.power.filter((p) => p.ts >= start && p.ts <= end);
-  const peakKw = inSession.length ? Math.max(...inSession.map((p) => p.kw)) : null;
+/** The highest SoC from the start up to 30 minutes after the end. */
+function maxSocAfter(soc: TimedValue[], start: number, end: number): number | null {
+  let max: number | null = null;
+  for (const r of soc) {
+    if (r.ts < start) continue;
+    if (r.ts > end + SOC_LAG_MS) break;
+    if (max === null || r.value > max) max = r.value;
+  }
+  return max;
+}
 
-  // SoC at the start: the last value before the session (or the first one in it).
-  const socBefore = lastAtOrBefore(input.soc, start) ?? input.soc.find((s) => s.ts >= start && s.ts <= end) ?? null;
-  // SoC at the end: allow a short delay, as the car often reports it late.
-  const socAfter = lastAtOrBefore(input.soc, end + SESSION_GAP_MS);
-  const socStart = socBefore?.value ?? null;
-  const socEnd = socAfter && socAfter.ts >= start ? socAfter.value : null;
-
+function describeSession(input: ChargingInput, start: number, end: number, ongoing: boolean): ChargingSession | null {
+  const hours = (end - start) / 3_600_000;
+  let socStart: number | null = null;
+  let socEnd: number | null = null;
   let kwh: number | null = null;
   let kwhMethod: ChargingSession['kwhMethod'] = null;
-  if (inSession.length >= MIN_POWER_READINGS) {
-    kwh = integrate(inSession, end);
-    kwhMethod = 'power';
-  }
-  if ((kwh === null || kwh <= 0) && socStart !== null && socEnd !== null && socEnd > socStart) {
+
+  if (input.hasSoc) {
+    socStart = lastBefore(input.soc, start)?.value ?? null;
+    socEnd = maxSocAfter(input.soc, start, end);
+    // Not a real session without a measurable SoC rise (filters false positives).
+    if (socStart === null || socEnd === null || socEnd - socStart < MIN_SOC_RISE) return null;
     kwh = ((socEnd - socStart) / 100) * input.batteryKwh;
     kwhMethod = 'soc';
-  }
-  if (kwh !== null && kwh <= 0) {
-    kwh = null;
-    kwhMethod = null;
-  }
-
-  const typeReading = lastAtOrBefore(input.type, end);
-  let type = typeReading ? normaliseType(typeReading.state) : null;
-  let typeInferred = false;
-  if (type === null && peakKw !== null) {
-    type = peakKw > AC_MAX_KW ? 'DC' : 'AC';
-    typeInferred = true;
+  } else {
+    const points = input.power.filter((p) => p.ts >= start && p.ts <= end);
+    if (points.length > 0) {
+      const value = integrate(points, end);
+      if (value > 0) {
+        kwh = value;
+        kwhMethod = 'power';
+      }
+    }
   }
 
-  return {
-    start,
-    end,
-    ongoing,
-    type,
-    typeInferred,
-    socStart,
-    socEnd,
-    peakKw: peakKw === null ? null : Math.round(peakKw * 10) / 10,
-    kwh: kwh === null ? null : Math.round(kwh * 10) / 10,
-    kwhMethod,
-  };
+  // Round with a tiny epsilon so e.g. 11.55 becomes 11.6, and derive the average
+  // from the rounded kWh so it matches what the screen shows.
+  const r1 = (v: number | null) => (v === null ? null : Math.round(v * 10 + 1e-9) / 10);
+  kwh = r1(kwh);
+  const avgKw = kwh !== null && hours > 0 ? r1(kwh / hours) : null;
+  const typeSaysDc = input.type.some(
+    (t) => t.ts >= start && t.ts <= end + TYPE_LAG_MS && normaliseType(t.state) === 'DC',
+  );
+  const type: ChargingSession['type'] = typeSaysDc || (avgKw !== null && avgKw > DC_MIN_AVG_KW) ? 'DC' : 'AC';
+
+  return { start, end, ongoing, type, socStart, socEnd, kwh, kwhMethod, avgKw };
 }
 
 /** Trapezoidal integration (kWh) of power readings; the last value holds until `end`. */
@@ -209,11 +225,9 @@ export function chargingTotals(sessions: ChargingSession[]): ChargingTotals {
   for (const s of sessions) {
     totals.sessions++;
     totals.kwh += s.kwh ?? 0;
-    const bucket = s.type === 'DC' ? totals.dc : s.type === 'AC' ? totals.ac : null;
-    if (bucket) {
-      bucket.sessions++;
-      bucket.kwh += s.kwh ?? 0;
-    }
+    const bucket = s.type === 'DC' ? totals.dc : totals.ac;
+    bucket.sessions++;
+    bucket.kwh += s.kwh ?? 0;
   }
   const r = (v: number) => Math.round(v * 10) / 10;
   totals.kwh = r(totals.kwh);
@@ -274,7 +288,7 @@ export function chargingRecords(sessions: ChargingSession[], timeZone: string): 
   let fastest: ChargingSession | null = null;
   const perMonth = new Map<string, number>();
   for (const s of sessions) {
-    if (s.peakKw !== null && (!fastest || s.peakKw > (fastest.peakKw ?? 0))) fastest = s;
+    if (s.avgKw !== null && (!fastest || s.avgKw > (fastest.avgKw ?? 0))) fastest = s;
     const month = monthKey(dayKey(s.start, timeZone));
     perMonth.set(month, (perMonth.get(month) ?? 0) + 1);
   }

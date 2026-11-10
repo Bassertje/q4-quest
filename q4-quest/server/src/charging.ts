@@ -27,6 +27,7 @@ export function loadSessions(store: ReadingStore, options: Options, now = Date.n
     state: e.charging_state ? store.states('charging_state') : [],
     type: e.charging_type ? store.states('charging_type') : [],
     soc: e.soc ? store.series('soc') : [],
+    hasSoc: e.soc !== null,
     batteryKwh: options.batteryKwh,
     now,
   });

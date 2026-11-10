@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.1
+
+Betrouwbaardere laadsessies en een lichte modus.
+
+- **Laadsessies (bugfix):** de laadstatus en het laadvermogen gaven soms valse sessies (een kwartier "laden" op een vast vermogen terwijl het accupercentage daalde), en tijdens DC-laden bleef het vermogen soms op een te lage waarde hangen.
+  - Een periode met status "laden" of vermogen boven 0 telt nu alleen als laadsessie als het accupercentage minstens 2 procentpunt stijgt. Periodes die minder dan 30 minuten uit elkaar liggen worden eerst samengevoegd. Omdat het accupercentage vaak later wordt bijgewerkt, telt de hoogste waarde tot 30 minuten na het einde mee.
+  - De kWh-schatting is nu het verschil in accupercentage × accucapaciteit. Het gemeten vermogen wordt alleen nog gebruikt als er geen accupercentage-sensor is ingesteld.
+  - In plaats van het piekvermogen toont de app nu het gemiddelde vermogen ("gem." = kWh ÷ duur), ook bij het record "Snelste laadsessie".
+  - DC als de laadtype-sensor tijdens de sessie of tot 10 minuten erna "DC" meldt, of als het gemiddelde vermogen boven 22 kW ligt. Anders AC.
+  - Alle bestaande sessies, totalen, records en de verbruiksschatting worden automatisch opnieuw berekend uit de opgeslagen metingen; je hoeft niets te doen.
+- **Lichte modus:** kies in Instellingen → Weergave tussen Automatisch (volgt je apparaat), Licht en Donker. De keuze wordt in de database bewaard. De kilometerteller blijft altijd een donker instrument met rode cijfers; de grafieken kleuren mee.
+
 ## 0.4.0
 
 Laden, en een paar verbeteringen in de Historie.

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getJson, post } from '../lib/api';
   import { km } from '../lib/format';
+  import { cachedTheme, saveTheme, type ThemeChoice } from '../lib/theme';
   import type { StatusData } from '../lib/types';
 
   let { refresh }: { refresh: number } = $props();
@@ -31,6 +32,18 @@
     error: 'Mislukt',
   };
 
+  const THEME_OPTIONS: { value: ThemeChoice; label: string }[] = [
+    { value: 'auto', label: 'Automatisch' },
+    { value: 'light', label: 'Licht' },
+    { value: 'dark', label: 'Donker' },
+  ];
+  let theme = $state<ThemeChoice>(cachedTheme());
+
+  async function chooseTheme(choice: ThemeChoice) {
+    theme = choice;
+    await saveTheme(choice);
+  }
+
   let status = $state<StatusData | null>(null);
   let error = $state<string | null>(null);
   let starting = $state(false);
@@ -51,6 +64,9 @@
   $effect(() => {
     void refresh;
     load();
+    getJson<{ theme: ThemeChoice }>('settings')
+      .then((s) => (theme = s.theme))
+      .catch(() => {});
     return () => {
       if (pollTimer) clearTimeout(pollTimer);
     };
@@ -77,6 +93,18 @@
 {:else if !status}
   <p class="muted">Laden…</p>
 {:else}
+  <section class="panel">
+    <h3>Weergave</h3>
+    <div class="segmented" role="group" aria-label="Thema">
+      {#each THEME_OPTIONS as o (o.value)}
+        <button class:active={theme === o.value} aria-pressed={theme === o.value} onclick={() => chooseTheme(o.value)}>
+          {o.label}
+        </button>
+      {/each}
+    </div>
+    <p class="muted small hint">Automatisch volgt de instelling van je apparaat.</p>
+  </section>
+
   <section class="panel">
     <h3>Verbinding</h3>
     <div class="conn">
@@ -162,6 +190,9 @@
 <style>
   .title {
     font-size: 2rem;
+  }
+  .hint {
+    margin: 8px 0 0;
   }
   h3 {
     font-size: 1rem;

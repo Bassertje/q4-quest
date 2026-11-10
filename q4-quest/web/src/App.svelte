@@ -98,7 +98,7 @@
     letter-spacing: 0.08em;
     color: var(--accent);
     text-decoration: none;
-    text-shadow: 0 0 12px rgba(227, 6, 19, 0.45);
+    text-shadow: var(--accent-text-glow);
   }
   .icon {
     display: grid;

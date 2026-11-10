@@ -1,13 +1,75 @@
+/*
+ * Theme tokens. Dark is the default; light applies when chosen, or in
+ * "automatic" mode when the system prefers light (no data-theme attribute).
+ * Every colour in the app comes from these variables.
+ */
 :root {
+  color-scheme: dark;
   --bg: #0a0a0c;
   --panel: #141519;
   --line: #24262c;
   --text: #e8e8ea;
   --muted: #8a8d96;
   --accent: #e30613;
+  --accent-dark: #b8050f;
+  --on-accent: #ffffff;
   --glow: 0 0 18px rgba(227, 6, 19, 0.25);
+  --accent-text-glow: 0 0 12px rgba(227, 6, 19, 0.45);
+  --accent-glow-color: rgba(227, 6, 19, 0.6);
+  --track: #0d0e11;
+  --nav-bg: rgba(10, 10, 12, 0.94);
+  --chart-dim: rgba(255, 255, 255, 0.025);
+
+  /* The odometer is a dark instrument in both themes. */
+  --lcd-bg: #050506;
+  --lcd-line: #24262c;
+  --lcd-digit: #e30613;
+  --lcd-glow: rgba(227, 6, 19, 0.65);
+  --lcd-ghost: rgba(227, 6, 19, 0.07);
+  --lcd-dim: rgba(227, 6, 19, 0.25);
+  --lcd-muted: #8a8d96;
+  --lcd-scanline: rgba(255, 255, 255, 0.045);
+
   --font-pixel: 'VT323', ui-monospace, monospace;
   --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f4f4f2;
+  --panel: #ffffff;
+  --line: #e2e2e0;
+  --text: #141519;
+  --muted: #6a6d76;
+  --accent: #e30613;
+  --accent-dark: #b8050f;
+  --on-accent: #ffffff;
+  --glow: 0 0 14px rgba(227, 6, 19, 0.12);
+  --accent-text-glow: 0 0 6px rgba(227, 6, 19, 0.18);
+  --accent-glow-color: rgba(227, 6, 19, 0.35);
+  --track: #ececea;
+  --nav-bg: rgba(244, 244, 242, 0.94);
+  --chart-dim: rgba(20, 21, 25, 0.04);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    color-scheme: light;
+    --bg: #f4f4f2;
+    --panel: #ffffff;
+    --line: #e2e2e0;
+    --text: #141519;
+    --muted: #6a6d76;
+    --accent: #e30613;
+    --accent-dark: #b8050f;
+    --on-accent: #ffffff;
+    --glow: 0 0 14px rgba(227, 6, 19, 0.12);
+    --accent-text-glow: 0 0 6px rgba(227, 6, 19, 0.18);
+    --accent-glow-color: rgba(227, 6, 19, 0.35);
+    --track: #ececea;
+    --nav-bg: rgba(244, 244, 242, 0.94);
+    --chart-dim: rgba(20, 21, 25, 0.04);
+}
 }
 
 *,
@@ -97,4 +159,25 @@ button:focus-visible,
 button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* Segmented control (period and theme switches) */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.segmented button {
+  border: 0;
+  border-radius: 0;
+  padding: 6px 12px;
+}
+.segmented button + button {
+  border-left: 1px solid var(--line);
+}
+.segmented button.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: none;
 }
