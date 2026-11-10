@@ -1,6 +1,8 @@
 import type { DatabaseSync } from 'node:sqlite';
 import {
   dayShort,
+  isFollowable,
+  pickFollowedBadge,
   periodLabel,
   recordEntries,
   revealItems,
@@ -16,6 +18,7 @@ const CATEGORIES: { id: BadgeCategory; name: string }[] = [
   { id: 'laden', name: 'Laden' },
   { id: 'zuinigheid', name: 'Zuinigheid' },
   { id: 'mijlpalen', name: 'Mijlpalen' },
+  { id: 'legendarisch', name: 'Legendarisch' },
 ];
 
 export function seenKeys(db: DatabaseSync): Set<string> {
@@ -50,11 +53,16 @@ export interface BadgeView {
   unlockedTs: number | null;
   isNew: boolean;
   progress: { current: number; target: number; unit: string } | null;
+  followable: boolean;
 }
 
-export function badgesResponse(state: GameState, seen: Set<string>) {
+export function badgesResponse(state: GameState, seen: Set<string>, chosenId: string | null = null) {
   const unlocked = state.badges.filter((b) => b.unlockedTs !== null);
+  const followed = pickFollowedBadge(state.badges, chosenId);
   return {
+    /** The badge on the cockpit right now, and whether it was chosen by the user. */
+    followedId: followed?.badge.id ?? null,
+    followedAuto: followed?.auto ?? true,
     setupNeeded: state.setupNeeded,
     timeZone: state.timeZone,
     unlocked: unlocked.length,
@@ -78,6 +86,7 @@ export function badgesResponse(state: GameState, seen: Set<string>) {
             unlockedTs: b.unlockedTs,
             isNew: b.unlockedTs !== null && !seen.has(`badge:${b.id}`),
             progress: b.progress,
+            followable: isFollowable(b) && b.unlockedTs === null,
           };
         }),
     })).filter((c) => c.badges.length > 0),

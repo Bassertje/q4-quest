@@ -3,6 +3,7 @@
   import { getJson, onLiveUpdate } from './lib/api';
   import Reveal from './lib/Reveal.svelte';
   import type { RevealItem, StatusData } from './lib/types';
+  import { ICONS, pixelPath } from './lib/icons';
   import Nav from './lib/Nav.svelte';
   import Badges from './screens/Badges.svelte';
   import Charging from './screens/Charging.svelte';
@@ -95,13 +96,7 @@
       </a>
     {:else}
       <a class="icon" href="#/instellingen" aria-label="Instellingen">
-        <!-- Pixel-style gear -->
-        <svg viewBox="0 0 16 16" aria-hidden="true" class="gear">
-          <path
-            fill-rule="evenodd"
-            d="M7 1h2v2h2V2h1v1h1v1h-1v2h2v2h-2v2h1v1h-1v1h-1v-1H9v2H7v-2H5v1H4v-1H3v-1h1V9H2V7h2V5H3V4h1V3h1v1h2V1Zm0 5v4h2V6H7Z"
-          />
-        </svg>
+        <svg viewBox="0 0 16 16" aria-hidden="true" class="gear"><path d={pixelPath(ICONS.gear)} /></svg>
       </a>
     {/if}
   </header>

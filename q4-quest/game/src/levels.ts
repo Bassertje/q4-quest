@@ -13,19 +13,45 @@ export function levelForXp(xp: number): number {
   return level;
 }
 
-const RANKS: { from: number; title: string }[] = [
-  { from: 30, title: 'Orbitaal' },
-  { from: 25, title: 'Asfaltlegende' },
-  { from: 20, title: 'Snelwegridder' },
-  { from: 15, title: 'Kilometervreter' },
-  { from: 10, title: 'Wegvreter' },
-  { from: 5, title: 'Pendelaar' },
-  { from: 0, title: 'Leerling' },
+/** Rank titles per block of 5 levels, lowest first, with a pixel-art icon id. */
+const RANK_DEFS: { from: number; title: string; icon: string }[] = [
+  { from: 0, title: 'Leerling', icon: 'sprout' },
+  { from: 5, title: 'Pendelaar', icon: 'briefcase' },
+  { from: 10, title: 'Wegvreter', icon: 'cutlery' },
+  { from: 15, title: 'Kilometervreter', icon: 'speedo' },
+  { from: 20, title: 'Snelwegridder', icon: 'helmet' },
+  { from: 25, title: 'Asfaltlegende', icon: 'star' },
+  { from: 30, title: 'Orbitaal', icon: 'planet' },
 ];
 
 /** Rank title per block of 5 levels. Level 0 counts as "Leerling". */
 export function rankForLevel(level: number): string {
-  return RANKS.find((r) => level >= r.from)!.title;
+  return [...RANK_DEFS].reverse().find((r) => level >= r.from)!.title;
+}
+
+export interface RankInfo {
+  title: string;
+  icon: string;
+  /** First level of this rank (Leerling: 1, the first level). */
+  fromLevel: number;
+  /** Last level of this rank, or null for the highest rank. */
+  toLevel: number | null;
+  /** Cumulative XP needed to reach the rank. */
+  xp: number;
+}
+
+/** All ranks with their level range and XP threshold, lowest first. */
+export function rankList(): RankInfo[] {
+  return RANK_DEFS.map((r, i) => {
+    const fromLevel = Math.max(1, r.from);
+    const next = RANK_DEFS[i + 1];
+    return { title: r.title, icon: r.icon, fromLevel, toLevel: next ? next.from - 1 : null, xp: xpForLevel(fromLevel) };
+  });
+}
+
+/** Pixel-art icon id of a rank title. */
+export function rankIcon(title: string): string {
+  return RANK_DEFS.find((r) => r.title === title)?.icon ?? 'star';
 }
 
 export interface LevelProgress {

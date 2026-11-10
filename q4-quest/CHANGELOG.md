@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0
+
+- **Deel je jaar:** het jaaroverzicht eindigt met een deelkaart (een afbeelding van 1080×1920 in de stijl van je thema) met je gereden km van dat jaar, je hoogtepunten, je level en rang en de badges van dat jaar. Er staat niets herleidbaars op: geen kilometerstand van de auto en geen datums of tijden. Met **Delen** gaat de afbeelding naar het deelmenu van je telefoon; waar dat niet kan, wordt hij gedownload als `q4-quest-<jaar>.png`.
+- **Gevolgde badge:** op de cockpit staat nu één badge die je volgt, met een voortgangsbalk en hoeveel er nog resteert. Tik op het Badges-scherm op een badge en kies **Volgen**. Zonder keuze volgt de app automatisch de badge waar je het dichtst bij bent.
+- **Maanreis** is nu een badge in de nieuwe categorie **Legendarisch** (384.400 km, 5.000 XP), met voortgang. De vaste maanreis-kaart op de cockpit is vervangen door de gevolgde badge.
+- **Rangenoverzicht:** tik op je rang op de cockpit voor alle rangen met hun levels, XP-drempel en een eigen pixel-art icoon. Een nieuwe rang verschijnt voortaan ook in het reveal-scherm.
+- Het instellingen-icoon is een strak pixel-art tandwiel.
+- XP en levels worden automatisch herberekend (de Maanreis telt mee zodra je hem haalt).
+
 ## 1.0.0
 
 Het jaaroverzicht, en daarmee is Q4 Quest compleet.

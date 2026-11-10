@@ -4,6 +4,7 @@ export * from './badges.ts';
 export * from './charging.ts';
 export * from './cockpit.ts';
 export * from './distance.ts';
+export * from './follow.ts';
 export * from './history.ts';
 export * from './labels.ts';
 export * from './levels.ts';

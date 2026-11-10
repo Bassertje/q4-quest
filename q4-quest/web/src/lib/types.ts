@@ -13,12 +13,21 @@ export interface CockpitData {
     milestone: { previous: Milestone | null; next: Milestone; fraction: number; remainingKm: number };
     bonusXp: number;
     lastUnlocked: { id: string; name: string; icon: string; category: string; ts: number } | null;
-    moon: { km: number; fraction: number };
     distance: { today: number; week: number; month: number };
     streak: number;
   } | null;
   soc: { value: number; ts: number } | null;
   range: { value: number; ts: number } | null;
+  followed: {
+    id: string;
+    name: string;
+    icon: string;
+    auto: boolean;
+    current: number;
+    target: number;
+    unit: string;
+    remaining: number;
+  } | null;
 }
 
 export interface StatusData {
@@ -118,9 +127,12 @@ export interface BadgeView {
   unlockedTs: number | null;
   isNew: boolean;
   progress: { current: number; target: number; unit: string } | null;
+  followable: boolean;
 }
 
 export interface BadgesData {
+  followedId: string | null;
+  followedAuto: boolean;
   setupNeeded: boolean;
   timeZone: string;
   unlocked: number;
@@ -131,7 +143,7 @@ export interface BadgesData {
 
 export interface RevealItem {
   keys: string[];
-  kind: 'badge' | 'milestone' | 'level' | 'record';
+  kind: 'badge' | 'milestone' | 'level' | 'rank' | 'record';
   name: string;
   description: string;
   icon: string;

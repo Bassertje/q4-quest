@@ -50,8 +50,9 @@ describe('badge definitions', () => {
       first_100_day: 50, day_300: 150, day_500: 300, streak_7: 100, streak_30: 400, month_1000: 200,
       week_1000: 300, weekend_warrior: 100, night_owl: 75, early_bird: 75, rest_day: 25, first_charge: 25,
       first_dc: 50, charges_10: 50, charges_50: 150, charges_100: 300, full_tank: 50, running_on_fumes: 75,
-      dc_150: 100, mwh_1: 250, eco_week: 100,
+      dc_150: 100, mwh_1: 250, eco_week: 100, moon_trip: 5000,
     });
+    expect(BADGES.find((b) => b.id === 'moon_trip')?.category).toBe('legendarisch');
   });
 
   it('milestone badges give km ÷ 10 XP and include the next milestone', () => {
@@ -186,6 +187,7 @@ describe('badge progress', () => {
     expect(progress('streak_7')).toEqual({ current: 2, target: 7, unit: 'dagen' });
     expect(progress('month_1000')).toEqual({ current: 115, target: 1000, unit: 'km' });
     expect(progress('mwh_1')).toEqual({ current: 92, target: 1000, unit: 'kWh' });
+    expect(progress('moon_trip')).toEqual({ current: 12_460, target: 384_400, unit: 'km' });
   });
 
   it('caps progress at the target and has none for other badges', () => {

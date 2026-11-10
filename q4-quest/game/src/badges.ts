@@ -1,12 +1,12 @@
 import type { ChargingSession } from './charging.ts';
 import { currentStreak, periodTotals, STREAK_MIN_KM } from './distance.ts';
-import { FIXED_MILESTONES, milestoneAt, milestonesReached, type TimedValue } from './milestones.ts';
+import { FIXED_MILESTONES, MOON_KM, milestoneAt, milestonesReached, type TimedValue } from './milestones.ts';
 import { isoWeekStart, shiftPeriod } from './periods.ts';
 import { dayProgress, dayReachTimes, firstGroupCrossing, type DayProgress } from './progress.ts';
 import { addDays, dayKey, isWeekend, localHour, monthKey, weekKey, zonedMidnight } from './time.ts';
 import { MIN_READINGS_FOR_TIME_BADGES, type TripBlock } from './trips.ts';
 
-export type BadgeCategory = 'rijden' | 'laden' | 'zuinigheid' | 'mijlpalen';
+export type BadgeCategory = 'rijden' | 'laden' | 'zuinigheid' | 'mijlpalen' | 'legendarisch';
 
 /** A sensor key, or 'charging' for "charging power or charging state". */
 export type Requirement = 'odometer' | 'soc' | 'charging';
@@ -170,6 +170,9 @@ export const BADGES: BadgeDef[] = [
   { id: 'running_on_fumes', name: 'Op de valreep', description: 'Een accupercentage van 10% of lager gemeten.', hint: 'Rij de accu bijna leeg.', category: 'laden', xp: 75, requires: ['soc'], icon: 'batteryLow', check: (c) => c.soc.find((r) => r.value <= 10)?.ts ?? null },
   { id: 'dc_150', name: 'Volle bak', description: `Gemiddeld ${DC_FULL_AVG_KW} kW of meer in één laadsessie.`, hint: 'Laad met een hoog gemiddeld vermogen.', category: 'laden', xp: 100, requires: ['charging'], icon: 'bolts', check: (c) => firstSession(c, (s) => (s.avgKw ?? 0) >= DC_FULL_AVG_KW) },
   { id: 'mwh_1', name: 'Eerste megawattuur', description: 'In totaal 1.000 kWh geladen.', hint: 'Laad in totaal 1.000 kWh.', category: 'laden', xp: 250, requires: ['charging'], icon: 'medal', check: (c) => cumulativeKwh(c, 1000), progress: (c) => progressOf(Math.round(c.sessions.reduce((sum, s) => sum + (s.kwh ?? 0), 0)), 1000, 'kWh') },
+
+  // Legendarisch
+  { id: 'moon_trip', name: 'Maanreis', description: 'De afstand tot de maan op de teller: 384.400 km.', hint: 'Rij in totaal de afstand tot de maan (384.400 km).', category: 'legendarisch', xp: 5000, requires: ['odometer'], icon: 'moonTrip', check: (c) => c.odometer.find((r) => r.value >= MOON_KM)?.ts ?? null, progress: (c) => progressOf(Math.floor(c.odometer.at(-1)?.value ?? 0), MOON_KM, 'km') },
 
   // Zuinigheid
   { id: 'eco_week', name: 'Zuinige week', description: `Een week met een geschat verbruik van ${ECO_WEEK_MAX_KWH_PER_100} kWh/100 km of minder (minstens ${ECO_WEEK_MIN_KM} km).`, hint: 'Rij een week lang zuinig.', category: 'zuinigheid', xp: 100, requires: ['charging'], icon: 'leaf', check: ecoWeek },

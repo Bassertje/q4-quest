@@ -3,6 +3,8 @@
   import { getJson } from '../lib/api';
   import { dayShort, km, num1, periodLabel } from '../lib/format';
   import PixelIcon from '../lib/PixelIcon.svelte';
+  import { renderShareCard, shareOrDownload } from '../lib/shareCard';
+  import { THEME_EVENT } from '../lib/theme';
   import type { YearData, YearReview } from '../lib/types';
 
   let { year, preview, onclose }: { year: number; preview: boolean; onclose: () => void } = $props();
@@ -14,7 +16,7 @@
   let index = $state(0);
   let track: HTMLDivElement | undefined = $state();
 
-  type Card = 'intro' | 'km' | 'bestDay' | 'bestWeek' | 'streak' | 'charging' | 'acdc' | 'badges' | 'level' | 'earth' | 'outro';
+  type Card = 'intro' | 'km' | 'bestDay' | 'bestWeek' | 'streak' | 'charging' | 'acdc' | 'badges' | 'level' | 'earth' | 'outro' | 'share';
 
   /** Only cards that have something to show. */
   function cardsFor(r: YearReview): Card[] {
@@ -23,7 +25,7 @@
     if (r.bestWeek) cards.push('bestWeek');
     if (r.longestStreak) cards.push('streak');
     if (r.charging && r.charging.sessions > 0) cards.push('charging', 'acdc');
-    cards.push('badges', 'level', 'earth', 'outro');
+    cards.push('badges', 'level', 'earth', 'outro', 'share');
     return cards;
   }
 
@@ -66,6 +68,43 @@
       document.body.style.overflow = '';
     };
   });
+
+  // Share card: a PNG drawn on a canvas in the active theme.
+  let shareBlob = $state<Blob | null>(null);
+  let shareUrl = $state<string | null>(null);
+  let shareStatus = $state<string | null>(null);
+  let themeVersion = $state(0);
+
+  $effect(() => {
+    const review = r;
+    void themeVersion;
+    if (!review) return;
+    let cancelled = false;
+    renderShareCard(review).then((blob) => {
+      if (cancelled) return;
+      if (shareUrl) URL.revokeObjectURL(shareUrl);
+      shareBlob = blob;
+      shareUrl = URL.createObjectURL(blob);
+    });
+    return () => {
+      cancelled = true;
+    };
+  });
+
+  onMount(() => {
+    const onTheme = () => themeVersion++;
+    window.addEventListener(THEME_EVENT, onTheme);
+    return () => {
+      window.removeEventListener(THEME_EVENT, onTheme);
+      if (shareUrl) URL.revokeObjectURL(shareUrl);
+    };
+  });
+
+  async function share() {
+    if (!shareBlob || !r) return;
+    const result = await shareOrDownload(shareBlob, r.year);
+    shareStatus = result === 'downloaded' ? `Opgeslagen als q4-quest-${r.year}.png` : result === 'shared' ? 'Gedeeld!' : null;
+  }
 
   const pct = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
 </script>
@@ -179,7 +218,20 @@
               <PixelIcon icon="flag" size={88} />
               <h2 class="huge">Tot volgend jaar!</h2>
               <p class="muted">Blijf rijden, blijf verzamelen.</p>
-              <button class="primary" onclick={onclose}>Sluiten</button>
+              <p class="muted small hint">Veeg verder om je jaar te delen →</p>
+            {:else if card === 'share'}
+              <p class="kicker">Deel je jaar</p>
+              {#if shareUrl}
+                <img class="preview" src={shareUrl} alt="Deelkaart van {r.year}: {km(r.totalKm)} km gereden" />
+              {:else}
+                <div class="preview placeholder"><span class="muted small">Kaart maken…</span></div>
+              {/if}
+              <p class="muted small">Zonder kilometerstand van de auto en zonder datums of tijden.</p>
+              <div class="share-actions">
+                <button class="primary" onclick={share} disabled={!shareBlob}>Delen</button>
+                <button onclick={onclose}>Sluiten</button>
+              </div>
+              {#if shareStatus}<p class="muted small" role="status">{shareStatus}</p>{/if}
             {/if}
           </div>
         </section>
@@ -384,6 +436,28 @@
     display: block;
     height: 100%;
     background: repeating-linear-gradient(90deg, var(--accent) 0 6px, var(--accent-dark) 6px 8px);
+  }
+  .preview {
+    display: block;
+    height: min(46vh, 420px);
+    aspect-ratio: 9 / 16;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    box-shadow: var(--glow);
+    margin: 6px 0;
+  }
+  .placeholder {
+    display: grid;
+    place-items: center;
+    background: var(--track);
+  }
+  .share-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .share-actions .primary {
+    margin-top: 0;
   }
   .primary {
     margin-top: 14px;

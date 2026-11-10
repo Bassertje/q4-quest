@@ -26,8 +26,25 @@ describe('revealItems', () => {
     expect(level.description).toContain('4 levels omhoog');
   });
 
+  it('adds one item for the highest new rank', () => {
+    const odo2 = [
+      { ts: 1, value: 50 },
+      { ts: 5, value: 1_600 }, // level 5: Pendelaar
+    ];
+    const t2 = timeline(odo2, []);
+    const items = revealItems({ badges: [], timeline: t2, records: [], seen: new Set(), now: 9 });
+    const rank = items.filter((i) => i.kind === 'rank');
+    expect(rank).toHaveLength(1);
+    expect(rank[0]).toMatchObject({ name: 'Pendelaar', icon: 'briefcase', keys: ['rank:Pendelaar'] });
+    // Shown after the level item of the same moment.
+    expect(items.at(-1)?.kind).toBe('rank');
+    const again = revealItems({ badges: [], timeline: t2, records: [], seen: new Set(['rank:Pendelaar', ...items.flatMap((i) => i.keys)]), now: 9 });
+    expect(again).toEqual([]);
+  });
+
   it('skips what has been seen', () => {
     const seen = new Set(['badge:first_100_day', 'level:1', 'level:2', 'level:3', 'record:bestDay:2026-03-02']);
+    // (No rank item here: levels 1–4 stay within the starting rank Leerling.)
     const items = revealItems({ badges, timeline: t, records, seen, now: 100 });
     expect(items.map((i) => i.keys)).toEqual([['badge:milestone_1000'], ['level:4']]);
   });

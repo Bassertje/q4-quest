@@ -70,6 +70,12 @@ Op de tab **Badges** zie je alle badges per categorie: Rijden, Laden, Zuinigheid
 - "Nachtuil" en "Vroege vogel" tellen alleen voor ritblokken met minstens twee metingen van de
   kilometerstand.
 
+**Volgen:** tik op een badge met voortgang en kies **Volgen**; die badge staat dan op je cockpit. Zonder
+keuze volgt de app automatisch de badge waar je het dichtst bij bent. De **Maanreis** (384.400 km) is
+een legendarische badge van 5.000 XP.
+
+**Rangen:** tik op je rang op de cockpit voor een overzicht van alle rangen.
+
 Bij het openen van de app verschijnt eerst wat er nieuw is: badges, mijlpalen, level-ups en nieuwe
 records, één voor één. Na drie items kun je met **Toon alles** de rest in één keer zien.
 
@@ -80,6 +86,10 @@ hoogtepunten van het jaar (gereden km, beste dag en week, langste streak, laden,
 level-groei en de vergelijking met een rondje om de aarde). Eerdere jaren vind je terug onder
 **Historie → Jaaroverzichten**. Wil je het eerder zien, gebruik dan **Instellingen → Voorbeeld
 jaaroverzicht**.
+
+De laatste kaart is een **deelkaart**: een afbeelding met je jaarcijfers en badges, zonder
+kilometerstand van de auto en zonder datums of tijden. Met **Delen** open je het deelmenu van je
+telefoon; anders wordt de afbeelding gedownload.
 
 ## Laden
 
