@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.0
+
+Het jaaroverzicht, en daarmee is Q4 Quest compleet.
+
+- **Jaaroverzicht:** een reeks kaarten die je kunt doorvegen, met de hoogtepunten van het jaar: totaal gereden km, beste dag, beste week, langste streak, laadsessies en geladen kWh, de verhouding AC/DC, je nieuwe badges, hoeveel levels je bent gestegen, en hoeveel van een rondje om de aarde je hebt gereden.
+  - Beschikbaar vanaf 1 december. In december (en in januari voor het vorige jaar) staat er een melding op de cockpit. Eerdere jaren blijven terug te kijken via Historie → Jaaroverzichten.
+  - Via Instellingen → **Voorbeeld jaaroverzicht** kun je het nu al bekijken met de data tot nu toe.
+- **Mijlpalen geven XP:** mijlpaal-km ÷ 10 (1.000 km = 100 XP, Rondje aarde = 4.007 XP). Je XP en level worden automatisch herberekend; de "+XP" staat ook bij mijlpalen.
+- **Voortgang bij badges:** vergrendelde telbare badges (mijlpalen, aantal laadsessies, streaks, km per maand/week, megawattuur) tonen een balkje met "huidig / doel".
+- **Badgekaarten:** geen afbreking meer midden in een woord, en twee kolommen op smalle schermen.
+- **Navigatie:** het Cockpit-icoon is nu een pixel-art stuur.
+
 ## 0.5.1
 
 - Je bestaande records (beste dag, week en maand, langste streak, grootste ritblok en de laadrecords) verschijnen nu ook in het reveal-scherm. Had je 0.5.0 al geopend, dan komen ze bij de volgende keer openen alsnog voorbij. Badges, mijlpalen en levels die je al hebt gezien, komen niet opnieuw.

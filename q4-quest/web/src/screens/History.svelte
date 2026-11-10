@@ -4,7 +4,7 @@
   import BarChart from '../lib/BarChart.svelte';
   import { date, dayShort, km, kw, periodLabel } from '../lib/format';
   import Setup from '../lib/Setup.svelte';
-  import type { HistoryData, Series, TimelineEvent } from '../lib/types';
+  import type { HistoryData, Series, TimelineEvent, YearsData } from '../lib/types';
 
   let { refresh }: { refresh: number } = $props();
 
@@ -22,7 +22,12 @@
   let timelineShown = $state(TIMELINE_STEP);
   let allTrips = $state(false);
 
+  let years = $state<YearsData | null>(null);
+
   async function load() {
+    getJson<YearsData>('years')
+      .then((y) => (years = y))
+      .catch(() => {});
     try {
       data = await getJson<HistoryData>('history');
       error = null;
@@ -56,8 +61,8 @@
   }
 
   function eventTitle(e: TimelineEvent): string {
-    if (e.type === 'milestone') return `Mijlpaal: ${e.name}`;
-    if (e.type === 'badge') return e.xp > 0 ? `Badge: ${e.name} (+${e.xp} XP)` : `Badge: ${e.name}`;
+    if (e.type === 'milestone') return `Mijlpaal: ${e.name} (+${km(e.xp)} XP)`;
+    if (e.type === 'badge') return e.xp > 0 ? `Badge: ${e.name} (+${km(e.xp)} XP)` : `Badge: ${e.name}`;
     return e.newRank ? `Level ${e.level}, nieuwe rang: ${e.rank}` : `Level ${e.level}`;
   }
 
@@ -192,6 +197,17 @@
     </section>
   {/if}
 
+  {#if years?.years.some((y) => y.available)}
+    <section class="panel">
+      <h3>Jaaroverzichten</h3>
+      <div class="years">
+        {#each years.years.filter((y) => y.available).reverse() as y (y.year)}
+          <a class="button" href="#/jaar/{y.year}">{y.year}</a>
+        {/each}
+      </div>
+    </section>
+  {/if}
+
   <section class="panel">
     <h3>Tijdlijn</h3>
     <ol class="timeline">
@@ -232,6 +248,11 @@
     justify-content: space-between;
     gap: 8px;
     margin-bottom: 8px;
+  }
+  .years {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
   .paging {
     display: flex;

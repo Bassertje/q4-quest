@@ -15,3 +15,4 @@ export * from './reveal.ts';
 export * from './time.ts';
 export * from './timeline.ts';
 export * from './trips.ts';
+export * from './year.ts';

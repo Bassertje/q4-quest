@@ -59,7 +59,7 @@ describe('timeline', () => {
     expect(t.initial.map((e) => (e.type === 'level' ? e.level : e.type === 'milestone' ? e.km : 0))).toEqual([3, 2, 1]);
     // 1,010 km reaches the 1,000 km milestone and level 4 (1,000 XP) at once.
     expect(t.events).toEqual([
-      { type: 'milestone', ts: 2, km: 1_000, name: '1.000 km' },
+      { type: 'milestone', ts: 2, km: 1_000, name: '1.000 km', xp: 100 },
       { type: 'level', ts: 2, level: 4, rank: 'Leerling', newRank: false },
     ]);
   });

@@ -59,7 +59,10 @@ Op de tab **Badges** zie je alle badges per categorie: Rijden, Laden, Zuinigheid
 
 - Badges worden met terugwerkende kracht berekend uit je opgeslagen gegevens. De datum is het moment
   waarop je de badge voor het eerst verdiende.
-- Het bonus-XP van een badge telt mee voor je level. Mijlpalen geven geen bonus-XP.
+- Het bonus-XP van een badge telt mee voor je level. Een mijlpaal geeft mijlpaal-km ÷ 10 XP
+  (1.000 km = 100 XP, Rondje aarde = 4.007 XP).
+- Bij telbare badges die je nog niet hebt (mijlpalen, aantal laadsessies, streaks, km per maand of
+  week, megawattuur) zie je hoe ver je bent.
 - Vergrendelde badges tonen een silhouet met een hint. Eén badge is verborgen en verschijnt pas als je
   hem hebt.
 - Badges die een niet-ingestelde sensor nodig hebben (bijvoorbeeld laadbadges zonder laadsensoren),
@@ -69,6 +72,14 @@ Op de tab **Badges** zie je alle badges per categorie: Rijden, Laden, Zuinigheid
 
 Bij het openen van de app verschijnt eerst wat er nieuw is: badges, mijlpalen, level-ups en nieuwe
 records, één voor één. Na drie items kun je met **Toon alles** de rest in één keer zien.
+
+## Jaaroverzicht
+
+Vanaf 1 december staat je jaaroverzicht klaar: een reeks kaarten die je kunt doorvegen met de
+hoogtepunten van het jaar (gereden km, beste dag en week, langste streak, laden, nieuwe badges,
+level-groei en de vergelijking met een rondje om de aarde). Eerdere jaren vind je terug onder
+**Historie → Jaaroverzichten**. Wil je het eerder zien, gebruik dan **Instellingen → Voorbeeld
+jaaroverzicht**.
 
 ## Laden
 

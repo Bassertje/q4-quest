@@ -10,6 +10,7 @@ import { schemaVersion } from './db.ts';
 import { badgesResponse, markSeen, revealResponse, seenKeys } from './badges.ts';
 import { GameStateCache } from './game-state.ts';
 import { historyResponse } from './history.ts';
+import { yearResponse, yearsResponse } from './year.ts';
 import { isTheme, readSettings, writeSettings } from './settings.ts';
 import type { HaStatus } from './ha/types.ts';
 import { SENSOR_KEYS, type Options } from './options.ts';
@@ -62,6 +63,16 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   app.get('/api/charging', async () => chargingResponse(state(), deps.options));
 
   app.get('/api/badges', async () => badgesResponse(state(), seenKeys(deps.db)));
+
+  app.get('/api/years', async () => yearsResponse(state()));
+
+  app.get('/api/year/:year', async (req, reply) => {
+    const year = Number((req.params as { year: string }).year);
+    if (!Number.isInteger(year) || year < 1970 || year > 9999) return reply.code(400).send({ error: 'invalid year' });
+    const preview = (req.query as { preview?: string }).preview === '1';
+    const result = yearResponse(state(), deps.options, year, preview);
+    return reply.code(result.status).send(result.body);
+  });
 
   app.get('/api/reveal', async () => revealResponse(state(), deps.db));
 

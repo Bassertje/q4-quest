@@ -1,5 +1,5 @@
 import type { ChargingSession } from './charging.ts';
-import { STREAK_MIN_KM } from './distance.ts';
+import { currentStreak, periodTotals, STREAK_MIN_KM } from './distance.ts';
 import { FIXED_MILESTONES, milestoneAt, milestonesReached, type TimedValue } from './milestones.ts';
 import { isoWeekStart, shiftPeriod } from './periods.ts';
 import { dayProgress, dayReachTimes, firstGroupCrossing, type DayProgress } from './progress.ts';
@@ -37,9 +37,27 @@ export interface BadgeDef {
   icon: string;
   /** First moment the condition was met (epoch ms), or null when not (yet) met. */
   check: (ctx: BadgeContext) => number | null;
+  /** For countable badges: how far along you are right now. */
+  progress?: (ctx: BadgeContext) => BadgeProgress;
+}
+
+export interface BadgeProgress {
+  current: number;
+  target: number;
+  unit: string;
 }
 
 // ---------- helpers ----------
+
+const today = (ctx: BadgeContext) => dayKey(ctx.now, ctx.timeZone);
+const progressOf = (current: number, target: number, unit: string): BadgeProgress => ({
+  current: Math.max(0, Math.min(current, target)),
+  target,
+  unit,
+});
+const sessionCount = (n: number) => (ctx: BadgeContext) => progressOf(ctx.sessions.length, n, 'sessies');
+const streakProgress = (n: number) => (ctx: BadgeContext) =>
+  progressOf(currentStreak(ctx.dailyTotals, today(ctx)), n, 'dagen');
 
 const dayCrossing = (km: number) => (ctx: BadgeContext) => firstGroupCrossing(ctx.progress, (d) => d, km);
 
@@ -133,10 +151,10 @@ export const BADGES: BadgeDef[] = [
   { id: 'first_100_day', name: 'Lekker op weg', description: '100 km of meer op één dag.', hint: 'Rij 100 km op één dag.', category: 'rijden', xp: 50, requires: ['odometer'], icon: 'car', check: dayCrossing(100) },
   { id: 'day_300', name: 'Lange adem', description: '300 km of meer op één dag.', hint: 'Rij 300 km op één dag.', category: 'rijden', xp: 150, requires: ['odometer'], icon: 'gauge', check: dayCrossing(300) },
   { id: 'day_500', name: 'IJzeren zitvlees', description: '500 km of meer op één dag.', hint: 'Rij 500 km op één dag.', category: 'rijden', xp: 300, requires: ['odometer'], icon: 'flame', check: dayCrossing(500) },
-  { id: 'streak_7', name: 'Gewoontedier', description: '7 dagen op rij gereden.', hint: 'Rij 7 dagen achter elkaar.', category: 'rijden', xp: 100, requires: ['odometer'], icon: 'calendar7', check: (c) => streakReached(c, 7) },
-  { id: 'streak_30', name: 'Onstuitbaar', description: '30 dagen op rij gereden.', hint: 'Rij 30 dagen achter elkaar.', category: 'rijden', xp: 400, requires: ['odometer'], icon: 'calendar30', check: (c) => streakReached(c, 30) },
-  { id: 'month_1000', name: 'Maandmonster', description: '1.000 km of meer in één kalendermaand.', hint: 'Rij 1.000 km in één maand.', category: 'rijden', xp: 200, requires: ['odometer'], icon: 'trophy', check: (c) => firstGroupCrossing(c.progress, monthKey, 1000) },
-  { id: 'week_1000', name: 'Week van de weg', description: '1.000 km of meer in één kalenderweek.', hint: 'Rij 1.000 km in één week.', category: 'rijden', xp: 300, requires: ['odometer'], icon: 'road', check: (c) => firstGroupCrossing(c.progress, weekKey, 1000) },
+  { id: 'streak_7', name: 'Gewoontedier', description: '7 dagen op rij gereden.', hint: 'Rij 7 dagen achter elkaar.', category: 'rijden', xp: 100, requires: ['odometer'], icon: 'calendar7', check: (c) => streakReached(c, 7), progress: streakProgress(7) },
+  { id: 'streak_30', name: 'Onstuitbaar', description: '30 dagen op rij gereden.', hint: 'Rij 30 dagen achter elkaar.', category: 'rijden', xp: 400, requires: ['odometer'], icon: 'calendar30', check: (c) => streakReached(c, 30), progress: streakProgress(30) },
+  { id: 'month_1000', name: 'Maandmonster', description: '1.000 km of meer in één kalendermaand.', hint: 'Rij 1.000 km in één maand.', category: 'rijden', xp: 200, requires: ['odometer'], icon: 'trophy', check: (c) => firstGroupCrossing(c.progress, monthKey, 1000), progress: (c) => progressOf(Math.round(periodTotals(c.dailyTotals, today(c)).month), 1000, 'km') },
+  { id: 'week_1000', name: 'Week van de weg', description: '1.000 km of meer in één kalenderweek.', hint: 'Rij 1.000 km in één week.', category: 'rijden', xp: 300, requires: ['odometer'], icon: 'road', check: (c) => firstGroupCrossing(c.progress, weekKey, 1000), progress: (c) => progressOf(Math.round(periodTotals(c.dailyTotals, today(c)).week), 1000, 'km') },
   { id: 'weekend_warrior', name: 'Weekendkrijger', description: '200 km of meer in één weekend.', hint: 'Rij 200 km op zaterdag en zondag samen.', category: 'rijden', xp: 100, requires: ['odometer'], icon: 'shield', check: (c) => firstGroupCrossing(c.progress, (d) => (isWeekend(d) ? weekKey(d) : null), 200) },
   { id: 'night_owl', name: 'Nachtuil', description: 'Een rit die begon tussen 00:00 en 04:00.', hint: 'Ga midden in de nacht op pad.', category: 'rijden', xp: 75, requires: ['odometer'], icon: 'moon', check: (c) => tripStartingBetween(c, 0, 4) },
   { id: 'early_bird', name: 'Vroege vogel', description: 'Een rit die begon tussen 05:00 en 06:00.', hint: 'Vertrek heel vroeg in de ochtend.', category: 'rijden', xp: 75, requires: ['odometer'], icon: 'sunrise', check: (c) => tripStartingBetween(c, 5, 6) },
@@ -145,21 +163,26 @@ export const BADGES: BadgeDef[] = [
   // Laden
   { id: 'first_charge', name: 'Eerste prik', description: 'Je eerste laadsessie.', hint: 'Laad de auto op.', category: 'laden', xp: 25, requires: ['charging'], icon: 'plug', check: nthSession(1) },
   { id: 'first_dc', name: 'Snelle jongen', description: 'Je eerste DC-snellaadsessie.', hint: 'Laad een keer aan een snellader.', category: 'laden', xp: 50, requires: ['charging'], icon: 'bolt', check: (c) => firstSession(c, (s) => s.type === 'DC') },
-  { id: 'charges_10', name: 'Stekkervaste I', description: '10 laadsessies.', hint: 'Laad 10 keer.', category: 'laden', xp: 50, requires: ['charging'], icon: 'battery1', check: nthSession(10) },
-  { id: 'charges_50', name: 'Stekkervaste II', description: '50 laadsessies.', hint: 'Laad 50 keer.', category: 'laden', xp: 150, requires: ['charging'], icon: 'battery2', check: nthSession(50) },
-  { id: 'charges_100', name: 'Stekkervaste III', description: '100 laadsessies.', hint: 'Laad 100 keer.', category: 'laden', xp: 300, requires: ['charging'], icon: 'battery3', check: nthSession(100) },
+  { id: 'charges_10', name: 'Stekkervaste I', description: '10 laadsessies.', hint: 'Laad 10 keer.', category: 'laden', xp: 50, requires: ['charging'], icon: 'battery1', check: nthSession(10), progress: sessionCount(10) },
+  { id: 'charges_50', name: 'Stekkervaste II', description: '50 laadsessies.', hint: 'Laad 50 keer.', category: 'laden', xp: 150, requires: ['charging'], icon: 'battery2', check: nthSession(50), progress: sessionCount(50) },
+  { id: 'charges_100', name: 'Stekkervaste III', description: '100 laadsessies.', hint: 'Laad 100 keer.', category: 'laden', xp: 300, requires: ['charging'], icon: 'battery3', check: nthSession(100), progress: sessionCount(100) },
   { id: 'full_tank', name: 'Tot de nok', description: 'Een laadsessie die eindigde op 100%.', hint: 'Laad een keer helemaal vol.', category: 'laden', xp: 50, requires: ['charging', 'soc'], icon: 'batteryFull', check: (c) => firstSession(c, (s) => (s.socEnd ?? 0) >= 100) },
   { id: 'running_on_fumes', name: 'Op de valreep', description: 'Een accupercentage van 10% of lager gemeten.', hint: 'Rij de accu bijna leeg.', category: 'laden', xp: 75, requires: ['soc'], icon: 'batteryLow', check: (c) => c.soc.find((r) => r.value <= 10)?.ts ?? null },
   { id: 'dc_150', name: 'Volle bak', description: `Gemiddeld ${DC_FULL_AVG_KW} kW of meer in één laadsessie.`, hint: 'Laad met een hoog gemiddeld vermogen.', category: 'laden', xp: 100, requires: ['charging'], icon: 'bolts', check: (c) => firstSession(c, (s) => (s.avgKw ?? 0) >= DC_FULL_AVG_KW) },
-  { id: 'mwh_1', name: 'Eerste megawattuur', description: 'In totaal 1.000 kWh geladen.', hint: 'Laad in totaal 1.000 kWh.', category: 'laden', xp: 250, requires: ['charging'], icon: 'medal', check: (c) => cumulativeKwh(c, 1000) },
+  { id: 'mwh_1', name: 'Eerste megawattuur', description: 'In totaal 1.000 kWh geladen.', hint: 'Laad in totaal 1.000 kWh.', category: 'laden', xp: 250, requires: ['charging'], icon: 'medal', check: (c) => cumulativeKwh(c, 1000), progress: (c) => progressOf(Math.round(c.sessions.reduce((sum, s) => sum + (s.kwh ?? 0), 0)), 1000, 'kWh') },
 
   // Zuinigheid
   { id: 'eco_week', name: 'Zuinige week', description: `Een week met een geschat verbruik van ${ECO_WEEK_MAX_KWH_PER_100} kWh/100 km of minder (minstens ${ECO_WEEK_MIN_KM} km).`, hint: 'Rij een week lang zuinig.', category: 'zuinigheid', xp: 100, requires: ['charging'], icon: 'leaf', check: ecoWeek },
 ];
 
+/** Bonus XP of a milestone badge: the milestone in km ÷ 10, rounded down. */
+export function milestoneXp(km: number): number {
+  return Math.floor(km / 10);
+}
+
 /**
  * Milestone badges: all fixed milestones, plus every milestone beyond them
- * that was reached, plus the next one. They give no bonus XP.
+ * that was reached, plus the next one. XP = milestone km ÷ 10.
  */
 export function milestoneBadges(currentKm: number): BadgeDef[] {
   const out: BadgeDef[] = [];
@@ -172,10 +195,11 @@ export function milestoneBadges(currentKm: number): BadgeDef[] {
       description: `Kilometerstand van ${m.km.toLocaleString('nl-NL')} km bereikt.`,
       hint: `Bereik ${m.km.toLocaleString('nl-NL')} km op de teller.`,
       category: 'mijlpalen',
-      xp: 0,
+      xp: milestoneXp(m.km),
       requires: ['odometer'],
       icon: m.name === 'Rondje aarde' ? 'earth' : 'flag',
       check: (c) => c.odometer.find((r) => r.value >= m.km)?.ts ?? null,
+      progress: (c) => progressOf(Math.floor(c.odometer.at(-1)?.value ?? 0), m.km, 'km'),
     });
   }
   return out;
@@ -191,6 +215,8 @@ export interface BadgeResult {
   hidden: boolean;
   icon: string;
   unlockedTs: number | null;
+  /** Progress towards a countable badge (null for other badges). */
+  progress: BadgeProgress | null;
 }
 
 export interface BadgeInput extends Omit<BadgeContext, 'progress'> {
@@ -216,6 +242,7 @@ export function evaluateBadges(input: BadgeInput): BadgeResult[] {
         hidden: b.hidden ?? false,
         icon: b.icon,
         unlockedTs: ts !== null && ts <= input.now ? ts : null,
+        progress: b.progress ? b.progress(ctx) : null,
       };
     });
 }

@@ -160,6 +160,32 @@ describe('badges and reveal', () => {
   });
 });
 
+describe('year overview', () => {
+  it('lists the years with data and allows a preview of the current year', async () => {
+    const { app } = make(MOCK_OPTIONS_RAW, true);
+    const years = (await app.inject({ url: '/api/years' })).json();
+    const current = years.years.find((y: { year: number }) => y.year === years.currentYear);
+    expect(current.running).toBe(true);
+
+    const preview = await app.inject({ url: `/api/year/${years.currentYear}?preview=1` });
+    expect(preview.statusCode).toBe(200);
+    const review = preview.json().review;
+    expect(review.totalKm).toBeGreaterThan(1000);
+    expect(review.charging.sessions).toBeGreaterThan(0);
+    expect(review.level.end).toBeGreaterThanOrEqual(review.level.start);
+
+    // Without preview, the current year is only available from 1 December.
+    const normal = await app.inject({ url: `/api/year/${years.currentYear}` });
+    expect(normal.statusCode).toBe(current.available ? 200 : 403);
+  });
+
+  it('returns 404 for a year without data and 400 for nonsense', async () => {
+    const { app } = make(MOCK_OPTIONS_RAW, true);
+    expect((await app.inject({ url: '/api/year/1999?preview=1' })).statusCode).toBe(404);
+    expect((await app.inject({ url: '/api/year/abc' })).statusCode).toBe(400);
+  });
+});
+
 describe('/api/settings', () => {
   it('defaults to the automatic theme and stores a choice', async () => {
     const { app } = make({});

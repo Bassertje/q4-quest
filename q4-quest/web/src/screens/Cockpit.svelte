@@ -5,14 +5,27 @@
   import Odometer from '../lib/Odometer.svelte';
   import PixelIcon from '../lib/PixelIcon.svelte';
   import Setup from '../lib/Setup.svelte';
-  import type { CockpitData } from '../lib/types';
+  import type { CockpitData, YearsData } from '../lib/types';
 
   let { refresh }: { refresh: number } = $props();
 
   let data = $state<CockpitData | null>(null);
   let error = $state<string | null>(null);
 
+  let years = $state<YearsData | null>(null);
+
+  /** In December the new overview is announced; in January last year's. */
+  const banner = $derived.by(() => {
+    if (!years) return null;
+    const month = years.today.slice(5, 7);
+    const wanted = month === '12' ? years.currentYear : month === '01' ? years.currentYear - 1 : null;
+    return years.years.find((y) => y.year === wanted && y.available) ?? null;
+  });
+
   async function load() {
+    getJson<YearsData>('years')
+      .then((y) => (years = y))
+      .catch(() => {});
     try {
       data = await getJson<CockpitData>('cockpit');
       error = null;
@@ -47,6 +60,16 @@
     </p>
   </section>
 {:else}
+  {#if banner}
+    <a class="panel year-banner" href="#/jaar/{banner.year}">
+      <PixelIcon icon="wheel" size={36} />
+      <span>
+        <strong>Je jaaroverzicht {banner.year} staat klaar</strong>
+        <span class="muted small">Bekijk je hoogtepunten van het jaar →</span>
+      </span>
+    </a>
+  {/if}
+
   <section class="panel odo">
     <Odometer value={c.odometer} />
     <p class="muted small center">Bijgewerkt {ago(c.odometerTs)}</p>
@@ -191,6 +214,19 @@
   }
   .tiles.two {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .year-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: inherit;
+    text-decoration: none;
+    border-color: var(--accent);
+    box-shadow: var(--glow);
+  }
+  .year-banner span {
+    display: flex;
+    flex-direction: column;
   }
   .link {
     color: inherit;

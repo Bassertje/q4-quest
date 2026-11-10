@@ -44,7 +44,7 @@ export interface StatusData {
 export type Series = [key: string, km: number][];
 
 export type TimelineEvent =
-  | { type: 'milestone'; ts: number; km: number; name: string }
+  | { type: 'milestone'; ts: number; km: number; name: string; xp: number }
   | { type: 'badge'; ts: number; id: string; name: string; xp: number; icon: string }
   | { type: 'level'; ts: number; level: number; rank: string; newRank: boolean };
 
@@ -117,6 +117,7 @@ export interface BadgeView {
   icon: string;
   unlockedTs: number | null;
   isNew: boolean;
+  progress: { current: number; target: number; unit: string } | null;
 }
 
 export interface BadgesData {
@@ -136,4 +137,40 @@ export interface RevealItem {
   icon: string;
   ts: number;
   xp: number;
+}
+
+export interface YearsData {
+  setupNeeded: boolean;
+  timeZone: string;
+  currentYear: number;
+  today: string;
+  years: { year: number; available: boolean; running: boolean }[];
+}
+
+export interface YearReview {
+  year: number;
+  from: string;
+  to: string;
+  startedThisYear: boolean;
+  running: boolean;
+  totalKm: number;
+  daysDriven: number;
+  bestDay: { key: string; km: number } | null;
+  bestWeek: { key: string; km: number } | null;
+  longestStreak: { days: number; start: string; end: string } | null;
+  charging: {
+    sessions: number;
+    kwh: number;
+    ac: { sessions: number; kwh: number };
+    dc: { sessions: number; kwh: number };
+  } | null;
+  newBadges: { id: string; name: string; icon: string; category: string; xp: number; ts: number }[];
+  level: { start: number; end: number; startRank: string; endRank: string; xpGained: number };
+  earth: { km: number; laps: number };
+}
+
+export interface YearData {
+  timeZone: string;
+  preview: boolean;
+  review: YearReview;
 }
