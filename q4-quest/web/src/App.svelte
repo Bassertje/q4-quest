@@ -16,7 +16,7 @@
   // Hash-based routing keeps every URL relative (Ingress-proof).
   type Route = 'cockpit' | 'badges' | 'historie' | 'laden' | 'instellingen';
   const parse = (): Route => {
-    if (location.hash === '#/badges') return 'badges';
+    if (location.hash === '#/badges' || location.hash.startsWith('#/badges/')) return 'badges';
     if (location.hash === '#/instellingen') return 'instellingen';
     if (location.hash === '#/historie') return 'historie';
     if (location.hash === '#/laden') return 'laden';
@@ -24,6 +24,9 @@
   };
 
   let route = $state<Route>(parse());
+  /** Badge to open on the badges screen (#/badges/<id>). */
+  const parseBadge = () => decodeURIComponent(location.hash.match(/^#\/badges\/([^/]+)$/)?.[1] ?? '') || null;
+  let openBadge = $state<string | null>(parseBadge());
 
   /** Year overview: #/jaar/2026 or #/jaar/2026/voorbeeld (preview before 1 December). */
   const parseYear = () => {
@@ -66,7 +69,8 @@
       yearView = nextYear;
       if (nextYear) return; // the overview is an overlay; keep the page underneath
       route = parse();
-      window.scrollTo(0, 0);
+      openBadge = parseBadge();
+      if (!openBadge) window.scrollTo(0, 0);
     };
     window.addEventListener('hashchange', onHash);
     const stop = onLiveUpdate(() => refresh++);
@@ -121,7 +125,7 @@
     {#if route === 'instellingen'}
       <Settings {refresh} />
     {:else if route === 'badges'}
-      <Badges {refresh} />
+      <Badges {refresh} {openBadge} />
     {:else if route === 'historie'}
       <History {refresh} />
     {:else if route === 'laden'}

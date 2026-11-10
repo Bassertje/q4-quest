@@ -4,6 +4,7 @@
   import { ago, date, km, num1 } from '../lib/format';
   import Odometer from '../lib/Odometer.svelte';
   import PixelIcon from '../lib/PixelIcon.svelte';
+  import BadgeRing from '../lib/BadgeRing.svelte';
   import RankOverview from '../lib/RankOverview.svelte';
   import Setup from '../lib/Setup.svelte';
   import type { CockpitData, YearsData } from '../lib/types';
@@ -141,60 +142,49 @@
     </div>
   </section>
 
+  {#if c.lastUnlocked || data.followed}
+    <section class="panel badges-card" aria-label="Badges">
+      <div class="label">Badges</div>
+      <div class="halves">
+        {#if c.lastUnlocked}
+          <a class="half" href="#/badges/{c.lastUnlocked.id}">
+            <PixelIcon icon={c.lastUnlocked.icon} size={52} />
+            <span class="muted small">Laatst ontgrendeld</span>
+            <span class="badge-name">{c.lastUnlocked.name}</span>
+            <span class="muted small">{date(c.lastUnlocked.ts, data.timeZone)}</span>
+          </a>
+        {:else}
+          <a class="half" href="#/badges"><span class="muted small">Nog niets ontgrendeld</span></a>
+        {/if}
+        {#if data.followed}
+          {@const f = data.followed}
+          <a class="half" href="#/badges/{f.id}">
+            <BadgeRing icon={f.icon} fraction={f.current / f.target} size={84} />
+            <span class="muted small">Gevolgd{f.auto ? ' · automatisch' : ''}</span>
+            <span class="badge-name">{f.name}</span>
+            <span class="muted small">nog {km(f.remaining)} {f.unit}</span>
+          </a>
+        {/if}
+      </div>
+    </section>
+  {/if}
+
   <section class="tiles two">
     <div class="panel tile">
       <div class="label">Streak</div>
       <div class="pixel mid">{c.streak}<span class="unit">{c.streak === 1 ? 'dag' : 'dagen'}</span></div>
       <div class="muted small">{c.streak > 0 ? 'op rij gereden' : 'rij vandaag om te starten'}</div>
     </div>
-    <a class="panel tile link" href="#/badges">
-      <div class="label">Laatst ontgrendeld</div>
-      {#if c.lastUnlocked}
-        <div class="unlocked">
-          <PixelIcon icon={c.lastUnlocked.icon} size={32} />
-          <span class="badge-name">{c.lastUnlocked.name}</span>
+    {#if data.soc || data.range}
+      <div class="panel tile">
+        <div class="label">Accu</div>
+        <div class="pixel mid accu">
+          {#if data.soc}{Math.round(data.soc.value)}<span class="unit">%</span>{/if}{#if data.soc && data.range}<span class="sep">·</span>{/if}{#if data.range}{km(data.range.value)}<span class="unit">km</span>{/if}
         </div>
-        <div class="muted small">{date(c.lastUnlocked.ts, data.timeZone)}</div>
-      {:else}
-        <div class="muted">Nog niets. Bekijk de badges.</div>
-      {/if}
-    </a>
-  </section>
-
-  {#if data.soc || data.range}
-    <section class="tiles two">
-      {#if data.soc}
-        <div class="panel tile">
-          <div class="label">Accu</div>
-          <div class="pixel mid">{Math.round(data.soc.value)}<span class="unit">%</span></div>
-        </div>
-      {/if}
-      {#if data.range}
-        <div class="panel tile">
-          <div class="label">Actieradius</div>
-          <div class="pixel mid">{km(data.range.value)}<span class="unit">km</span></div>
-        </div>
-      {/if}
-    </section>
-  {/if}
-
-  {#if data.followed}
-    {@const f = data.followed}
-    <a class="panel followed link" href="#/badges">
-      <div class="row">
-        <div class="unlocked">
-          <PixelIcon icon={f.icon} size={36} />
-          <span>
-            <span class="label">Gevolgde badge{f.auto ? ' · automatisch' : ''}</span>
-            <span class="badge-name block">{f.name}</span>
-          </span>
-        </div>
-        <div class="muted small right">nog {km(f.remaining)} {f.unit}</div>
+        <div class="muted small">{data.range ? 'actieradius' : 'accupercentage'}</div>
       </div>
-      <Bar fraction={f.current / f.target} label="Voortgang van {f.name}" />
-      <div class="muted small count">{km(f.current)} / {km(f.target)} {f.unit}</div>
-    </a>
-  {/if}
+    {/if}
+  </section>
 {/if}
 
 {#if showRanks && c}
@@ -247,9 +237,6 @@
   .accent {
     color: var(--accent);
   }
-  .followed .row {
-    align-items: center;
-  }
   .block {
     display: block;
   }
@@ -279,6 +266,40 @@
   }
   .tiles.two {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .badges-card .label {
+    margin-bottom: 8px;
+  }
+  .halves {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .half {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    text-align: center;
+    gap: 2px;
+    padding: 8px 4px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: inherit;
+    text-decoration: none;
+    min-width: 0;
+  }
+  .half:hover,
+  .half:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+  }
+  .half .badge-name {
+    margin-top: 4px;
+  }
+  .accu .sep {
+    color: var(--muted);
+    margin: 0 6px;
   }
   .year-banner {
     display: flex;
