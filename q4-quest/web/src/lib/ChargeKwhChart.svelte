@@ -118,7 +118,7 @@
     <span class="muted small">{periodLabel(shown.key, true)}{shown.beforeStart ? '' : ` · AC ${num1(shown.ac)} · DC ${num1(shown.dc)}`}</span>
   {:else}
     <span class="pixel">{km(total.ac + total.dc)}<span class="unit">kWh</span></span>
-    <span class="muted small">{title} · AC {num1(total.ac)} · DC {num1(total.dc)}</span>
+    <span class="muted small" title={title}>totaal · AC {num1(total.ac)} · DC {num1(total.dc)}</span>
   {/if}
 </div>
 <div class="chart" bind:this={container} role="img" aria-label="Geladen kWh per {bucket === 'day' ? 'dag' : 'maand'}, AC en DC"></div>

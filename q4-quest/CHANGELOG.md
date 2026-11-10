@@ -6,7 +6,7 @@
 - **Grafiek Geladen:** per dag bij Week en Maand, per maand bij Jaar en Alles. Alle dagen of maanden van de periode staan erin, ook als er niet geladen is; de tijd vóór je eerste meting is gedimd.
 - **Tegels gelijkgetrokken:** Sessies, Geladen en Verbruik hebben nu precies dezelfde opbouw: label, waarde en één regel uitsplitsing ("8 AC · 1 DC", "AC X · DC Y", "per 100 km"). Uitleg zit achter de ⓘ.
 - **Verbruik per periode:** berekend over de gekozen periode (geladen kWh plus het verschil in accupercentage, gedeeld door de km). Onder de 100 km zie je "te weinig data".
-- **Accugrafiek:** eigen keuze 24 uur, 7 dagen of 30 dagen, los van de periodekeuze.
+- **Accugrafiek:** eigen keuze 24 uur, 7 dagen of 30 dagen, los van de periodekeuze. Een scheidingskop "Los van de periode" boven Accu en Groen maakt duidelijk dat de periodeknop daar niet voor geldt; Geladen en Sessies tonen de gekozen periode in hun titel.
 - **Bijgewerkt-label** in de kilometerteller is groter en beter zichtbaar (en nog duidelijker als de laatste update ouder is dan 6 uur).
 
 ## 1.4.1

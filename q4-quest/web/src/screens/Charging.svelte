@@ -193,9 +193,13 @@
     {/if}
 
     <section class="panel">
-      <h3>Geladen</h3>
+      <h3>Geladen<span class="muted per">· {p.label}</span></h3>
       <ChargeKwhChart buckets={p.buckets} bucket={p.bucket} periodLabel={p.label} />
     </section>
+  {/if}
+
+  {#if data.hasSoc || (data.green && data.green.co2Kg !== null)}
+    <div class="divider" role="separator"><span>Los van de periode</span></div>
   {/if}
 
   {#if data.hasSoc}
@@ -258,7 +262,7 @@
   {/if}
 
   <section class="panel">
-    <h3>Sessies</h3>
+    <h3>Sessies{#if p}<span class="muted per">· {p.label}</span>{/if}</h3>
     {#if !p || p.sessions.length === 0}
       <p class="muted small">Geen laadsessies in deze periode.</p>
     {:else}
@@ -401,6 +405,29 @@
   .pixel .unit {
     font-size: 1rem;
     margin-left: 4px;
+  }
+  .per {
+    margin-left: 0.3em;
+    font-weight: 400;
+  }
+  /* Separates the period-bound part from the parts with their own range. */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 2px 4px;
+    color: var(--muted);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .divider::before,
+  .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
   }
   .panel-head {
     display: flex;
