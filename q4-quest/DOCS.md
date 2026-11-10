@@ -45,7 +45,8 @@ Na het wijzigen van opties moet je de add-on herstarten.
 - **Wereldreis:** bestemmingen op de kilometerstand, elk met een kort verhaal: Kármánlijn (100 km),
   het ISS (408), 1.000 km, Rome (1.650), Route 66 (3.940), Over de plas (5.860), Trans-Siberië
   Express (9.289), Down Under (16.600), De Chinese Muur (21.196), Pan-Americana (30.000) en Rondje
-  aarde (40.075). Daarna wacht de Maanreis (384.400 km). De cockpit toont je volgende bestemming.
+  aarde (40.075). Daarna wacht de Maanreis (384.400 km). Volg een bestemming via de badge (Volgen) om
+  hem op de cockpit te zien.
 - **Dagtotaal:** de laatste kilometerstand van een dag min de laatste stand van de vorige dag met
   gegevens. Dagen, weken (maandag t/m zondag) en maanden volgen de tijdzone van Home Assistant.
 - **Streak:** het aantal dagen op rij dat je minstens 1 km hebt gereden. Heb je vandaag nog niet

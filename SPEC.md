@@ -227,13 +227,12 @@ Navigatie onderaan (mobiel-eerst), bovenaan op desktop, met de tabs Cockpit, Bad
 1. **Cockpit**
    - Grote kilometerteller in LCD-cijfers die bij het openen kort "doortelt" naar de huidige stand.
    - Level, rangtitel en XP-balk. Een tik op de rang opent het **rangenoverzicht**: alle rangen met levelbereik, XP-drempel en een eigen pixel-art icoon; de huidige rang gemarkeerd, toekomstige rangen gedimd.
-   - **Volgende bestemming**: naam, icoon en voortgang naar de eerstvolgende Wereldreis-badge, met "nog X km" en het verhaal. Is de hele wereldreis voltooid, dan staat er "Volgende stop: de maan".
    - Vandaag, deze week en deze maand in km.
    - De huidige streak.
    - Laatst ontgrendelde badge.
    - SoC en actieradius, als die zijn ingesteld.
    - De weekuitdaging van deze week: doel, voortgang, resterende dagen en +100 XP.
-   - De gevolgde badge (zie Badges → Gevolgde badge). Er is geen aparte maanreis-kaart meer; de Maanreis is een badge.
+   - De gevolgde badge (zie Badges → Gevolgde badge). Er is geen aparte maanreis- of bestemmingskaart; de Maanreis en de Wereldreis-bestemmingen zijn badges en te volgen via de gevolgde-badgekaart.
 2. **Badges**
    - Raster per categorie (Rijden, Laden, Zuinigheid, Groen, Uitdagingen, Wereldreis, Legendarisch). Ontgrendeld: icoon in kleur met datum en bonus-XP. Vergrendeld: silhouet met hint. Verborgen badges tonen "???" (naam en hint blijven geheim tot ontgrendeling). Badges die van een niet-ingestelde sensor afhangen, verschijnen niet.
    - Voortgang: vergrendelde telbare badges (Wereldreis, Maanreis, laadaantallen, streaks, maand-/week-km, megawattuur) tonen een dun voortgangsbalkje met "huidig / doel". Streaks tellen de huidige reeks, maand/week de lopende periode.
