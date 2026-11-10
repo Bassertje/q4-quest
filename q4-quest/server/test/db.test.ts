@@ -67,6 +67,23 @@ describe('database migrations', () => {
     expect((db.prepare("SELECT value FROM meta WHERE key = 'setting.followed_badge'").get() as { value: string }).value).toBe('milestone_40075');
   });
 
+  it('migration 7 records badges already seen as earned', () => {
+    const db = new DatabaseSync(':memory:');
+    db.exec('CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL)');
+    for (const m of MIGRATIONS.filter((m) => m.version <= 6)) {
+      db.exec(m.sql);
+      db.prepare('INSERT INTO schema_migrations VALUES (?, ?, ?)').run(m.version, m.name, 'x');
+    }
+    const add = db.prepare('INSERT INTO seen_items (item_key, seen_at) VALUES (?, ?)');
+    add.run('badge:eco_week', '2026-11-10T10:00:00.000Z');
+    add.run('badge:challenge_2026-W45', '2026-11-10T10:00:00.000Z');
+    add.run('level:3', '2026-11-10T10:00:00.000Z');
+    migrate(db);
+    expect(db.prepare('SELECT id, unlocked_ts FROM earned_badges').all()).toEqual([
+      { id: 'eco_week', unlocked_ts: Date.parse('2026-11-10T10:00:00Z') },
+    ]);
+  });
+
   it('has strictly increasing migration numbers', () => {
     MIGRATIONS.forEach((m, i) => expect(m.version).toBe(i + 1));
   });

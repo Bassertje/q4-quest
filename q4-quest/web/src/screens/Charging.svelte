@@ -1,7 +1,11 @@
 <script lang="ts">
   import { getJson } from '../lib/api';
   import { date, km, kw, num1 } from '../lib/format';
+  import PixelBattery from '../lib/PixelBattery.svelte';
+  import PixelIcon from '../lib/PixelIcon.svelte';
+  import SocChart from '../lib/SocChart.svelte';
   import type { ChargingData, ChargingSession } from '../lib/types';
+  import WeekKwhChart from '../lib/WeekKwhChart.svelte';
 
   let { refresh }: { refresh: number } = $props();
 
@@ -36,7 +40,9 @@
     return `${h} u ${String(min % 60).padStart(2, '0')}`;
   }
 
-  const soc = (v: number | null) => (v === null ? '?' : `${Math.round(v)}%`);
+  const pct = (v: number | null) => (v === null ? '?' : `${Math.round(v)}`);
+  const TREE_MAX = 20;
+  let info = $state({ consumption: false, green: false });
 </script>
 
 <h2 class="title">Laden</h2>
@@ -61,7 +67,7 @@
       <div class="panel tile">
         <div class="label">Sessies</div>
         <div class="pixel">{data.totals.sessions}</div>
-        <div class="muted small">{data.totals.ac.sessions} AC · {data.totals.dc.sessions} DC</div>
+        <div class="muted small nw">{data.totals.ac.sessions} AC · {data.totals.dc.sessions} DC</div>
       </div>
       <div class="panel tile">
         <div class="label">Geladen</div>
@@ -69,38 +75,81 @@
         <div class="muted small">schatting</div>
       </div>
       <div class="panel tile">
-        <div class="label">Verbruik</div>
+        <div class="label head">
+          Verbruik
+          <button class="info" aria-label="Uitleg verbruik" aria-expanded={info.consumption} onclick={() => (info.consumption = !info.consumption)}>ⓘ</button>
+        </div>
         {#if data.consumption?.kwhPer100km != null}
           <div class="pixel">{num1(data.consumption.kwhPer100km)}</div>
-          <div class="muted small">kWh/100 km<br />schatting, 30 dagen</div>
+          <div class="muted small">kWh/100 km · 30 dagen</div>
         {:else}
           <div class="pixel muted">–</div>
           <div class="muted small">nog te weinig data</div>
         {/if}
       </div>
     </section>
-    {#if data.consumption}
-      <p class="muted small note">
-        Verbruiksschatting: geladen kWh gedeeld door gereden km over de laatste 30 dagen
-        ({km(data.consumption.kwh)} kWh, {km(data.consumption.km)} km, {data.consumption.sessions} sessies).
-        Wordt getoond vanaf 300 km en 3 sessies. Laadverliezen en laden buiten de gemeten sessies tellen mee
-        of ontbreken, dus het blijft een indicatie.
+    {#if info.consumption && data.consumption}
+      <p class="muted small note panel">
+        Schatting over de laatste 30 dagen: verbruikte energie gedeeld door de gereden km. Verbruikte energie =
+        geladen kWh + (accupercentage aan het begin − aan het eind) × {num1(data.batteryKwh)} kWh. Het venster
+        begint nooit vóór de eerste meting van kilometerstand én accu. Getoond vanaf 300 km
+        (nu {km(data.consumption.km)} km, {km(data.consumption.kwh)} kWh verbruikt).
       </p>
     {/if}
   {/if}
 
+  {#if data.weeklyKwh.length}
+    <section class="panel">
+      <h3>Geladen per week</h3>
+      <WeekKwhChart weeks={data.weeklyKwh} />
+    </section>
+  {/if}
+
+  {#if data.socLast7d.length > 1}
+    <section class="panel">
+      <h3>Accu, laatste 7 dagen</h3>
+      <SocChart soc={data.socLast7d} sessions={data.sessions.filter((s) => s.end >= Date.now() - 7 * 86_400_000)} timeZone={tz} />
+    </section>
+  {/if}
+
   {#if data.green && data.green.co2Kg !== null}
+    {@const g = data.green}
     <section class="panel green">
-      <h3>Groen <span class="muted small">(schatting)</span></h3>
+      <h3 class="head">
+        Groen <span class="muted small">(schatting)</span>
+        <button class="info" aria-label="Uitleg Groen" aria-expanded={info.green} onclick={() => (info.green = !info.green)}>ⓘ</button>
+      </h3>
+      {#if info.green}
+        <p class="muted small note">
+          Vergeleken met een benzineauto: km × CO₂ per km min verbruikte kWh × CO₂ per kWh, en km × liters per
+          100 km. Eén boom neemt ongeveer 20 kg CO₂ per jaar op. De factoren stel je in bij de add-on-opties.
+        </p>
+      {/if}
       <div class="green-grid">
-        <div><span class="label">CO₂ bespaard</span><span class="pixel">{km(data.green.co2Kg)}<span class="unit">kg</span></span></div>
-        <div><span class="label">Benzine niet verbrand</span><span class="pixel">{km(data.green.liters)}<span class="unit">liter</span></span></div>
-        <div><span class="label">Bomen (een jaar)</span><span class="pixel">{num1(data.green.trees ?? 0)}</span></div>
+        <div><span class="label">CO₂ bespaard</span><span class="pixel">{km(g.co2Kg ?? 0)}<span class="unit">kg</span></span></div>
+        <div><span class="label">Benzine niet verbrand</span><span class="pixel">{km(g.liters)}<span class="unit">liter</span></span></div>
+        <div>
+          <span class="label">Gelijk aan</span>
+          <span class="pixel">{num1(g.trees ?? 0)}<span class="unit">bomen</span></span>
+          <span class="muted small">die een jaar lang CO₂ opnemen</span>
+        </div>
       </div>
-      <p class="muted small note">
-        Vergeleken met een benzineauto: km × CO₂ per km min geladen kWh × CO₂ per kWh, en km × liters per
-        100 km. Eén boom neemt ongeveer 20 kg CO₂ per jaar op. De factoren stel je in bij de add-on-opties.
-      </p>
+      {#if g.trees}
+        <div class="trees" role="img" aria-label="{num1(g.trees)} bomen">
+          {#each Array(Math.min(TREE_MAX, Math.ceil(g.trees))) as _, i (i)}
+            {@const fill = Math.min(1, g.trees - i)}
+            <span class="tree" style:--fill="{fill * 100}%"><PixelIcon icon="tree" size={22} /></span>
+          {/each}
+          {#if g.trees > TREE_MAX}<span class="muted small more-trees">+ {km(Math.ceil(g.trees) - TREE_MAX)}</span>{/if}
+        </div>
+      {/if}
+      {#if data.nextGreen}
+        {@const n = data.nextGreen}
+        <div class="next">
+          <span class="muted small">Volgende badge: <strong>{n.name}</strong> · {km(n.current)} / {km(n.target)} {n.unit}</span>
+          <span class="next-bar"><span style:width="{(n.current / n.target) * 100}%"></span></span>
+        </div>
+      {/if}
     </section>
   {/if}
 
@@ -113,14 +162,14 @@
         {#each data.sessions.slice(0, shown) as s (s.start)}
           <li class:live={s.ongoing}>
             <span class="row-main">{date(s.start, tz)}</span>
-            <span class="row-value">
-              {s.kwh === null ? '–' : `~${num1(s.kwh)} kWh`}
-              <span class="badge" class:dc={s.type === 'DC'}>{s.type}</span>
-            </span>
+            <span class="row-value">{s.kwh === null ? '–' : `~${num1(s.kwh)} kWh`}</span>
             <span class="row-sub">
+              <span class="badge" class:dc={s.type === 'DC'}>{s.type}</span>
               <span class="nw">{time(s.start)} · {s.ongoing ? 'bezig' : duration(s)}</span> ·
-              <span class="nw">SoC {soc(s.socStart)} → {soc(s.socEnd)}</span> ·
               <span class="nw">gem. {s.avgKw === null ? '–' : `${kw(s.avgKw)} kW`}</span>
+              {#if s.socStart !== null || s.socEnd !== null}
+                · <span class="nw"><PixelBattery from={s.socStart} to={s.socEnd} /> {pct(s.socStart)} → {pct(s.socEnd)}%</span>
+              {/if}
             </span>
           </li>
         {/each}
@@ -128,11 +177,6 @@
       {#if shown < data.sessions.length}
         <button class="more" onclick={() => (shown += STEP)}>Meer tonen</button>
       {/if}
-      <p class="muted small note">
-        Een sessie telt alleen als het accupercentage minstens 2 procentpunt stijgt. kWh is een schatting:
-        de stijging van het accupercentage × {num1(data.batteryKwh)} kWh. "Gem." is kWh gedeeld door de duur.
-        DC als de laadtype-sensor dat meldt of als het gemiddelde boven 22 kW ligt.
-      </p>
     {/if}
   </section>
 {/if}
@@ -189,8 +233,65 @@
   .sessions .row-sub {
     font-variant-numeric: tabular-nums;
   }
-  .badge {
+  .head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .info {
+    border: 0;
+    padding: 0 2px;
+    background: none;
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .info[aria-expanded='true'] {
+    color: var(--accent);
+  }
+  .note.panel {
+    margin: 0;
+    padding: 12px;
+  }
+  .trees {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px;
+    margin-top: 12px;
+  }
+  .tree {
+    position: relative;
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    /* The last tree is filled partially (left to right). */
+    clip-path: inset(0 calc(100% - var(--fill)) 0 0);
+  }
+  .more-trees {
     margin-left: 6px;
+  }
+  .next {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 12px;
+  }
+  .next-bar {
+    display: block;
+    height: 4px;
+    background: var(--track);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .next-bar span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+  }
+  .badge {
+    margin-right: 6px;
     vertical-align: 1px;
     font-family: var(--font-pixel);
     font-size: 1.1rem;

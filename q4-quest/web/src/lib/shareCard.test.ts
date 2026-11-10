@@ -41,7 +41,7 @@ describe('shareContent', () => {
     expect(c.green.map((t) => [t.label, t.value])).toEqual([
       ['CO₂ bespaard', '1.241'],
       ['Niet verbrand', '659'],
-      ['Bomen', '62,1'],
+      ['Gelijk aan', '62,1'],
     ]);
     expect(c.badges).toHaveLength(20);
     expect(c.moreBadges).toBe(3);

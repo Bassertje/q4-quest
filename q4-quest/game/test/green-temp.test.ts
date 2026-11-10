@@ -41,15 +41,22 @@ describe('temperature', () => {
     expect(tripStartTemperatures([trip], temps)).toEqual([-2]);
   });
 
-  it('combines monthly consumption with the average temperature', () => {
+  it('combines monthly consumption (energy used ÷ km) with the average temperature', () => {
     const session = (iso: string, kwh: number): ChargingSession => ({
       start: at(iso), end: at(iso) + 3_600_000, ongoing: false, type: 'AC', socStart: 20, socEnd: 60, kwh, kwhMethod: 'soc', avgKw: kwh,
     });
+    const odometer = [
+      { ts: at('2026-01-01T08:00:00Z'), value: 5_000 },
+      { ts: at('2026-01-20T08:00:00Z'), value: 5_200 },
+      { ts: at('2026-02-03T08:00:00Z'), value: 5_240 },
+    ];
+    const energy = { odometer, soc: [], sessions: [session('2026-01-12T10:00:00Z', 40), session('2026-02-02T10:00:00Z', 10)], batteryKwh: 77, hasSoc: false };
     const stats = monthlyStats(
-      new Map([['2026-01-10', 150], ['2026-01-11', 50], ['2026-02-01', 40]]),
-      [session('2026-01-12T10:00:00Z', 40), session('2026-02-02T10:00:00Z', 10)],
+      new Map([['2026-01-01', 0], ['2026-01-20', 200], ['2026-02-03', 40]]),
+      energy,
       dailyTemperatures(temps, 'UTC'),
       'UTC',
+      at('2026-02-10T00:00:00Z'),
     );
     expect(stats).toEqual([
       { month: '2026-01', km: 200, kwh: 40, kwhPer100km: 20, avgTemp: 3.5 },

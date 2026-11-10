@@ -100,30 +100,38 @@
     {@const ch = data.challenge}
     {@const cur = ch.current ?? 0}
     <section class="panel challenge" class:done={ch.status === 'done'}>
-      <div class="row">
-        <div class="unlocked">
-          <PixelIcon icon="target" size={36} />
-          <span>
-            <span class="label">Weekuitdaging · {ch.title}</span>
-            <span class="badge-name block">{ch.goal}</span>
-          </span>
-        </div>
-        <div class="muted small right">
-          {#if ch.status === 'done'}<strong class="accent">Gehaald!</strong><br />+{ch.xp} XP{:else}nog {ch.daysLeft} {ch.daysLeft === 1 ? 'dag' : 'dagen'}<br />+{ch.xp} XP{/if}
+      <div class="ch-top">
+        <span class="kicker">Weekuitdaging</span>
+        <span class="xp-badge">+{ch.xp} XP</span>
+      </div>
+      <div class="ch-body">
+        <PixelIcon icon="target" size={36} />
+        <div class="ch-text">
+          <div class="ch-title">{ch.title}</div>
+          <div class="ch-goal">{ch.goal}</div>
         </div>
       </div>
       {#if ch.type === 'max_charges'}
         <Bar fraction={Math.min(1, cur / ch.target)} label="Laadsessies deze week" />
-        <div class="muted small count">{cur} van max. {ch.target} {ch.unit} · wordt zondag beoordeeld</div>
       {:else if ch.type === 'consumption'}
         <Bar fraction={ch.current === null ? 0 : Math.min(1, ch.target / Math.max(ch.current, 0.1))} label="Verbruik deze week" />
-        <div class="muted small count">
-          {ch.current === null ? 'nog te weinig data deze week' : `nu ${num1(ch.current)} ${ch.unit}`} · doel ≤ {num1(ch.target)} · wordt zondag beoordeeld
-        </div>
       {:else}
         <Bar fraction={Math.min(1, cur / ch.target)} label="Voortgang weekuitdaging" />
-        <div class="muted small count">{km(cur)} / {km(ch.target)} {ch.unit}</div>
       {/if}
+      <div class="ch-foot">
+        <span class="nw">
+          {#if ch.type === 'consumption'}
+            {ch.current === null ? 'nog te weinig data' : `${num1(ch.current)} / ≤ ${num1(ch.target)} ${ch.unit}`}
+          {:else if ch.type === 'max_charges'}
+            {cur} / max. {ch.target} {ch.unit}
+          {:else}
+            {km(cur)} / {km(ch.target)} {ch.unit}
+          {/if}
+        </span>
+        <span class="nw">
+          {#if ch.status === 'done'}<strong class="accent">Gehaald!</strong>{:else}nog {ch.daysLeft} {ch.daysLeft === 1 ? 'dag' : 'dagen'}{/if}
+        </span>
+      </div>
     </section>
   {/if}
 
@@ -229,6 +237,52 @@
     font-size: 1.1rem;
     color: var(--muted);
     margin-left: 4px;
+  }
+  .ch-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .kicker {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .xp-badge {
+    font-family: var(--font-pixel);
+    font-size: 1rem;
+    line-height: 1;
+    padding: 2px 6px;
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .ch-body {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0 10px;
+  }
+  .ch-text {
+    min-width: 0;
+  }
+  .ch-title {
+    font-weight: 700;
+  }
+  .ch-goal {
+    font-size: 0.95rem;
+  }
+  .ch-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: var(--muted);
   }
   .challenge.done {
     border-color: var(--accent);

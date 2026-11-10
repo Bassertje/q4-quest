@@ -60,7 +60,10 @@ Afgeleide gegevens worden altijd uit de opgeslagen ruwe metingen berekend. Na ee
   - Geschatte kWh: ΔSoC / 100 × `battery_kwh`. Het gemeten vermogen is onbetrouwbaar (het kan bijvoorbeeld tijdens DC-laden op een te lage waarde blijven hangen); vermogensintegratie (trapeziumregel) wordt alleen gebruikt als er geen SoC-sensor is ingesteld.
   - Gemiddeld vermogen ("gem."): kWh ÷ duur.
   - Type: DC als de laadtype-sensor tijdens de sessie of tot 10 minuten erna "dc" meldt, óf als het gemiddelde vermogen > 22 kW is. Anders AC.
-- **Verbruiksschatting:** geladen kWh ÷ gereden km over voortschrijdende 30 dagen. Toon dit alleen bij minstens 300 km en 3 sessies, en altijd met het label "schatting".
+- **Verbruikte energie** over een periode = geladen kWh in die periode (sessies die in de periode eindigden) + (SoC aan het begin − SoC aan het eind) / 100 × `battery_kwh`. SoC aan het begin = laatste meting op of vóór de start; SoC aan het eind = laatste meting vóór het einde. Zonder SoC-sensor telt alleen de geladen kWh.
+- **Verbruik** = verbruikte energie ÷ gereden km in dezelfde periode (km = laatste kilometerstand vóór het einde − stand op of vóór de start). Een periode begint nooit vóór het eerste moment waarop zowel odometer- als SoC-data beschikbaar zijn.
+- **Verbruiksschatting (30 dagen):** voortschrijdend venster van 30 dagen met bovenstaande methode; alleen getoond bij ≥ 300 km in het venster, altijd met het label "schatting".
+- Dezelfde methode geldt voor de weekschattingen (badges Zuinige week en Winterhard, de verbruiksuitdaging), de maandgrafiek verbruik/temperatuur en de stroomuitstoot in Groen.
 
 ---
 
@@ -95,7 +98,7 @@ De categorie **Wereldreis** vervangt de vroegere kale mijlpalen. Elke bestemming
 ### Badges
 Badges worden gedefinieerd als **data** (een array met `id`, `naam`, `beschrijving`, `hint`, `categorie`, `xp`, `vereist` (benodigde sensoren) en `check(context)`). Zo zijn ze makkelijk uit te breiden.
 
-Een badge wordt **met terugwerkende kracht** berekend. De ontgrendeldatum is het moment waarop de voorwaarde voor het eerst werd gehaald, niet het moment van berekenen. `check(context)` geeft dat moment terug (of niets). Het bonus-XP van een badge telt mee voor het level vanaf de ontgrendeldatum.
+Een badge wordt **met terugwerkende kracht** berekend. **Badges worden nooit afgepakt:** gehaalde badges worden vastgelegd (tabel `earned_badges`); bevestigt een latere berekening (bijv. na een gewijzigde verbruiksmethode) een badge niet meer, dan blijft hij staan met zijn vastgelegde datum. Bij de overstap (1.4.0) gelden badges die al in een reveal gezien zijn als gehaald. De ontgrendeldatum is het moment waarop de voorwaarde voor het eerst werd gehaald, niet het moment van berekenen. `check(context)` geeft dat moment terug (of niets). Het bonus-XP van een badge telt mee voor het level vanaf de ontgrendeldatum.
 
 Uitwerking van "het eerste moment":
 - Afstandsbadges (dag, week, maand, weekend): de odometermeting waarmee de afstand binnen die periode werd gehaald.
@@ -179,11 +182,11 @@ Alle nieuwe badges hebben een eigen pixel-art icoon en worden met terugwerkende 
 - Historie toont de temperatuur bij de recente ritblokken en in de daggrafiek, en een grafiek met verbruik per maand (staven) en de gemiddelde temperatuur (lijn). Het maandverbruik is een schatting en wordt pas getoond vanaf 100 km in die maand.
 
 ### Groen
-- CO₂ bespaard = km × `co2_petrol_kg_per_km` − geladen kWh × `co2_grid_kg_per_kwh`; nooit negatief getoond. Zonder laadsensoren wordt geen CO₂ getoond.
+- CO₂ bespaard = km × `co2_petrol_kg_per_km` − verbruikte energie (zie Data) × `co2_grid_kg_per_kwh`; nooit negatief getoond. Zonder laadsensoren wordt geen CO₂ getoond.
 - Liters niet verbrand = km × `petrol_l_per_100km` / 100.
 - Bomen = CO₂ ÷ 20 kg (wat één boom per jaar opneemt).
 - De km zijn de gemeten km (som van de dagtotalen), niet de totale kilometerstand.
-- Getoond op het Laden-scherm (met "schatting"), in een slide van het jaaroverzicht en op de deelkaart.
+- Getoond op het Laden-scherm (met "schatting"), in een slide van het jaaroverzicht en op de deelkaart. De bomen heten overal "Gelijk aan": waarde "X bomen", subtekst "die een jaar lang CO₂ opnemen".
 
 ### Weekuitdaging
 - Elke week (maandag 00:00 in de HA-tijdzone) wordt één uitdaging gekozen. De keuze gebeurt de eerste keer dat de app in die week rekent, met alleen de gegevens van vóór die maandag; een week waarin de app niet draait, krijgt geen uitdaging. Bij de eerste start na de update krijgt de lopende week meteen een uitdaging.
@@ -231,7 +234,7 @@ Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laads
 1. **Cockpit** (in deze volgorde)
    - Grote kilometerteller in LCD-cijfers die bij het openen kort "doortelt" naar de huidige stand.
    - Level, rangtitel en XP-balk. Een tik op de rang opent het **rangenoverzicht**: alle rangen met levelbereik, XP-drempel en een eigen pixel-art icoon; de huidige rang gemarkeerd, toekomstige rangen gedimd.
-   - De weekuitdaging van deze week: doel, voortgang, resterende dagen en +100 XP.
+   - De weekuitdaging van deze week. Regel 1: klein label "WEEKUITDAGING" (gedempt, hoofdletters) links en "+100 XP" als kleine badge rechts. Regel 2: de titel (vet) en regel 3: de opdracht, beide over de volle breedte met het icoon links ervan. Dan de voortgangsbalk. Laatste regel: voortgang ("2 / 4 dagen") links en resterend ("nog 6 dagen") rechts. Korte labels breken nooit af.
    - Vandaag, deze week en deze maand in km.
    - Kaart **Badges** met twee helften. Links de laatst ontgrendelde badge (icoon, naam, datum). Rechts de gevolgde badge (zie Badges → Gevolgde badge) met een cirkelvormige voortgangsring in pixel-stijl (blokjes in rood op de lijnkleur) om het icoon, met de naam en "nog X" eronder. Een tik op een helft opent die badge op het Badges-scherm (`#/badges/<id>`: scrollt ernaartoe en opent de detailweergave). Er is geen losse kaart voor de gevolgde badge, en geen aparte maanreis- of bestemmingskaart.
    - **Streak** en **Accu** naast elkaar. Accu toont "SoC % · actieradius km" (of één van beide als maar één sensor is ingesteld) en verschijnt alleen met een SoC- of actieradius-sensor.
@@ -247,8 +250,12 @@ Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laads
    - Tijdlijn van gebeurtenissen (badges, Wereldreis-bestemmingen, level-ups).
 4. **Laden**
    - Lijst met sessies (datum, AC/DC, kWh-schatting, SoC van → naar, gem. kW).
-   - Totalen en de verbruiksschatting.
-   - Groen: CO₂ bespaard, liters niet verbrand en bomen, met het label "schatting".
+   - Totalen en de verbruiksschatting. Uitleg bij Verbruik en Groen zit achter een klein ⓘ-icoon naast de kop (standaard ingeklapt).
+   - Staafgrafiek geladen kWh per week (vaste venster van 12 weken, zoals in Historie), AC en DC gestapeld in twee tinten rood, met legenda.
+   - Accu-tijdlijn: lijngrafiek van de SoC over de laatste 7 dagen, met laadsessies als licht gearceerde vlakken (DC iets feller dan AC).
+   - Sessielijst in de twee-regel-opbouw: regel 1 datum links, kWh rechts; regel 2 AC/DC-label, tijd · duur · gem. kW en een kleine pixel-accu (gevuld tot het eindpercentage, geladen deel rood, startdeel gedempt) met "76 → 98%".
+   - Groen: CO₂ bespaard, liters niet verbrand en "Gelijk aan X bomen", met het label "schatting"; een rij pixel-boompjes (één per boom, de laatste gedeeltelijk gevuld, max. 20 zichtbaar, daarna "+ X") en een dunne voortgangsbalk naar de volgende CO₂-badge.
+   - Alle grafieken werken in de lichte en de donkere modus.
 5. **Instellingen** (klein, via een tandwiel)
    - Status van de HA-verbinding.
    - Welke sensoren zijn ingesteld.

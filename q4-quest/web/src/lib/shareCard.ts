@@ -39,7 +39,7 @@ export function shareContent(r: YearReview) {
     ? [
         ...(g.co2Kg !== null ? [{ label: 'CO₂ bespaard', value: nf.format(g.co2Kg), unit: 'kg' }] : []),
         { label: 'Niet verbrand', value: nf.format(g.liters), unit: 'liter' },
-        ...(g.trees !== null ? [{ label: 'Bomen', value: new Intl.NumberFormat('nl-NL', { maximumFractionDigits: 1 }).format(g.trees) }] : []),
+        ...(g.trees !== null ? [{ label: 'Gelijk aan', value: new Intl.NumberFormat('nl-NL', { maximumFractionDigits: 1 }).format(g.trees), unit: 'bomen' }] : []),
       ]
     : [];
   return {

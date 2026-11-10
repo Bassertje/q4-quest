@@ -1,5 +1,6 @@
 import type { BadgeResult } from './badges.ts';
 import { chargingTotals, type ChargingSession, type ChargingTotals } from './charging.ts';
+import { periodEnergy, type EnergyInput } from './consumption.ts';
 import { greenTotals, type GreenFactors, type GreenTotals } from './green.ts';
 import { longestStreak, STREAK_MIN_KM, type StreakRun } from './distance.ts';
 import { levelForXp, rankForLevel } from './levels.ts';
@@ -67,6 +68,8 @@ export interface YearInput {
   timeZone: string;
   now: number;
   green?: GreenFactors;
+  /** For the energy used (charged + SoC difference) in the green figures. */
+  energy?: EnergyInput;
 }
 
 function best(entries: Iterable<[string, number]>): PeriodRecord | null {
@@ -145,7 +148,7 @@ export function buildYearReview(input: YearInput): YearReview | null {
     },
     earth: { km: EARTH_KM, laps: totalKm / EARTH_KM },
     green: input.green
-      ? greenTotals(totalKm, sessions ? sessions.reduce((s, x) => s + (x.kwh ?? 0), 0) : null, input.green)
+      ? greenTotals(totalKm, sessions ? (input.energy ? (periodEnergy(input.energy, yearStart, Math.min(yearEnd, input.now + 1))?.usedKwh ?? null) : sessions.reduce((s, x) => s + (x.kwh ?? 0), 0)) : null, input.green)
       : null,
     challengesDone,
   };

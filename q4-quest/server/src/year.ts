@@ -43,6 +43,7 @@ export function yearResponse(state: GameState, options: Options, year: number, p
     badges: state.badges,
     timeZone: state.timeZone,
     now: state.now,
+    energy: state.energy,
     green: {
       co2PetrolKgPerKm: options.co2PetrolKgPerKm,
       co2GridKgPerKwh: options.co2GridKgPerKwh,

@@ -1,5 +1,7 @@
 import type { ChargingSession } from './charging.ts';
+import { atOrBefore, energyDataStart, periodEnergy, type EnergyInput, type PeriodEnergy } from './consumption.ts';
 import { co2Saved, litersSaved, type GreenFactors } from './green.ts';
+import { weekBounds } from './challenges.ts';
 import { dailyTemperatures, temperatureAt } from './temperature.ts';
 import { currentStreak, periodTotals, STREAK_MIN_KM } from './distance.ts';
 import { MOON_KM, WORLD_TRIP, destinationXp, type TimedValue } from './milestones.ts';
@@ -34,6 +36,9 @@ export interface BadgeContext {
   /** Outdoor temperature readings (°C); empty when not configured. */
   temperature: TimedValue[];
   green: GreenFactors;
+  /** Usable battery capacity (kWh) and whether a SoC sensor exists, for energy estimates. */
+  batteryKwh: number;
+  hasSoc: boolean;
   /** Completed weekly challenges. */
   challenges: { week: string; completedTs: number }[];
   timeZone: string;
@@ -130,54 +135,49 @@ function cumulativeKwh(ctx: BadgeContext, kwh: number): number | null {
   return null;
 }
 
-/** A complete ISO week with ≥ 150 km and an estimate of ≤ 17 kWh/100 km. */
-function ecoWeek(ctx: BadgeContext): number | null {
+const energyOf = (ctx: BadgeContext): EnergyInput => ({
+  odometer: ctx.odometer,
+  soc: ctx.soc,
+  sessions: ctx.sessions,
+  batteryKwh: ctx.batteryKwh,
+  hasSoc: ctx.hasSoc,
+});
+
+/** Complete ISO weeks (oldest first) with their bounds and energy figures. */
+function completeWeeks(ctx: BadgeContext): { week: string; end: number; energy: PeriodEnergy | null }[] {
   const first = ctx.progress[0]?.day;
-  if (!first) return null;
+  if (!first) return [];
   const today = dayKey(ctx.now, ctx.timeZone);
-  const kmPerWeek = new Map<string, number>();
-  for (const [day, km] of ctx.dailyTotals) kmPerWeek.set(weekKey(day), (kmPerWeek.get(weekKey(day)) ?? 0) + km);
-  const kwhPerWeek = new Map<string, number>();
-  for (const s of ctx.sessions) {
-    if (s.kwh === null) continue;
-    const w = weekKey(dayKey(s.start, ctx.timeZone));
-    kwhPerWeek.set(w, (kwhPerWeek.get(w) ?? 0) + s.kwh);
-  }
-  const weeks = [...kmPerWeek.keys()].sort();
-  for (const w of weeks) {
+  const out: { week: string; end: number; energy: PeriodEnergy | null }[] = [];
+  const input = energyOf(ctx);
+  for (let w = weekKey(first); ; w = shiftPeriod('week', w, 1)) {
     const nextMonday = isoWeekStart(shiftPeriod('week', w, 1));
     if (nextMonday > today) break; // the week is not complete yet
-    const km = kmPerWeek.get(w) ?? 0;
-    const kwh = kwhPerWeek.get(w) ?? 0;
-    if (km >= ECO_WEEK_MIN_KM && kwh > 0 && (kwh / km) * 100 <= ECO_WEEK_MAX_KWH_PER_100) {
-      return zonedMidnight(nextMonday, ctx.timeZone);
-    }
+    const { start, end } = weekBounds(w, ctx.timeZone);
+    out.push({ week: w, end, energy: periodEnergy(input, start, end) });
+  }
+  return out;
+}
+
+/** A complete ISO week with ≥ 150 km and an estimate of ≤ 17 kWh/100 km. */
+function ecoWeek(ctx: BadgeContext): number | null {
+  for (const w of completeWeeks(ctx)) {
+    const e = w.energy;
+    if (e && e.km >= ECO_WEEK_MIN_KM && e.kwhPer100km !== null && e.kwhPer100km <= ECO_WEEK_MAX_KWH_PER_100) return w.end;
   }
   return null;
 }
 
 /** A complete ISO week colder than 5 °C on average with < 20 kWh/100 km over ≥ 150 km. */
 function winterWeek(ctx: BadgeContext): number | null {
-  const today = dayKey(ctx.now, ctx.timeZone);
   const temps = dailyTemperatures(ctx.temperature, ctx.timeZone);
-  const weeks = new Map<string, { km: number; kwh: number; temps: number[] }>();
-  const get = (w: string) => {
-    let v = weeks.get(w);
-    if (!v) weeks.set(w, (v = { km: 0, kwh: 0, temps: [] }));
-    return v;
-  };
-  for (const [d, km] of ctx.dailyTotals) get(weekKey(d)).km += km;
-  for (const [d, t] of temps) get(weekKey(d)).temps.push(t);
-  for (const s of ctx.sessions) if (s.kwh !== null) get(weekKey(dayKey(s.start, ctx.timeZone))).kwh += s.kwh;
-  for (const w of [...weeks.keys()].sort()) {
-    const nextMonday = isoWeekStart(shiftPeriod('week', w, 1));
-    if (nextMonday > today) break;
-    const v = weeks.get(w)!;
-    if (!v.temps.length || v.km < WINTER_MIN_KM || v.kwh <= 0) continue;
-    const avgTemp = v.temps.reduce((a, b) => a + b, 0) / v.temps.length;
-    if (avgTemp < WINTER_MAX_AVG_TEMP && (v.kwh / v.km) * 100 < WINTER_MAX_KWH_PER_100) {
-      return zonedMidnight(nextMonday, ctx.timeZone);
-    }
+  for (const w of completeWeeks(ctx)) {
+    const e = w.energy;
+    if (!e || e.km < WINTER_MIN_KM || e.kwhPer100km === null || e.kwhPer100km >= WINTER_MAX_KWH_PER_100) continue;
+    const weekTemps = [...temps].filter(([d]) => weekKey(d) === w.week).map(([, t]) => t);
+    if (!weekTemps.length) continue;
+    const avgTemp = weekTemps.reduce((a, b) => a + b, 0) / weekTemps.length;
+    if (avgTemp < WINTER_MAX_AVG_TEMP) return w.end;
   }
   return null;
 }
@@ -192,24 +192,31 @@ function iceColdTrip(ctx: BadgeContext): number | null {
   return null;
 }
 
-/** Cumulative km and charged kWh over time, for the green badges. */
+/**
+ * Cumulative km and used energy over time, for the green badges. Used energy =
+ * charged kWh + (SoC at the start − current SoC) × battery (charged only without SoC).
+ */
 function greenSteps(ctx: BadgeContext): { ts: number; km: number; kwh: number }[] {
-  const steps: { ts: number; dKm: number; dKwh: number }[] = [];
-  let lastDay: string | null = null;
-  let lastDayKm = 0;
-  for (const p of ctx.progress) {
-    if (p.day !== lastDay) {
-      lastDay = p.day;
-      lastDayKm = 0;
-    }
-    steps.push({ ts: p.ts, dKm: p.dayKm - lastDayKm, dKwh: 0 });
-    lastDayKm = p.dayKm;
-  }
-  for (const s of ctx.sessions) steps.push({ ts: s.end, dKm: 0, dKwh: s.kwh ?? 0 });
+  const start = energyDataStart(energyOf(ctx));
+  if (start === null) return [];
+  const socStart = ctx.hasSoc ? atOrBefore(ctx.soc, start)?.value ?? null : null;
+  type Step = { ts: number; km?: number; charged?: number; soc?: number };
+  const steps: Step[] = [];
+  const odoStart = atOrBefore(ctx.odometer, start)?.value ?? 0;
+  for (const r of ctx.odometer) if (r.ts >= start) steps.push({ ts: r.ts, km: r.value - odoStart });
+  for (const s of ctx.sessions) if (s.end >= start) steps.push({ ts: s.end, charged: s.kwh ?? 0 });
+  if (ctx.hasSoc) for (const r of ctx.soc) if (r.ts >= start) steps.push({ ts: r.ts, soc: r.value });
   steps.sort((a, b) => a.ts - b.ts);
   let km = 0;
-  let kwh = 0;
-  return steps.map((s) => ({ ts: s.ts, km: (km += s.dKm), kwh: (kwh += s.dKwh) }));
+  let charged = 0;
+  let soc = socStart;
+  return steps.map((st) => {
+    if (st.km !== undefined) km = Math.max(km, st.km);
+    if (st.charged !== undefined) charged += st.charged;
+    if (st.soc !== undefined) soc = st.soc;
+    const used = charged + (socStart !== null && soc !== null ? ((socStart - soc) / 100) * ctx.batteryKwh : 0);
+    return { ts: st.ts, km, kwh: used };
+  });
 }
 
 const co2Crossing = (kg: number) => (ctx: BadgeContext) =>
