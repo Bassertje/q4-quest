@@ -18,6 +18,22 @@ export const MIGRATIONS: { version: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    version: 2,
+    name: 'readings',
+    sql: `
+      CREATE TABLE readings (
+        id         INTEGER PRIMARY KEY,
+        entity_key TEXT    NOT NULL,
+        entity_id  TEXT    NOT NULL,
+        ts         INTEGER NOT NULL,
+        value      TEXT    NOT NULL,
+        attrs_json TEXT,
+        source     TEXT    NOT NULL
+      );
+      CREATE UNIQUE INDEX readings_key_ts ON readings (entity_key, ts);
+    `,
+  },
 ];
 
 export function openDatabase(path: string): DatabaseSync {

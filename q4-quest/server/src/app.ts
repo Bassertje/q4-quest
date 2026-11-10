@@ -1,41 +1,104 @@
 import { existsSync } from 'node:fs';
+import { Readable } from 'node:stream';
 import type { DatabaseSync } from 'node:sqlite';
 import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { cockpitResponse } from './cockpit.ts';
+import type { BackfillStatus } from './collector/collector.ts';
 import { schemaVersion } from './db.ts';
 import type { HaStatus } from './ha/types.ts';
 import { SENSOR_KEYS, type Options } from './options.ts';
+import type { ReadingStore } from './readings.ts';
 
 export interface AppDeps {
   version: string;
   mock: boolean;
   options: Options;
   db: DatabaseSync;
+  store: ReadingStore;
   haStatus: () => HaStatus;
-  mockSummary?: { readings: number; days: number; odometer: number } | null;
+  timeZone: () => string;
+  backfill: { status: () => BackfillStatus; run: () => Promise<void> };
+  onChange: (listener: () => void) => () => void;
   webDir?: string;
 }
+
+/** Minimum time between two "update" pushes to the browser. */
+const PUSH_THROTTLE_MS = 2_000;
+const KEEPALIVE_MS = 30_000;
 
 /** Build the HTTP app. Kept free of side effects so it can be tested with inject(). */
 export function buildApp(deps: AppDeps): FastifyInstance {
   const app = Fastify({ logger: false });
 
-  app.get('/api/status', async () => {
-    const sensors = SENSOR_KEYS.map((key) => ({
+  app.get('/api/status', async () => ({
+    version: deps.version,
+    mode: deps.mock ? 'mock' : 'live',
+    setupNeeded: deps.options.entities.odometer === null,
+    ha: deps.haStatus(),
+    timeZone: deps.timeZone(),
+    sensors: SENSOR_KEYS.map((key) => ({
       key,
       entityId: deps.options.entities[key],
       configured: deps.options.entities[key] !== null,
-    }));
-    return {
-      version: deps.version,
-      mode: deps.mock ? 'mock' : 'live',
-      setupNeeded: deps.options.entities.odometer === null,
-      ha: deps.haStatus(),
-      sensors,
-      batteryKwh: deps.options.batteryKwh,
-      db: { schemaVersion: schemaVersion(deps.db) },
-      mock: deps.mockSummary ?? null,
+    })),
+    batteryKwh: deps.options.batteryKwh,
+    db: { schemaVersion: schemaVersion(deps.db), readings: deps.store.counts() },
+    backfill: deps.backfill.status(),
+  }));
+
+  app.get('/api/cockpit', async () => cockpitResponse(deps.store, deps.options, deps.timeZone()));
+
+  app.post('/api/backfill', async (_req, reply) => {
+    if (deps.backfill.status().state === 'running') return reply.code(409).send({ error: 'already running' });
+    void deps.backfill.run();
+    return reply.code(202).send({ started: true });
+  });
+
+  app.get('/api/export', async (_req, reply) => {
+    const day = new Date().toISOString().slice(0, 10);
+    reply.header('Content-Disposition', `attachment; filename="q4quest-export-${day}.json"`);
+    reply.type('application/json; charset=utf-8');
+    const store = deps.store;
+    const version = deps.version;
+    async function* body() {
+      yield `{"app":"q4-quest","version":${JSON.stringify(version)},"exportedAt":${JSON.stringify(new Date().toISOString())},"readings":[`;
+      let first = true;
+      for (const row of store.all()) {
+        yield (first ? '\n' : ',\n') + JSON.stringify(row);
+        first = false;
+      }
+      yield '\n]}\n';
+    }
+    return reply.send(Readable.from(body()));
+  });
+
+  // Server-Sent Events: tells the browser to refetch when new data arrives.
+  app.get('/api/events', (req, reply) => {
+    reply.hijack();
+    const res = reply.raw;
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+    res.write('retry: 10000\n\n');
+    let timer: NodeJS.Timeout | null = null;
+    const push = () => {
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = null;
+        res.write('event: update\ndata: {}\n\n');
+      }, PUSH_THROTTLE_MS);
     };
+    const off = deps.onChange(push);
+    const keepalive = setInterval(() => res.write(': keepalive\n\n'), KEEPALIVE_MS);
+    req.raw.on('close', () => {
+      off();
+      clearInterval(keepalive);
+      if (timer) clearTimeout(timer);
+    });
   });
 
   if (deps.webDir && existsSync(deps.webDir)) {

@@ -34,7 +34,24 @@ Na het wijzigen van opties moet je de add-on herstarten.
   Home Assistant-back-ups.
 - Er wordt niets naar externe diensten gestuurd.
 
-## Status van deze versie
+## Hoe het werkt
 
-Versie 0.1.0 is het skelet: de pagina laat zien of de verbinding met Home Assistant werkt en
-welke sensoren zijn ingesteld. Het spel zelf volgt in de volgende versies.
+- **XP en levels:** je krijgt 1 XP per kilometer op de teller. Voor level *L* heb je in totaal
+  50 × L × (L + 1) XP nodig. Per 5 levels krijg je een nieuwe rangtitel.
+- **Mijlpalen:** 1.000, 2.500, 5.000, 7.500, 10.000, 15.000, 20.000, 25.000, 40.075 ("Rondje aarde"),
+  50.000, 75.000 en 100.000 km, daarna elke 25.000 km. De Maanreis loopt tot 384.400 km.
+- **Dagtotaal:** de laatste kilometerstand van een dag min de laatste stand van de vorige dag met
+  gegevens. Dagen, weken (maandag t/m zondag) en maanden volgen de tijdzone van Home Assistant.
+- **Streak:** het aantal dagen op rij dat je minstens 1 km hebt gereden. Heb je vandaag nog niet
+  gereden, dan telt de reeks tot en met gisteren nog mee.
+
+## Backfill
+
+Bij de eerste start haalt de app de geschiedenis op uit Home Assistant: de langetermijnstatistieken
+van de kilometerstand (per uur) en de gedetailleerde historie van alle ingestelde sensoren, zo ver als
+de recorder teruggaat. Via **Instellingen → Backfill opnieuw starten** kun je dit later herhalen;
+bestaande gegevens blijven bewaard en dubbele metingen worden overgeslagen.
+
+## Export
+
+Via **Instellingen → Exporteren** download je al je opgeslagen metingen als JSON-bestand.

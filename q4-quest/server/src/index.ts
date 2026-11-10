@@ -1,49 +1,91 @@
 import { readFileSync } from 'node:fs';
 import { buildApp } from './app.ts';
+import { Collector, type BackfillStatus } from './collector/collector.ts';
 import { loadConfig, loadDotEnv } from './config.ts';
 import { openDatabase } from './db.ts';
 import { HaClient } from './ha/client.ts';
 import type { HaStatus } from './ha/types.ts';
-import { generateMockHistory } from './mock/generate.ts';
+import { seedMockData } from './mock/seed.ts';
 import { loadOptions } from './options.ts';
+import { ReadingStore } from './readings.ts';
 
 loadDotEnv();
 const config = loadConfig();
 const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
 const options = loadOptions(config.optionsPath, config.mock);
 const db = openDatabase(config.dbPath);
+const store = new ReadingStore(db);
+
+const listeners = new Set<() => void>();
+const emit = () => listeners.forEach((l) => l());
+const onChange = (l: () => void) => {
+  listeners.add(l);
+  return () => void listeners.delete(l);
+};
 
 let haStatus: () => HaStatus;
-let mockSummary = null;
+let timeZone: () => string;
+let backfill: { status: () => BackfillStatus; run: () => Promise<void> };
 let client: HaClient | null = null;
+const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 if (config.mock) {
-  const readings = generateMockHistory({ batteryKwh: options.batteryKwh });
-  const odo = readings.filter((r) => r.key === 'odometer').at(-1);
-  mockSummary = { readings: readings.length, days: 120, odometer: Number(odo?.value ?? 0) };
   const status: HaStatus = {
     state: 'mock',
     haVersion: null,
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timeZone: localTz,
     connectedSince: new Date().toISOString(),
     lastError: null,
   };
-  haStatus = () => status;
-  console.log(`[mock] generated ${readings.length} synthetic readings`);
-} else if (config.ha) {
-  client = new HaClient(config.ha.url, config.ha.token);
-  client.start();
-  haStatus = () => client!.status;
-} else {
-  const status: HaStatus = {
-    state: 'not_configured',
-    haVersion: null,
-    timeZone: null,
-    connectedSince: null,
-    lastError: 'No SUPERVISOR_TOKEN or HA_URL/HA_TOKEN found. Use MOCK=1 to run without Home Assistant.',
+  const mockBackfill: BackfillStatus = {
+    state: 'idle',
+    step: null,
+    stored: 0,
+    startedAt: null,
+    finishedAt: null,
+    error: null,
   };
+  const run = async () => {
+    mockBackfill.state = 'running';
+    mockBackfill.startedAt = new Date().toISOString();
+    mockBackfill.stored = seedMockData(store, options);
+    mockBackfill.state = 'done';
+    mockBackfill.finishedAt = new Date().toISOString();
+    emit();
+  };
+  await run();
+  console.log(`[mock] stored ${mockBackfill.stored} synthetic readings`);
   haStatus = () => status;
-  console.warn(`[ha] ${status.lastError}`);
+  timeZone = () => localTz;
+  backfill = { status: () => mockBackfill, run };
+} else {
+  let collector: Collector | null = null;
+  if (config.ha) {
+    client = new HaClient(config.ha.url, config.ha.token);
+    collector = new Collector(client, store, db, options);
+    collector.onChange(emit);
+    collector.start();
+    client.start();
+    haStatus = () => client!.status;
+  } else {
+    const status: HaStatus = {
+      state: 'not_configured',
+      haVersion: null,
+      timeZone: null,
+      connectedSince: null,
+      lastError: 'No SUPERVISOR_TOKEN or HA_URL/HA_TOKEN found. Use MOCK=1 to run without Home Assistant.',
+    };
+    haStatus = () => status;
+    console.warn(`[ha] ${status.lastError}`);
+  }
+  const savedTz = db.prepare("SELECT value FROM meta WHERE key = 'time_zone'").get() as { value: string } | undefined;
+  timeZone = () => client?.status.timeZone ?? savedTz?.value ?? localTz;
+  backfill = collector
+    ? { status: () => collector.backfill, run: () => collector.runBackfill() }
+    : {
+        status: () => ({ state: 'error', step: null, stored: 0, startedAt: null, finishedAt: null, error: 'no HA connection' }),
+        run: async () => {},
+      };
 }
 
 const app = buildApp({
@@ -51,8 +93,11 @@ const app = buildApp({
   mock: config.mock,
   options,
   db,
+  store,
   haStatus,
-  mockSummary,
+  timeZone,
+  backfill,
+  onChange,
   webDir: config.webDir,
 });
 
