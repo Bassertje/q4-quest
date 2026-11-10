@@ -122,6 +122,7 @@ export interface ChargePeriod {
   };
   consumption: { kwhPer100km: number | null; km: number; usedKwh: number } | null;
   sessions: ChargingSession[];
+  green: GreenTotals | null;
 }
 
 export interface ChargingData {
@@ -131,8 +132,10 @@ export interface ChargingData {
   period: ChargePeriod | null;
   hasSoc: boolean;
   records: ChargingRecords | null;
-  green: GreenTotals | null;
-  nextGreen: { name: string; icon: string; current: number; target: number; unit: string } | null;
+  greenProgress: {
+    totalKg: number;
+    next: { name: string; icon: string; current: number; target: number; unit: string } | null;
+  } | null;
 }
 
 export type SocRange = '24h' | '7d' | '30d';

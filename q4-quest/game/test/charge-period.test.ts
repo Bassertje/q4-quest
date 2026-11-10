@@ -82,4 +82,14 @@ describe('chargePeriodView', () => {
     const oct = chargePeriodView(input(), 'month', '2026-10');
     expect(oct.consumption).toEqual({ km: 1500, usedKwh: 46, kwhPer100km: 3.1 });
   });
+
+  it('computes Groen over the period with the used energy, and uses the all-time totals for "Alles"', () => {
+    const factors = { co2PetrolKgPerKm: 0.15, co2GridKgPerKwh: 0.3, petrolLPer100km: 6 };
+    // October: 1500 km × 0.15 − 46 kWh × 0.3 = 211.2 → 211 kg; 90 litres; 10.6 trees.
+    const oct = chargePeriodView({ ...input(), green: factors }, 'month', '2026-10');
+    expect(oct.green).toEqual({ co2Kg: 211, liters: 90, trees: 10.6 });
+    const total = { co2Kg: 999, liters: 1, trees: 1 };
+    expect(chargePeriodView({ ...input(), green: factors, greenAll: total }, 'all', null).green).toBe(total);
+    expect(chargePeriodView(input(), 'month', '2026-10').green).toBeNull();
+  });
 });

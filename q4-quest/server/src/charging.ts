@@ -3,7 +3,6 @@ import {
   toKw,
   type ChargingRecords,
   type ChargingSession,
-  type GreenTotals,
   type ChargePeriodMode,
   type ChargePeriodView,
   chargePeriodView,
@@ -41,10 +40,11 @@ export interface ChargingResponse {
   period: ChargePeriodView | null;
   hasSoc: boolean;
   records: ChargingRecords | null;
-  /** CO₂ saved, litres not burned and trees (estimates, all time). */
-  green: GreenTotals | null;
-  /** Progress towards the next CO₂ badge of the Groen category. */
-  nextGreen: { name: string; icon: string; current: number; target: number; unit: string } | null;
+  /** All-time CO₂ saved and the next CO₂ badge of the Groen category (null: all reached). */
+  greenProgress: {
+    totalKg: number;
+    next: { name: string; icon: string; current: number; target: number; unit: string } | null;
+  } | null;
 }
 
 const CO2_BADGES = ['green_start', 'first_ton', 'climate_champion'];
@@ -54,7 +54,7 @@ export function chargingResponse(state: GameState, options: Options, mode: Charg
   const { timeZone, now } = state;
   const empty: ChargingResponse = {
     available, timeZone, batteryKwh: options.batteryKwh, period: null, hasSoc: options.entities.soc !== null,
-    records: null, green: null, nextGreen: null,
+    records: null, greenProgress: null,
   };
   if (!available) return empty;
   const sessions = state.sessions;
@@ -68,19 +68,27 @@ export function chargingResponse(state: GameState, options: Options, mode: Charg
         firstDay: dayKey(firstTs, timeZone),
         timeZone,
         now,
+        green: {
+          co2PetrolKgPerKm: options.co2PetrolKgPerKm,
+          co2GridKgPerKwh: options.co2GridKgPerKwh,
+          petrolLPer100km: options.petrolLPer100km,
+        },
+        greenAll: state.green,
       },
       mode,
       key,
     ),
     records: state.chargingRecords,
-    green: state.green,
-    nextGreen: nextGreenBadge(state),
+    greenProgress: greenProgress(state),
   };
 }
 
-function nextGreenBadge(state: GameState): ChargingResponse['nextGreen'] {
+function greenProgress(state: GameState): ChargingResponse['greenProgress'] {
+  if (!state.green || state.green.co2Kg === null) return null;
   const b = CO2_BADGES.map((id) => state.badges.find((x) => x.id === id)).find((x) => x && x.unlockedTs === null && x.progress);
-  return b ? { name: b.name, icon: b.icon, ...b.progress! } : null;
+  const totalKg = state.green.co2Kg;
+  // Use the same total as the "Alles" Groen figures, so the label and the bar agree.
+  return { totalKg, next: b ? { name: b.name, icon: b.icon, ...b.progress!, current: Math.min(totalKg, b.progress!.target) } : null };
 }
 
 export const SOC_RANGES = { '24h': 1, '7d': 7, '30d': 30 } as const;

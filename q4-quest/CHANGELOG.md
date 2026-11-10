@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.1
+
+- **Nieuwe volgorde op Laden:** de accugrafiek staat nu bovenaan, daarna de periodekeuze, de tegels, Geladen, Groen en de sessies. De kop "Los van de periode" is weg.
+- **Groen volgt de periode:** CO₂ bespaard, benzine niet verbrand, het aantal bomen en de pixel-boompjes gelden nu voor de gekozen week, maand, jaar of alles. De balk naar de volgende Groen-badge toont altijd je totaal: "Totaal X kg · nog Y kg tot …", of "Alle Groen-badges gehaald".
+- **Accugrafiek:** de laadmomenten zijn duidelijker zichtbaar (AC lichter, DC feller rood), en de legenda heeft precies dezelfde kleuren.
+- **Sessie-details:** bij Type staat alleen nog "AC" of "DC".
+
 ## 1.5.0
 
 - **Periodekeuze op de Laden-pagina:** kies bovenaan Week, Maand, Jaar of Alles (standaard Alles; je keuze wordt onthouden). Met de pijltjes ‹ › blader je door eerdere weken, maanden of jaren. De tegels, de grafiek Geladen en de sessielijst volgen de gekozen periode.

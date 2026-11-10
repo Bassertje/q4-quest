@@ -102,7 +102,9 @@ per maand naast de gemiddelde temperatuur. Daarnaast zijn er twee winterbadges.
 
 Op het Laden-scherm staat een schatting van de CO₂ die je bespaart ten opzichte van een benzineauto
 (km × CO₂ per km min verbruikte kWh × CO₂ per kWh), de liters benzine die je niet verbrandt, en het aantal
-bomen dat dezelfde hoeveelheid CO₂ in een jaar opneemt (20 kg per boom).
+bomen dat dezelfde hoeveelheid CO₂ in een jaar opneemt (20 kg per boom). Deze cijfers volgen de periode die je
+bovenaan kiest (week, maand, jaar of alles) en gebruiken dezelfde verbruikte energie als het verbruik.
+De balk naar de volgende Groen-badge toont altijd je totaal.
 
 ## Jaaroverzicht
 
