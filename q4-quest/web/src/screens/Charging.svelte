@@ -89,6 +89,21 @@
     {/if}
   {/if}
 
+  {#if data.green && data.green.co2Kg !== null}
+    <section class="panel green">
+      <h3>Groen <span class="muted small">(schatting)</span></h3>
+      <div class="green-grid">
+        <div><span class="label">CO₂ bespaard</span><span class="pixel">{km(data.green.co2Kg)}<span class="unit">kg</span></span></div>
+        <div><span class="label">Benzine niet verbrand</span><span class="pixel">{km(data.green.liters)}<span class="unit">liter</span></span></div>
+        <div><span class="label">Bomen (een jaar)</span><span class="pixel">{num1(data.green.trees ?? 0)}</span></div>
+      </div>
+      <p class="muted small note">
+        Vergeleken met een benzineauto: km × CO₂ per km min geladen kWh × CO₂ per kWh, en km × liters per
+        100 km. Eén boom neemt ongeveer 20 kg CO₂ per jaar op. De factoren stel je in bij de add-on-opties.
+      </p>
+    </section>
+  {/if}
+
   <section class="panel">
     <h3>Sessies</h3>
     {#if data.sessions.length === 0}
@@ -158,6 +173,16 @@
   }
   .note {
     margin: 4px 2px 0;
+  }
+  .green-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .green-grid div {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
   }
   .sessions {
     list-style: none;

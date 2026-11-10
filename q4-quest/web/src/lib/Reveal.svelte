@@ -13,6 +13,8 @@
   let busy = $state(false);
 
   const TITLES: Record<RevealItem['kind'], string> = {
+    week: 'Weekterugblik',
+    challenge: 'Uitdaging gehaald',
     badge: 'Badge ontgrendeld',
     milestone: 'Bestemming bereikt',
     level: 'Level omhoog',
@@ -74,8 +76,15 @@
           <p class="kind">{TITLES[current.kind]}</p>
           <div class="icon"><PixelIcon icon={current.icon} size={112} label={current.name} /></div>
           <h2>{current.name}</h2>
+          {#if current.stats}
+            <div class="stats">
+              {#each current.stats as st (st.label)}
+                <div><span class="muted small">{st.label}</span><strong class="stat">{st.value}</strong></div>
+              {/each}
+            </div>
+          {/if}
           <p class="desc">{current.description}</p>
-          <p class="muted small">{date(current.ts)}</p>
+          {#if current.kind !== 'week'}<p class="muted small">{date(current.ts)}</p>{/if}
           {#if current.xp > 0}<p class="xp">+{current.xp.toLocaleString('nl-NL')} XP</p>{/if}
         </div>
       {/key}
@@ -173,6 +182,23 @@
     font-weight: 400;
     font-size: 2.1rem;
     line-height: 1.05;
+  }
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    margin: 4px 0 10px;
+  }
+  .stats div {
+    display: flex;
+    flex-direction: column;
+  }
+  .stat {
+    font-family: var(--font-pixel);
+    font-weight: 400;
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--accent);
   }
   .desc {
     margin: 0 0 6px;

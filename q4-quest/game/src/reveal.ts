@@ -3,8 +3,9 @@ import { rankIcon } from './levels.ts';
 import type { ChargingRecords } from './charging.ts';
 import type { DrivingRecords } from './records.ts';
 import type { TimelineEvent } from './timeline.ts';
+import type { WeekReview } from './week-review.ts';
 
-export type RevealKind = 'badge' | 'milestone' | 'level' | 'rank' | 'record';
+export type RevealKind = 'week' | 'badge' | 'milestone' | 'challenge' | 'level' | 'rank' | 'record';
 
 export interface RevealItem {
   /** Seen-flag keys this item covers (a level item covers all levels gained). */
@@ -15,6 +16,8 @@ export interface RevealItem {
   icon: string;
   ts: number;
   xp: number;
+  /** Extra figures (the weekly review card). */
+  stats?: { label: string; value: string }[];
 }
 
 export interface RecordEntry {
@@ -55,14 +58,16 @@ export function revealItems(input: {
   records: RecordEntry[];
   seen: Set<string>;
   now: number;
+  /** "Last week" card, shown first on the first opening in a new week. */
+  weekReview?: WeekReview | null;
 }): RevealItem[] {
   const items: RevealItem[] = [];
   for (const b of input.badges) {
     if (b.unlockedTs === null) continue;
     const key = `badge:${b.id}`;
     if (input.seen.has(key)) continue;
-    const milestone = b.category === 'wereldreis';
-    items.push({ keys: [key], kind: milestone ? 'milestone' : 'badge', name: b.name, description: b.description, icon: b.icon, ts: b.unlockedTs, xp: b.xp });
+    const kind: RevealKind = b.category === 'wereldreis' ? 'milestone' : b.category === 'weekuitdaging' ? 'challenge' : 'badge';
+    items.push({ keys: [key], kind, name: b.name, description: b.description, icon: b.icon, ts: b.unlockedTs, xp: b.xp });
   }
 
   const levels = [...input.timeline.initial, ...input.timeline.events].filter(
@@ -105,6 +110,24 @@ export function revealItems(input: {
     items.push({ keys: [r.key], kind: 'record', name: r.name, description: `${r.value} · ${r.label}`, icon: 'crown', ts: r.ts || input.now, xp: 0 });
   }
 
-  const order: Record<RevealKind, number> = { milestone: 0, badge: 1, record: 2, level: 3, rank: 4 };
-  return items.sort((a, b) => a.ts - b.ts || order[a.kind] - order[b.kind]);
+  const order: Record<RevealKind, number> = { week: -1, milestone: 0, badge: 1, challenge: 2, record: 3, level: 4, rank: 5 };
+  items.sort((a, b) => a.ts - b.ts || order[a.kind] - order[b.kind]);
+  // The weekly review always comes first.
+  if (input.weekReview && !input.seen.has(`week:${input.weekReview.week}`)) {
+    const w = input.weekReview;
+    items.unshift({
+      keys: [`week:${w.week}`],
+      kind: 'week',
+      name: 'Vorige week',
+      description: w.fact,
+      icon: 'calendar7',
+      ts: input.now,
+      xp: 0,
+      stats: [
+        { label: 'Gereden', value: `${new Intl.NumberFormat('nl-NL').format(w.km)} km` },
+        ...(w.sessions === null ? [] : [{ label: 'Laadsessies', value: String(w.sessions) }]),
+      ],
+    });
+  }
+  return items;
 }

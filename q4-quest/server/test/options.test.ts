@@ -24,6 +24,17 @@ describe('parseOptions', () => {
     expect(parseOptions(null).batteryKwh).toBe(DEFAULT_BATTERY_KWH);
   });
 
+  it('reads the CO₂ and petrol options with their defaults', () => {
+    expect(parseOptions({})).toMatchObject({ co2PetrolKgPerKm: 0.18, co2GridKgPerKwh: 0.33, petrolLPer100km: 6.5 });
+    expect(parseOptions({ co2_petrol_kg_per_km: 0.2, co2_grid_kg_per_kwh: 0.05, petrol_l_per_100km: 5 })).toMatchObject({
+      co2PetrolKgPerKm: 0.2,
+      co2GridKgPerKwh: 0.05,
+      petrolLPer100km: 5,
+    });
+    expect(parseOptions({ co2_grid_kg_per_kwh: -1 }).co2GridKgPerKwh).toBe(0.33);
+    expect(parseOptions({ temperature_entity: 'sensor.my_outdoor_temperature' }).entities.temperature).toBe('sensor.my_outdoor_temperature');
+  });
+
   it('configures every sensor in mock mode', () => {
     const o = parseOptions(MOCK_OPTIONS_RAW);
     expect(Object.values(o.entities).every((v) => v !== null)).toBe(true);

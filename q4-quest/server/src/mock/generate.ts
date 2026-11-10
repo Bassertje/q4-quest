@@ -76,6 +76,20 @@ export function generateMockHistory(opts: MockOptions = {}): MockReading[] {
     return t;
   };
 
+  // Outdoor temperature every 2 hours: season + day/night rhythm + noise,
+  // with an occasional cold snap.
+  let coldSnap = 0;
+  for (let t = startDay; t <= endTs; t += 2 * HOUR) {
+    const date = new Date(t);
+    const dayOfYear = (t - Date.UTC(date.getUTCFullYear(), 0, 1)) / DAY;
+    const season = 10 + 11 * Math.cos((2 * Math.PI * (dayOfYear - 200)) / 365);
+    // Cold snaps (a few days, several degrees colder) are more likely when it is already cool.
+    if (date.getUTCHours() === 0) coldSnap = rng() < (season < 12 ? 0.25 : 0.08) ? 5 + rng() * 6 : Math.max(0, coldSnap - 1.5);
+    const daily = -4 * Math.cos((2 * Math.PI * (date.getUTCHours() - 3)) / 24);
+    const temp = season + daily - coldSnap + (rng() - 0.5) * 2;
+    push('temperature', t, temp.toFixed(1), { unit_of_measurement: '°C' });
+  }
+
   pushSoc(startDay);
   push('odometer', startDay, odometer.toFixed(0), { unit_of_measurement: 'km' });
 

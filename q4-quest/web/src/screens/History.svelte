@@ -2,7 +2,8 @@
   import { getJson } from '../lib/api';
   import { chartWindow, periodOf, shiftPeriod, type PeriodMode } from '../../../game/src/periods.ts';
   import BarChart from '../lib/BarChart.svelte';
-  import { date, dayShort, km, kw, periodLabel } from '../lib/format';
+  import ConsumptionChart from '../lib/ConsumptionChart.svelte';
+  import { date, dayShort, km, kw, num1, periodLabel } from '../lib/format';
   import Setup from '../lib/Setup.svelte';
   import type { HistoryData, Series, TimelineEvent, YearsData } from '../lib/types';
 
@@ -21,6 +22,11 @@
   let offset = $state(0); // number of windows back from the current period
   let timelineShown = $state(TIMELINE_STEP);
   let allTrips = $state(false);
+  let challengesShown = $state(8);
+  /** Daily average temperature, shown in the day chart readout. */
+  const dayTempNotes = $derived(
+    new Map((data?.dailyTemps ?? []).map(([d, t]) => [d, `gem. ${num1(t)} °C`] as [string, string])),
+  );
 
   let years = $state<YearsData | null>(null);
 
@@ -62,6 +68,7 @@
 
   function eventTitle(e: TimelineEvent): string {
     if (e.type === 'milestone') return `Wereldreis: ${e.name} (+${km(e.xp)} XP)`;
+    if (e.type === 'badge' && e.id.startsWith('challenge_')) return `${e.name} gehaald (+${km(e.xp)} XP)`;
     if (e.type === 'badge') return e.xp > 0 ? `Badge: ${e.name} (+${km(e.xp)} XP)` : `Badge: ${e.name}`;
     return e.newRank ? `Level ${e.level}, nieuwe rang: ${e.rank}` : `Level ${e.level}`;
   }
@@ -83,6 +90,8 @@
   const tz = $derived(data?.timeZone);
   const time = (ts: number) =>
     new Date(ts).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', timeZone: tz });
+  const STATUS_LABEL = { active: 'loopt', done: 'gehaald', missed: 'gemist' } as const;
+
   /** A block with a single reading has no real duration: show an approximate time. */
   const tripTime = (t: { start: number; end: number }) =>
     t.start === t.end ? `rond ${time(t.start)}` : `${time(t.start)}–${time(t.end)}`;
@@ -116,7 +125,7 @@
         <button aria-label="Later" disabled={offset === 0} onclick={() => offset--}>›</button>
       </div>
     </div>
-    <BarChart {bars} />
+    <BarChart {bars} notes={mode === 'dag' ? dayTempNotes : undefined} />
     {#if bars.length}
       <p class="muted small range">
         {periodLabel(bars[0].key, true)} – {periodLabel(bars[bars.length - 1].key, true)}:
@@ -124,6 +133,13 @@
       </p>
     {/if}
   </section>
+
+  {#if data.monthly.length}
+    <section class="panel">
+      <h3>Verbruik per maand{data.hasTemperature ? ' en temperatuur' : ''}</h3>
+      <ConsumptionChart months={data.monthly.slice(-12)} showTemp={data.hasTemperature} />
+    </section>
+  {/if}
 
   <section class="panel">
     <h3>Records</h3>
@@ -186,7 +202,7 @@
       <ul class="list">
         {#each allTrips ? h.recentTrips : h.recentTrips.slice(0, TRIPS_SHOWN) as t (t.start)}
           <li>
-            <span>{date(t.start, tz)}<span class="muted small">&nbsp;· {tripTime(t)}</span></span>
+            <span>{date(t.start, tz)}<span class="muted small">&nbsp;· {tripTime(t)}{#if t.startTemp !== null}&nbsp;· {num1(t.startTemp)} °C{/if}</span></span>
             <strong>{km(t.km)} km</strong>
           </li>
         {/each}
@@ -205,6 +221,29 @@
           <a class="button" href="#/jaar/{y.year}">{y.year}</a>
         {/each}
       </div>
+    </section>
+  {/if}
+
+  {#if data.challenges.length}
+    <section class="panel">
+      <h3>Weekuitdagingen</h3>
+      <ul class="list">
+        {#each data.challenges.slice(0, challengesShown) as c (c.week)}
+          <li>
+            <span>
+              {periodLabel(c.week, true)}
+              <span class="muted small block">{c.goal}</span>
+            </span>
+            <span class="right">
+              <strong class:accent={c.status === 'done'}>{STATUS_LABEL[c.status]}</strong>
+              <span class="muted small">{c.current === null ? '–' : num1(c.current)} / {num1(c.target)} {c.unit}</span>
+            </span>
+          </li>
+        {/each}
+      </ul>
+      {#if challengesShown < data.challenges.length}
+        <button class="more" onclick={() => (challengesShown += 8)}>Meer tonen</button>
+      {/if}
     </section>
   {/if}
 
@@ -248,6 +287,12 @@
     justify-content: space-between;
     gap: 8px;
     margin-bottom: 8px;
+  }
+  .block {
+    display: block;
+  }
+  .accent {
+    color: var(--accent);
   }
   .years {
     display: flex;

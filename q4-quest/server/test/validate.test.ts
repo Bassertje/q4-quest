@@ -38,6 +38,12 @@ describe('validateReading', () => {
     });
   });
 
+  it('stores temperatures in °C', () => {
+    expect(validateReading('temperature', '-3.44', { unit_of_measurement: '°C' }, 0, null)).toEqual({ ok: true, value: '-3.4' });
+    expect(validateReading('temperature', '41', { unit_of_measurement: '°F' }, 0, null)).toEqual({ ok: true, value: '5' });
+    expect(validateReading('temperature', 'warm', null, 0, null).ok).toBe(false);
+  });
+
   it('keeps only useful attributes', () => {
     expect(pickAttrs({ unit_of_measurement: 'kW', friendly_name: 'x', icon: 'y' })).toEqual({
       unit_of_measurement: 'kW',

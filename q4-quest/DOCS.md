@@ -21,7 +21,11 @@ een wereldreis en badges. De add-on leest alleen gegevens uit Home Assistant en 
 | `charging_type_entity` | nee | Laadtype, AC of DC. |
 | `range_entity` | nee | Resterende actieradius (km). |
 | `parking_brake_entity` | nee | Parkeerrem; helpt om ritten van elkaar te scheiden. |
+| `temperature_entity` | nee | Buitentemperatuur (°C of °F). Zet de temperatuurfuncties aan. |
 | `battery_kwh` | nee | Bruikbare accucapaciteit in kWh (standaard 77), voor kWh-schattingen. |
+| `co2_petrol_kg_per_km` | nee | CO₂ van een benzineauto per km (standaard 0,18), voor de Groen-schatting. |
+| `co2_grid_kg_per_kwh` | nee | CO₂ van stroom uit het net per kWh (standaard 0,33). |
+| `petrol_l_per_100km` | nee | Verbruik van een vergelijkbare benzineauto (standaard 6,5 l/100 km). |
 
 Optionele sensoren die je niet invult, worden overgeslagen; functies en badges die ervan
 afhangen, verschijnen dan niet. Zonder kilometerstand-sensor toont de app een instelscherm.
@@ -80,6 +84,24 @@ een legendarische badge van 5.000 XP.
 
 Bij het openen van de app verschijnt eerst wat er nieuw is: badges, bestemmingen, level-ups, nieuwe rangen en nieuwe
 records, één voor één. Na drie items kun je met **Toon alles** de rest in één keer zien.
+
+## Weekuitdaging en weekterugblik
+
+Elke week (vanaf maandag) krijg je één uitdaging, bijvoorbeeld een aantal km of rijdagen, hooguit een
+aantal keer laden, of zuinig rijden. Het doel is gebaseerd op je laatste vier weken. Haal je hem, dan
+krijg je 100 bonus-XP. De uitdaging van deze week staat op de cockpit, eerdere uitdagingen in Historie.
+De eerste keer dat je de app in een nieuwe week opent, zie je een korte terugblik op de vorige week.
+
+## Temperatuur
+
+Met `temperature_entity` zie je de temperatuur bij je ritten en per dag, en in Historie het verbruik
+per maand naast de gemiddelde temperatuur. Daarnaast zijn er twee winterbadges.
+
+## Groen
+
+Op het Laden-scherm staat een schatting van de CO₂ die je bespaart ten opzichte van een benzineauto
+(km × CO₂ per km min geladen kWh × CO₂ per kWh), de liters benzine die je niet verbrandt, en het aantal
+bomen dat dezelfde hoeveelheid CO₂ in een jaar opneemt (20 kg per boom).
 
 ## Jaaroverzicht
 

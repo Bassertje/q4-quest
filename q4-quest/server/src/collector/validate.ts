@@ -4,7 +4,7 @@ import type { SensorKey } from '../options.ts';
 const INVALID_STATES = new Set(['unknown', 'unavailable', 'none', '']);
 
 /** Keys whose state must be numeric. */
-const NUMERIC_KEYS = new Set<SensorKey>(['odometer', 'soc', 'charging_power', 'range']);
+const NUMERIC_KEYS = new Set<SensorKey>(['odometer', 'soc', 'charging_power', 'range', 'temperature']);
 
 const KM_PER_MILE = 1.609344;
 /** Generous upper bound for plausible driving speed, to catch glitches. */
@@ -32,6 +32,13 @@ export function validateReading(
 
   let value = Number(state);
   if (!Number.isFinite(value)) return { ok: false, reason: 'not_numeric' };
+
+  if (key === 'temperature') {
+    // Store temperatures in °C.
+    const unit = String(attrs?.unit_of_measurement ?? '').toUpperCase();
+    if (unit === '°F' || unit === 'F') value = ((value - 32) * 5) / 9;
+    return { ok: true, value: String(Math.round(value * 10) / 10) };
+  }
 
   if (key === 'odometer') {
     if (String(attrs?.unit_of_measurement ?? '').toLowerCase() === 'mi') value *= KM_PER_MILE;

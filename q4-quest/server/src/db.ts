@@ -74,6 +74,22 @@ export const MIGRATIONS: { version: number; name: string; sql: string }[] = [
         AND value NOT IN ('milestone_1000', 'milestone_40075');
     `,
   },
+  {
+    // 1.3.0: weekly challenges and their results (kept as history).
+    version: 6,
+    name: 'challenges',
+    sql: `
+      CREATE TABLE challenges (
+        week         TEXT PRIMARY KEY,
+        type         TEXT NOT NULL,
+        target       REAL NOT NULL,
+        status       TEXT NOT NULL,
+        current      REAL,
+        completed_ts INTEGER,
+        created_at   TEXT NOT NULL
+      );
+    `,
+  },
 ];
 
 export function openDatabase(path: string): DatabaseSync {

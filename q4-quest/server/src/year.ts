@@ -43,6 +43,11 @@ export function yearResponse(state: GameState, options: Options, year: number, p
     badges: state.badges,
     timeZone: state.timeZone,
     now: state.now,
+    green: {
+      co2PetrolKgPerKm: options.co2PetrolKgPerKm,
+      co2GridKgPerKwh: options.co2GridKgPerKwh,
+      petrolLPer100km: options.petrolLPer100km,
+    },
   });
   if (!review) return { status: 404, body: { error: 'no data for this year' } };
   return { status: 200, body: { timeZone: state.timeZone, preview: !availability.available, review } };

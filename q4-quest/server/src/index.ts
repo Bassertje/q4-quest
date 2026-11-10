@@ -5,7 +5,7 @@ import { loadConfig, loadDotEnv } from './config.ts';
 import { openDatabase } from './db.ts';
 import { HaClient } from './ha/client.ts';
 import type { HaStatus } from './ha/types.ts';
-import { seedMockData } from './mock/seed.ts';
+import { seedMockChallenges, seedMockData } from './mock/seed.ts';
 import { loadOptions } from './options.ts';
 import { ReadingStore } from './readings.ts';
 
@@ -49,6 +49,7 @@ if (config.mock) {
     mockBackfill.state = 'running';
     mockBackfill.startedAt = new Date().toISOString();
     mockBackfill.stored = seedMockData(store, options);
+    seedMockChallenges(store, options, db, localTz);
     mockBackfill.state = 'done';
     mockBackfill.finishedAt = new Date().toISOString();
     emit();

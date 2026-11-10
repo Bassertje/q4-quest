@@ -1,5 +1,6 @@
 import type { BadgeResult } from './badges.ts';
 import { chargingTotals, type ChargingSession, type ChargingTotals } from './charging.ts';
+import { greenTotals, type GreenFactors, type GreenTotals } from './green.ts';
 import { longestStreak, STREAK_MIN_KM, type StreakRun } from './distance.ts';
 import { levelForXp, rankForLevel } from './levels.ts';
 import { EARTH_KM, type TimedValue } from './milestones.ts';
@@ -50,6 +51,10 @@ export interface YearReview {
   newBadges: { id: string; name: string; icon: string; category: string; xp: number; ts: number }[];
   level: { start: number; end: number; startRank: string; endRank: string; xpGained: number };
   earth: { km: number; laps: number };
+  /** CO₂ saved, litres not burned and trees, for this year (null without factors). */
+  green: GreenTotals | null;
+  /** Weekly challenges completed this year. */
+  challengesDone: number;
 }
 
 export interface YearInput {
@@ -61,6 +66,7 @@ export interface YearInput {
   badges: BadgeResult[];
   timeZone: string;
   now: number;
+  green?: GreenFactors;
 }
 
 function best(entries: Iterable<[string, number]>): PeriodRecord | null {
@@ -104,8 +110,11 @@ export function buildYearReview(input: YearInput): YearReview | null {
   const inYear = (ts: number) => ts >= yearStart && ts < yearEnd;
   const sessions = input.sessions?.filter((s) => inYear(s.start)) ?? null;
   // Badges dated at the very first reading were earned before the measurement started.
+  const challengesDone = input.badges.filter(
+    (b) => b.category === 'weekuitdaging' && b.unlockedTs !== null && inYear(b.unlockedTs),
+  ).length;
   const newBadges = input.badges
-    .filter((b) => b.unlockedTs !== null && inYear(b.unlockedTs) && b.unlockedTs !== first.ts)
+    .filter((b) => b.category !== 'weekuitdaging' && b.unlockedTs !== null && inYear(b.unlockedTs) && b.unlockedTs !== first.ts)
     .sort((a, b) => a.unlockedTs! - b.unlockedTs!)
     .map((b) => ({ id: b.id, name: b.name, icon: b.icon, category: b.category, xp: b.xp, ts: b.unlockedTs! }));
 
@@ -135,5 +144,9 @@ export function buildYearReview(input: YearInput): YearReview | null {
       xpGained: Math.max(0, Math.round(endXp - startXp)),
     },
     earth: { km: EARTH_KM, laps: totalKm / EARTH_KM },
+    green: input.green
+      ? greenTotals(totalKm, sessions ? sessions.reduce((s, x) => s + (x.kwh ?? 0), 0) : null, input.green)
+      : null,
+    challengesDone,
   };
 }

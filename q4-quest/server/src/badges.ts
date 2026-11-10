@@ -17,6 +17,8 @@ const CATEGORIES: { id: BadgeCategory; name: string }[] = [
   { id: 'rijden', name: 'Rijden' },
   { id: 'laden', name: 'Laden' },
   { id: 'zuinigheid', name: 'Zuinigheid' },
+  { id: 'groen', name: 'Groen' },
+  { id: 'uitdagingen', name: 'Uitdagingen' },
   { id: 'wereldreis', name: 'Wereldreis' },
   { id: 'legendarisch', name: 'Legendarisch' },
 ];
@@ -57,8 +59,10 @@ export interface BadgeView {
 }
 
 export function badgesResponse(state: GameState, seen: Set<string>, chosenId: string | null = null) {
-  const unlocked = state.badges.filter((b) => b.unlockedTs !== null);
-  const followed = pickFollowedBadge(state.badges, chosenId);
+  // Completed weekly challenges are internal XP items, not badges in the grid.
+  const visible = state.badges.filter((b) => CATEGORIES.some((c) => c.id === b.category));
+  const unlocked = visible.filter((b) => b.unlockedTs !== null);
+  const followed = pickFollowedBadge(visible, chosenId);
   return {
     /** The badge on the cockpit right now, and whether it was chosen by the user. */
     followedId: followed?.badge.id ?? null,
@@ -66,8 +70,9 @@ export function badgesResponse(state: GameState, seen: Set<string>, chosenId: st
     setupNeeded: state.setupNeeded,
     timeZone: state.timeZone,
     unlocked: unlocked.length,
-    total: state.badges.length,
-    bonusXp: unlocked.reduce((sum, b) => sum + b.xp, 0),
+    total: visible.length,
+    /** All bonus XP, including completed weekly challenges. */
+    bonusXp: state.badges.reduce((sum, b) => sum + (b.unlockedTs !== null ? b.xp : 0), 0),
     categories: CATEGORIES.map((c) => ({
       id: c.id,
       name: c.name,
@@ -120,6 +125,7 @@ export function revealResponse(state: GameState, db: DatabaseSync): { items: Rev
     records,
     seen: seenKeys(db),
     now: state.now,
+    weekReview: state.weekReview,
   });
   return { items };
 }

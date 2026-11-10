@@ -8,6 +8,7 @@ import {
   type ChargingSession,
   type ChargingTotals,
   type ConsumptionEstimate,
+  type GreenTotals,
 } from '../../game/src/index.ts';
 import type { GameState } from './game-state.ts';
 import type { Options } from './options.ts';
@@ -42,12 +43,14 @@ export interface ChargingResponse {
   totals: ChargingTotals | null;
   consumption: ConsumptionEstimate | null;
   records: ChargingRecords | null;
+  /** CO₂ saved, litres not burned and trees (estimates). */
+  green: GreenTotals | null;
 }
 
 export function chargingResponse(state: GameState, options: Options): ChargingResponse {
   const available = chargingAvailable(options);
   const { timeZone, now } = state;
-  const empty = { available, timeZone, batteryKwh: options.batteryKwh, sessions: [], totals: null, consumption: null, records: null };
+  const empty = { available, timeZone, batteryKwh: options.batteryKwh, sessions: [], totals: null, consumption: null, records: null, green: null };
   if (!available) return empty;
   const sessions = state.sessions;
   return {
@@ -56,5 +59,6 @@ export function chargingResponse(state: GameState, options: Options): ChargingRe
     totals: chargingTotals(sessions),
     consumption: options.entities.odometer ? consumptionEstimate(sessions, state.dailyTotals, now, timeZone) : null,
     records: state.chargingRecords,
+    green: state.green,
   };
 }

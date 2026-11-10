@@ -18,6 +18,8 @@ const review: YearReview = {
   newBadges: Array.from({ length: 23 }, (_, i) => ({ id: `b${i}`, name: `B${i}`, icon: 'car', category: 'rijden', xp: 10, ts: 1 })),
   level: { start: 13, end: 21, startRank: 'Wegvreter', endRank: 'Snelwegridder', xpGained: 14_758 },
   earth: { km: 40_075, laps: 0.25 },
+  green: { co2Kg: 1_241, liters: 659, trees: 62.1 },
+  challengesDone: 7,
 };
 
 describe('shareContent', () => {
@@ -35,6 +37,11 @@ describe('shareContent', () => {
       ['AC / DC', '73/27'],
       ['Level', '21'],
       ['Rang', 'Snelwegridder'],
+    ]);
+    expect(c.green.map((t) => [t.label, t.value])).toEqual([
+      ['CO₂ bespaard', '1.241'],
+      ['Niet verbrand', '659'],
+      ['Bomen', '62,1'],
     ]);
     expect(c.badges).toHaveLength(20);
     expect(c.moreBadges).toBe(3);
