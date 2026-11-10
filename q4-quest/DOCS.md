@@ -49,8 +49,26 @@ Na het wijzigen van opties moet je de add-on herstarten.
   Met een parkeerrem-sensor splitst het aanzetten van de parkeerrem ook een ritblok. Een korte
   laadstop onderweg hoort dus bij hetzelfde ritblok. Ritblokken zijn indicatief, omdat de auto de
   kilometerstand niet realtime doorgeeft.
-- **Records:** beste dag, week en maand, langste streak en langste ritblok.
+- **Records:** beste dag, week en maand, langste streak, grootste ritblok (indicatief), snelste
+  laadsessie en meeste laadsessies in een maand.
 - **Tijdlijn:** mijlpalen en level-ups, gedateerd op het moment dat ze voor het eerst werden gehaald.
+
+## Laden
+
+Het scherm **Laden** verschijnt als je een sensor voor het laadvermogen of de laadstatus hebt ingesteld.
+
+- **Laadsessie:** een aaneengesloten periode met laadvermogen boven 0 of status "laden". Een
+  onderbreking van maximaal 15 minuten hoort nog bij dezelfde sessie. Als statuswaarde voor laden
+  worden onder meer `charging`, `laden` en `on` herkend.
+- **Vermogen:** de eenheid (W of kW) wordt uit de sensor gelezen. Zonder eenheid gelden waarden
+  boven 1000 als W.
+- **kWh-schatting:** het gemeten vermogen wordt over de sessie opgeteld (trapeziumregel). Zijn er
+  minder dan 3 vermogensmetingen, dan wordt het verschil in accupercentage × `battery_kwh` gebruikt.
+- **AC/DC:** komt uit de laadtype-sensor. Zonder die sensor geldt een piek boven 22 kW als DC;
+  dat staat dan met een vraagteken in de lijst.
+- **Verbruiksschatting:** geladen kWh gedeeld door gereden km over de laatste 30 dagen. Deze
+  wordt pas getoond vanaf 300 km en 3 sessies en is altijd een schatting (laadverliezen, laden
+  zonder gemeten sessie).
 
 ## Backfill
 

@@ -9,6 +9,8 @@ export interface TripBlock {
   /** Time of the last odometer increase. */
   end: number;
   km: number;
+  /** Number of odometer readings (increases) in the block. */
+  readings: number;
 }
 
 export interface TimedState {
@@ -47,11 +49,18 @@ export function tripBlocks(odometer: TimedValue[], parkingBrake: TimedState[] = 
     if (continues) {
       current!.end = r.ts;
       current!.km += delta;
+      current!.readings++;
     } else {
-      current = { start: r.ts, end: r.ts, km: delta };
+      current = { start: r.ts, end: r.ts, km: delta, readings: 1 };
       trips.push(current);
     }
   }
   for (const t of trips) t.km = Math.round(t.km * 10) / 10;
   return trips;
 }
+
+/**
+ * Time-based badges (night owl, early bird) only count trip blocks with at
+ * least this many odometer readings, so a single late report is not a "trip".
+ */
+export const MIN_READINGS_FOR_TIME_BADGES = 2;

@@ -1,4 +1,5 @@
-import { buildHistory, type History } from '../../game/src/index.ts';
+import { buildHistory, chargingRecords, type ChargingRecords, type History } from '../../game/src/index.ts';
+import { chargingAvailable, loadSessions } from './charging.ts';
 import type { Options } from './options.ts';
 import type { ReadingStore } from './readings.ts';
 
@@ -9,6 +10,8 @@ export interface HistoryResponse {
   setupNeeded: boolean;
   timeZone: string;
   history: (Omit<History, 'trips'> & { recentTrips: History['trips'] }) | null;
+  /** Charging records, only when charging sensors are configured. */
+  chargingRecords: ChargingRecords | null;
 }
 
 export function historyResponse(
@@ -18,7 +21,8 @@ export function historyResponse(
   now = Date.now(),
 ): HistoryResponse {
   const setupNeeded = options.entities.odometer === null;
-  if (setupNeeded) return { setupNeeded, timeZone, history: null };
+  if (setupNeeded) return { setupNeeded, timeZone, history: null, chargingRecords: null };
+  const charging = chargingAvailable(options) ? chargingRecords(loadSessions(store, options, now), timeZone) : null;
   const history = buildHistory({
     odometer: store.series('odometer'),
     // The parking brake only helps when it is configured.
@@ -26,7 +30,7 @@ export function historyResponse(
     now,
     timeZone,
   });
-  if (!history) return { setupNeeded, timeZone, history: null };
+  if (!history) return { setupNeeded, timeZone, history: null, chargingRecords: charging };
   const { trips, ...rest } = history;
-  return { setupNeeded, timeZone, history: { ...rest, recentTrips: trips.slice(-RECENT_TRIPS).reverse() } };
+  return { setupNeeded, timeZone, history: { ...rest, recentTrips: trips.slice(-RECENT_TRIPS).reverse() }, chargingRecords: charging };
 }

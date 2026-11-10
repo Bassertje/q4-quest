@@ -1,21 +1,24 @@
 <script lang="ts">
   import { getJson } from '../lib/api';
+  import { chartWindow, periodOf, shiftPeriod, type PeriodMode } from '../../../game/src/periods.ts';
   import BarChart from '../lib/BarChart.svelte';
-  import { date, dayShort, km, periodLabel } from '../lib/format';
+  import { date, dayShort, km, kw, periodLabel } from '../lib/format';
   import Setup from '../lib/Setup.svelte';
   import type { HistoryData, Series, TimelineEvent } from '../lib/types';
 
   let { refresh }: { refresh: number } = $props();
 
   type Mode = 'dag' | 'week' | 'maand';
-  const WINDOW: Record<Mode, number> = { dag: 31, week: 26, maand: 12 };
+  /** Fixed number of bars per view; the window ends at the current (or chosen) period. */
+  const WINDOW: Record<Mode, number> = { dag: 31, week: 12, maand: 12 };
+  const PERIOD: Record<Mode, PeriodMode> = { dag: 'day', week: 'week', maand: 'month' };
   const TIMELINE_STEP = 15;
   const TRIPS_SHOWN = 5;
 
   let data = $state<HistoryData | null>(null);
   let error = $state<string | null>(null);
   let mode = $state<Mode>('dag');
-  let offset = $state(0); // number of windows back from the most recent one
+  let offset = $state(0); // number of windows back from the current period
   let timelineShown = $state(TIMELINE_STEP);
   let allTrips = $state(false);
 
@@ -35,12 +38,17 @@
 
   const h = $derived(data?.history ?? null);
   const full = $derived<Series>(h ? (mode === 'dag' ? h.daily : mode === 'week' ? h.weekly : h.monthly) : []);
-  const pages = $derived(Math.max(1, Math.ceil(full.length / WINDOW[mode])));
-  const visible = $derived.by(() => {
-    const end = full.length - offset * WINDOW[mode];
-    return full.slice(Math.max(0, end - WINDOW[mode]), end);
+  const today = $derived(h?.daily.at(-1)?.[0] ?? null);
+  const firstKey = $derived(h && h.daily.length ? periodOf(PERIOD[mode], h.daily[0][0]) : null);
+  const bars = $derived.by(() => {
+    if (!today || !firstKey) return [];
+    const current = periodOf(PERIOD[mode], today);
+    const end = shiftPeriod(PERIOD[mode], current, -offset * WINDOW[mode]);
+    return chartWindow(full, PERIOD[mode], end, WINDOW[mode], firstKey);
   });
-  const windowTotal = $derived(visible.reduce((sum, [, v]) => sum + v, 0));
+  // Allow going back as long as the window still starts after the first measurement.
+  const canGoBack = $derived(bars.length > 0 && firstKey !== null && bars[0].key > firstKey);
+  const windowTotal = $derived(bars.reduce((sum, b) => sum + b.km, 0));
 
   function setMode(m: Mode) {
     mode = m;
@@ -67,6 +75,9 @@
   const tz = $derived(data?.timeZone);
   const time = (ts: number) =>
     new Date(ts).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', timeZone: tz });
+  /** A block with a single reading has no real duration: show an approximate time. */
+  const tripTime = (t: { start: number; end: number }) =>
+    t.start === t.end ? `rond ${time(t.start)}` : `${time(t.start)}–${time(t.end)}`;
 </script>
 
 <h2 class="title">Historie</h2>
@@ -93,16 +104,14 @@
         {/each}
       </div>
       <div class="paging">
-        <button aria-label="Eerder" disabled={offset >= pages - 1} onclick={() => offset++}>‹</button>
+        <button aria-label="Eerder" disabled={!canGoBack} onclick={() => offset++}>‹</button>
         <button aria-label="Later" disabled={offset === 0} onclick={() => offset--}>›</button>
       </div>
     </div>
-    {#key mode}
-      <BarChart data={visible} />
-    {/key}
-    {#if visible.length}
+    <BarChart {bars} />
+    {#if bars.length}
       <p class="muted small range">
-        {periodLabel(visible[0][0], true)} – {periodLabel(visible[visible.length - 1][0], true)}:
+        {periodLabel(bars[0].key, true)} – {periodLabel(bars[bars.length - 1].key, true)}:
         {km(windowTotal)} km
       </p>
     {/if}
@@ -140,8 +149,20 @@
       {/if}
       {#if h.records.longestTrip}
         <li>
-          <span>Langste ritblok</span>
+          <span>Grootste ritblok <span class="muted small">(indicatief)</span></span>
           <span class="right"><strong>{km(h.records.longestTrip.km)} km</strong><span class="muted small">{date(h.records.longestTrip.start, tz)}</span></span>
+        </li>
+      {/if}
+      {#if data.chargingRecords?.fastest}
+        <li>
+          <span>Snelste laadsessie</span>
+          <span class="right"><strong>{kw(data.chargingRecords.fastest.peakKw ?? 0)} kW</strong><span class="muted small">{date(data.chargingRecords.fastest.start, tz)}</span></span>
+        </li>
+      {/if}
+      {#if data.chargingRecords?.busiestMonth}
+        <li>
+          <span>Meeste laadsessies</span>
+          <span class="right"><strong>{data.chargingRecords.busiestMonth.sessions} sessies</strong><span class="muted small">{periodLabel(data.chargingRecords.busiestMonth.key, true)}</span></span>
         </li>
       {/if}
     </ul>
@@ -157,7 +178,7 @@
       <ul class="list">
         {#each allTrips ? h.recentTrips : h.recentTrips.slice(0, TRIPS_SHOWN) as t (t.start)}
           <li>
-            <span>{date(t.start, tz)}<span class="muted small">&nbsp;· {time(t.start)}–{time(t.end)}</span></span>
+            <span>{date(t.start, tz)}<span class="muted small">&nbsp;· {tripTime(t)}</span></span>
             <strong>{km(t.km)} km</strong>
           </li>
         {/each}
@@ -259,6 +280,8 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
+    margin-left: auto;
+    text-align: right;
   }
   .more {
     margin-top: 8px;

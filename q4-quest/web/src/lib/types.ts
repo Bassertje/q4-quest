@@ -28,6 +28,7 @@ export interface StatusData {
   timeZone: string;
   sensors: { key: string; entityId: string | null; configured: boolean }[];
   batteryKwh: number;
+  features: { charging: boolean };
   db: { schemaVersion: number; readings: Record<string, number> };
   backfill: {
     state: 'idle' | 'running' | 'done' | 'error';
@@ -49,6 +50,40 @@ export interface TripBlock {
   start: number;
   end: number;
   km: number;
+  readings: number;
+}
+
+export interface ChargingSession {
+  start: number;
+  end: number;
+  ongoing: boolean;
+  type: 'AC' | 'DC' | null;
+  typeInferred: boolean;
+  socStart: number | null;
+  socEnd: number | null;
+  peakKw: number | null;
+  kwh: number | null;
+  kwhMethod: 'power' | 'soc' | null;
+}
+
+export interface ChargingRecords {
+  fastest: ChargingSession | null;
+  busiestMonth: { key: string; sessions: number } | null;
+}
+
+export interface ChargingData {
+  available: boolean;
+  timeZone: string;
+  batteryKwh: number;
+  sessions: ChargingSession[];
+  totals: {
+    sessions: number;
+    kwh: number;
+    ac: { sessions: number; kwh: number };
+    dc: { sessions: number; kwh: number };
+  } | null;
+  consumption: { kwhPer100km: number | null; km: number; kwh: number; sessions: number } | null;
+  records: ChargingRecords | null;
 }
 
 export interface HistoryData {
@@ -68,4 +103,5 @@ export interface HistoryData {
     recentTrips: TripBlock[];
     timeline: { initial: TimelineEvent[]; events: TimelineEvent[] };
   } | null;
+  chargingRecords: ChargingRecords | null;
 }

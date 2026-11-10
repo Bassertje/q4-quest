@@ -83,6 +83,33 @@ describe('GET /api/history', () => {
   });
 });
 
+describe('GET /api/charging', () => {
+  it('returns sessions, totals, consumption and records for mock data', async () => {
+    const body = (await make(MOCK_OPTIONS_RAW, true).app.inject({ url: '/api/charging' })).json();
+    expect(body.available).toBe(true);
+    expect(body.sessions.length).toBeGreaterThan(10);
+    // Newest first
+    expect(body.sessions[0].start).toBeGreaterThan(body.sessions.at(-1).start);
+    expect(new Set(body.sessions.map((s: { type: string }) => s.type))).toEqual(new Set(['AC', 'DC']));
+    expect(body.sessions.every((s: { kwh: number | null }) => s.kwh === null || s.kwh > 0)).toBe(true);
+    expect(body.totals.sessions).toBe(body.sessions.length);
+    expect(body.consumption.kwhPer100km).toBeGreaterThan(10);
+    expect(body.consumption.kwhPer100km).toBeLessThan(30);
+    expect(body.records.fastest.peakKw).toBeGreaterThan(50);
+  });
+
+  it('is unavailable without charging sensors', async () => {
+    const body = (await make({ odometer_entity: 'sensor.my_ev_odometer' }).app.inject({ url: '/api/charging' })).json();
+    expect(body.available).toBe(false);
+    expect(body.sessions).toEqual([]);
+  });
+
+  it('adds charging records to the history', async () => {
+    const body = (await make(MOCK_OPTIONS_RAW, true).app.inject({ url: '/api/history' })).json();
+    expect(body.chargingRecords.busiestMonth.sessions).toBeGreaterThan(0);
+  });
+});
+
 describe('POST /api/backfill and GET /api/export', () => {
   it('starts a backfill', async () => {
     const m = make(MOCK_OPTIONS_RAW);
