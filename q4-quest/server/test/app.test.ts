@@ -64,6 +64,25 @@ describe('GET /api/cockpit', () => {
   });
 });
 
+describe('GET /api/history', () => {
+  it('returns chart series, records and the timeline for mock data', async () => {
+    const body = (await make(MOCK_OPTIONS_RAW, true).app.inject({ url: '/api/history' })).json();
+    const h = body.history;
+    expect(h.daily.length).toBeGreaterThan(100);
+    expect(h.monthly.length).toBeGreaterThanOrEqual(4);
+    expect(h.records.bestDay.km).toBeGreaterThan(0);
+    expect(h.records.longestTrip.km).toBeGreaterThan(0);
+    expect(h.recentTrips.length).toBe(20);
+    expect(h.timeline.initial.length).toBeGreaterThan(0);
+  });
+
+  it('asks for setup without an odometer', async () => {
+    const body = (await make({}).app.inject({ url: '/api/history' })).json();
+    expect(body.setupNeeded).toBe(true);
+    expect(body.history).toBeNull();
+  });
+});
+
 describe('POST /api/backfill and GET /api/export', () => {
   it('starts a backfill', async () => {
     const m = make(MOCK_OPTIONS_RAW);
