@@ -1,0 +1,23 @@
+# Dependencies and build output
+node_modules/
+dist/
+
+# Local secrets and configuration
+.env
+.env.*
+!.env.example
+options.local.json
+
+# Data — never commit real data
+data/
+/data
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+export*.json
+exports/
+
+# Misc
+.DS_Store
+*.log

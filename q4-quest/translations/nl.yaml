@@ -1,0 +1,25 @@
+configuration:
+  odometer_entity:
+    name: Kilometerstand-sensor
+    description: Entity met de totale kilometerstand van de auto (in km). Verplicht.
+  soc_entity:
+    name: Accupercentage-sensor
+    description: Entity met het accupercentage (%). Optioneel.
+  charging_power_entity:
+    name: Laadvermogen-sensor
+    description: Entity met het laadvermogen (W of kW). Optioneel.
+  charging_state_entity:
+    name: Laadstatus-sensor
+    description: Entity die aangeeft of de auto aan het laden is. Optioneel.
+  charging_type_entity:
+    name: Laadtype-sensor
+    description: Entity die aangeeft of de auto AC of DC laadt. Optioneel.
+  range_entity:
+    name: Actieradius-sensor
+    description: Entity met de resterende actieradius in km. Optioneel.
+  parking_brake_entity:
+    name: Parkeerrem-sensor
+    description: Helpt om ritten van elkaar te scheiden. Optioneel.
+  battery_kwh:
+    name: Bruikbare accucapaciteit (kWh)
+    description: Wordt gebruikt voor kWh-schattingen. Standaard 77.

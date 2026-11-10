@@ -1,0 +1,25 @@
+configuration:
+  odometer_entity:
+    name: Odometer sensor
+    description: Entity with the total mileage of the car (in km). Required.
+  soc_entity:
+    name: Battery level sensor
+    description: Entity with the state of charge in %. Optional.
+  charging_power_entity:
+    name: Charging power sensor
+    description: Entity with the charging power (W or kW). Optional.
+  charging_state_entity:
+    name: Charging state sensor
+    description: Entity that tells whether the car is charging. Optional.
+  charging_type_entity:
+    name: Charging type sensor
+    description: Entity that tells whether the car charges AC or DC. Optional.
+  range_entity:
+    name: Range sensor
+    description: Entity with the remaining range in km. Optional.
+  parking_brake_entity:
+    name: Parking brake sensor
+    description: Helps to split trips. Optional.
+  battery_kwh:
+    name: Usable battery capacity (kWh)
+    description: Used for kWh estimates. Default 77.
