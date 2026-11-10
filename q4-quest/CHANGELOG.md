@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.0
+
+- **Periodekeuze op de Laden-pagina:** kies bovenaan Week, Maand, Jaar of Alles (standaard Alles; je keuze wordt onthouden). Met de pijltjes ‹ › blader je door eerdere weken, maanden of jaren. De tegels, de grafiek Geladen en de sessielijst volgen de gekozen periode.
+- **Grafiek Geladen:** per dag bij Week en Maand, per maand bij Jaar en Alles. Alle dagen of maanden van de periode staan erin, ook als er niet geladen is; de tijd vóór je eerste meting is gedimd.
+- **Tegels gelijkgetrokken:** Sessies, Geladen en Verbruik hebben nu precies dezelfde opbouw: label, waarde en één regel uitsplitsing ("8 AC · 1 DC", "AC X · DC Y", "per 100 km"). Uitleg zit achter de ⓘ.
+- **Verbruik per periode:** berekend over de gekozen periode (geladen kWh plus het verschil in accupercentage, gedeeld door de km). Onder de 100 km zie je "te weinig data".
+- **Accugrafiek:** eigen keuze 24 uur, 7 dagen of 30 dagen, los van de periodekeuze.
+- **Bijgewerkt-label** in de kilometerteller is groter en beter zichtbaar (en nog duidelijker als de laatste update ouder is dan 6 uur).
+
 ## 1.4.1
 
 - **Sessielijst (Laden) vernieuwd:** sessies staan per maand onder een kop ("November 2026"), met korte datums ("ma 9 nov"). Elke rij heeft links het AC/DC-label, in het midden datum en "tijd · duur", en rechts de kWh en "start → eind%". Onder elke rij laat een dunne balk zien hoe vol de accu was en hoeveel erbij kwam. De pixel-accu is weg.

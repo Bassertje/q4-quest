@@ -3,12 +3,12 @@ import { Readable } from 'node:stream';
 import type { DatabaseSync } from 'node:sqlite';
 import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { chargingAvailable, chargingResponse } from './charging.ts';
+import { chargingAvailable, chargingResponse, isSocRange, socResponse } from './charging.ts';
 import { cockpitResponse } from './cockpit.ts';
 import type { BackfillStatus } from './collector/collector.ts';
 import { schemaVersion } from './db.ts';
 import { badgesResponse, markSeen, revealResponse, seenKeys } from './badges.ts';
-import { isFollowable } from '../../game/src/index.ts';
+import { isChargePeriodMode, isFollowable } from '../../game/src/index.ts';
 import { GameStateCache } from './game-state.ts';
 import { historyResponse } from './history.ts';
 import { yearResponse, yearsResponse } from './year.ts';
@@ -63,7 +63,21 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
   app.get('/api/history', async () => historyResponse(state()));
 
-  app.get('/api/charging', async () => chargingResponse(state(), deps.options));
+  app.get('/api/charging', async (req, reply) => {
+    const q = req.query as { period?: string; key?: string };
+    if (q.period !== undefined && !isChargePeriodMode(q.period)) {
+      return reply.code(400).send({ error: 'period must be week, month, year or all' });
+    }
+    const mode = q.period ?? readSettings(deps.db).chargingPeriod;
+    const key = typeof q.key === 'string' && q.key.length <= 10 ? q.key : null;
+    return chargingResponse(state(), deps.options, mode, key);
+  });
+
+  app.get('/api/charging/soc', async (req, reply) => {
+    const range = (req.query as { range?: string }).range ?? '7d';
+    if (!isSocRange(range)) return reply.code(400).send({ error: 'range must be 24h, 7d or 30d' });
+    return socResponse(state(), range);
+  });
 
   app.get('/api/badges', async () => badgesResponse(state(), seenKeys(deps.db), readSettings(deps.db).followedBadge));
 
@@ -97,6 +111,9 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     if (body.navPosition !== undefined && !isNavPosition(body.navPosition)) {
       return reply.code(400).send({ error: 'navPosition must be top, bottom or auto' });
     }
+    if (body.chargingPeriod !== undefined && !isChargePeriodMode(body.chargingPeriod)) {
+      return reply.code(400).send({ error: 'chargingPeriod must be week, month, year or all' });
+    }
     const followed = body.followedBadge;
     if (followed !== undefined && followed !== null) {
       // Only visible badges with measurable progress can be followed.
@@ -107,6 +124,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       theme: body.theme as 'auto' | 'light' | 'dark' | undefined,
       navPosition: body.navPosition as 'top' | 'bottom' | 'auto' | undefined,
       followedBadge: followed as string | null | undefined,
+      chargingPeriod: body.chargingPeriod as 'week' | 'month' | 'year' | 'all' | undefined,
     });
   });
 

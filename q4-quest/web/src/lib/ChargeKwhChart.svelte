@@ -5,8 +5,27 @@
   import { km, num1, periodLabel } from './format';
   import { THEME_EVENT } from './theme';
 
-  /** Charged kWh per week, AC and DC stacked in two shades of red. */
-  let { weeks, height = 180 }: { weeks: { week: string; ac: number; dc: number; beforeStart: boolean }[]; height?: number } = $props();
+  /** Charged kWh per day or month of a period, AC and DC stacked in two shades of red. */
+  let {
+    buckets,
+    bucket,
+    periodLabel: title,
+    height = 180,
+  }: {
+    buckets: { key: string; ac: number; dc: number; beforeStart: boolean }[];
+    bucket: 'day' | 'month';
+    /** Label of the whole period, shown when no bar is selected. */
+    periodLabel: string;
+    height?: number;
+  } = $props();
+  const weeks = $derived(buckets);
+  const weekday = (day: string) => periodLabel(day, true).split(' ')[0];
+
+  /** Axis label for a bucket. */
+  function tick(key: string): string {
+    if (bucket === 'month') return periodLabel(key);
+    return weeks.length <= 7 ? weekday(key) : String(Number(key.slice(8)));
+  }
 
   let container: HTMLDivElement;
   let chart: uPlot | null = null;
@@ -58,8 +77,11 @@
       axes: [
         {
           stroke: muted, font, size: 26, grid: { show: false }, ticks: { show: false },
-          splits: () => weeks.map((_, i) => i).filter((i) => (n - 1 - i) % 2 === 0),
-          values: (_u, sp) => sp.map((i) => (weeks[i] ? periodLabel(weeks[i].week) : '')),
+          splits: () => {
+            const step = Math.max(1, Math.ceil(n / 8));
+            return weeks.map((_, i) => i).filter((i) => i % step === 0);
+          },
+          values: (_u, sp) => sp.map((i) => (weeks[i] ? tick(weeks[i].key) : '')),
         },
         { stroke: muted, font, size: 40, grid: { stroke: css('--line'), width: 1 }, ticks: { show: false } },
       ],
@@ -86,16 +108,20 @@
     return () => { ro.disconnect(); window.removeEventListener(THEME_EVENT, onTheme); };
   });
 
-  const shown = $derived(weeks[selected ?? weeks.length - 1]);
+  const shown = $derived(selected === null ? null : weeks[selected]);
+  const total = $derived(weeks.reduce((t, b) => ({ ac: t.ac + b.ac, dc: t.dc + b.dc }), { ac: 0, dc: 0 }));
 </script>
 
 <div class="readout" aria-live="polite">
   {#if shown}
     <span class="pixel">{shown.beforeStart ? '–' : km(shown.ac + shown.dc)}<span class="unit">kWh</span></span>
-    <span class="muted small">{periodLabel(shown.week, true)}{shown.beforeStart ? '' : ` · AC ${num1(shown.ac)} · DC ${num1(shown.dc)}`}</span>
+    <span class="muted small">{periodLabel(shown.key, true)}{shown.beforeStart ? '' : ` · AC ${num1(shown.ac)} · DC ${num1(shown.dc)}`}</span>
+  {:else}
+    <span class="pixel">{km(total.ac + total.dc)}<span class="unit">kWh</span></span>
+    <span class="muted small">{title} · AC {num1(total.ac)} · DC {num1(total.dc)}</span>
   {/if}
 </div>
-<div class="chart" bind:this={container} role="img" aria-label="Geladen kWh per week, AC en DC"></div>
+<div class="chart" bind:this={container} role="img" aria-label="Geladen kWh per {bucket === 'day' ? 'dag' : 'maand'}, AC en DC"></div>
 <p class="legend muted small"><span class="sw ac"></span>AC <span class="sw dc"></span>DC</p>
 
 <style>
