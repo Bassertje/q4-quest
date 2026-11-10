@@ -131,7 +131,7 @@ Beste dag, beste week, beste maand, langste streak, langste ritblok, snelste laa
 - Bij het openen van de app verschijnt eerst een **reveal-scherm**: niet-geziene items één voor één (oudste eerst), met een korte retro-animatie (pixel-burst, geen geluid). Elk item wordt als gezien gemarkeerd zodra je verder gaat.
 - Na 3 items verschijnt een knop **"Toon alles"**: de overige items staan dan in één lijst en worden met "Klaar" allemaal als gezien gemarkeerd. Zo wordt een grote inhaalslag (bijv. de eerste keer na de badge-update) geen reeks van 20 losse schermen.
 - Level-ups worden samengevoegd tot één item: het hoogste nieuwe level, met het aantal gestegen levels.
-- Records die al bestonden vóór de eerste reveal gelden niet als nieuw; alleen records die daarna worden gezet, verschijnen.
+- Ook records die al bestonden vóór de eerste reveal, verschijnen daarin (net als badges, mijlpalen en level-ups). Daarna verschijnt een record alleen opnieuw als het wordt verbeterd in een andere periode of rit.
 - Daarbuiten is alles rustig: geen meldingen.
 
 ---

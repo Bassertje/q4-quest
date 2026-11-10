@@ -96,21 +96,13 @@ export function currentRecords(state: GameState): RecordEntry[] {
   });
 }
 
-const RECORDS_BASELINE = 'reveal.records_baseline';
-
 /**
- * Items for the reveal screen. Records that already existed before the first
- * reveal are marked as seen silently: only records set later are "new".
- * Badges, milestones and levels that were already reached are revealed.
+ * Items for the reveal screen: everything reached but not yet seen, including
+ * records that already existed before the first reveal.
  */
 export function revealResponse(state: GameState, db: DatabaseSync): { items: RevealItem[] } {
   if (state.setupNeeded) return { items: [] };
   const records = currentRecords(state);
-  const baseline = db.prepare('SELECT value FROM meta WHERE key = ?').get(RECORDS_BASELINE);
-  if (!baseline && state.odometer.length > 0) {
-    markSeen(db, records.map((r) => r.key));
-    db.prepare('INSERT INTO meta (key, value) VALUES (?, ?)').run(RECORDS_BASELINE, new Date().toISOString());
-  }
   const items = revealItems({
     badges: state.badges,
     timeline: state.history?.timeline ?? { initial: [], events: [] },

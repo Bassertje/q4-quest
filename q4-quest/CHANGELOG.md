@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1
+
+- Je bestaande records (beste dag, week en maand, langste streak, grootste ritblok en de laadrecords) verschijnen nu ook in het reveal-scherm. Had je 0.5.0 al geopend, dan komen ze bij de volgende keer openen alsnog voorbij. Badges, mijlpalen en levels die je al hebt gezien, komen niet opnieuw.
+- Nieuw logo: dezelfde pixel-art-gamecontroller als het icoon, met "Q4 QUEST" ernaast.
+
 ## 0.5.0
 
 Badges! En twee verbeteringen.
