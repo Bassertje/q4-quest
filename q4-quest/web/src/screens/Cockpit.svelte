@@ -3,6 +3,7 @@
   import Bar from '../lib/Bar.svelte';
   import { ago, date, km, pct } from '../lib/format';
   import Odometer from '../lib/Odometer.svelte';
+  import PixelIcon from '../lib/PixelIcon.svelte';
   import Setup from '../lib/Setup.svelte';
   import type { CockpitData } from '../lib/types';
 
@@ -59,6 +60,7 @@
       </div>
       <div class="muted small right">
         {km(c.level.xp)} / {km(c.level.nextLevelXp)} XP<br />
+        {#if c.bonusXp > 0}waarvan {km(c.bonusXp)} bonus<br />{/if}
         nog {km(c.level.nextLevelXp - c.level.xp)} XP
       </div>
     </div>
@@ -97,15 +99,18 @@
       <div class="pixel mid">{c.streak}<span class="unit">{c.streak === 1 ? 'dag' : 'dagen'}</span></div>
       <div class="muted small">{c.streak > 0 ? 'op rij gereden' : 'rij vandaag om te starten'}</div>
     </div>
-    <div class="panel tile">
+    <a class="panel tile link" href="#/badges">
       <div class="label">Laatst ontgrendeld</div>
-      {#if c.lastMilestone}
-        <div class="pixel mid">{c.lastMilestone.milestone.name}</div>
-        <div class="muted small">{date(c.lastMilestone.ts, data.timeZone)}</div>
+      {#if c.lastUnlocked}
+        <div class="unlocked">
+          <PixelIcon icon={c.lastUnlocked.icon} size={32} />
+          <span class="badge-name">{c.lastUnlocked.name}</span>
+        </div>
+        <div class="muted small">{date(c.lastUnlocked.ts, data.timeZone)}</div>
       {:else}
-        <div class="muted">Nog niets, eerste mijlpaal: 1.000 km</div>
+        <div class="muted">Nog niets. Bekijk de badges.</div>
       {/if}
-    </div>
+    </a>
   </section>
 
   {#if data.soc || data.range}
@@ -186,6 +191,25 @@
   }
   .tiles.two {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .link {
+    color: inherit;
+    text-decoration: none;
+  }
+  .link:hover,
+  .link:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+  }
+  .unlocked {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0 2px;
+  }
+  .badge-name {
+    font-weight: 600;
+    line-height: 1.2;
   }
   .tile {
     padding: 12px;

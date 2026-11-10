@@ -3,13 +3,13 @@ import {
   chargingSessions,
   chargingTotals,
   consumptionEstimate,
-  dailyTotals,
   toKw,
   type ChargingRecords,
   type ChargingSession,
   type ChargingTotals,
   type ConsumptionEstimate,
 } from '../../game/src/index.ts';
+import type { GameState } from './game-state.ts';
 import type { Options } from './options.ts';
 import type { ReadingStore } from './readings.ts';
 
@@ -44,22 +44,17 @@ export interface ChargingResponse {
   records: ChargingRecords | null;
 }
 
-export function chargingResponse(
-  store: ReadingStore,
-  options: Options,
-  timeZone: string,
-  now = Date.now(),
-): ChargingResponse {
+export function chargingResponse(state: GameState, options: Options): ChargingResponse {
   const available = chargingAvailable(options);
+  const { timeZone, now } = state;
   const empty = { available, timeZone, batteryKwh: options.batteryKwh, sessions: [], totals: null, consumption: null, records: null };
   if (!available) return empty;
-  const sessions = loadSessions(store, options, now);
-  const totals = dailyTotals(store.series('odometer'), timeZone);
+  const sessions = state.sessions;
   return {
     ...empty,
     sessions: [...sessions].reverse(),
     totals: chargingTotals(sessions),
-    consumption: options.entities.odometer ? consumptionEstimate(sessions, totals, now, timeZone) : null,
-    records: chargingRecords(sessions, timeZone),
+    consumption: options.entities.odometer ? consumptionEstimate(sessions, state.dailyTotals, now, timeZone) : null,
+    records: state.chargingRecords,
   };
 }

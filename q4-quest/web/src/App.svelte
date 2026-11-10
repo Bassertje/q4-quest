@@ -1,16 +1,19 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { getJson, onLiveUpdate } from './lib/api';
-  import type { StatusData } from './lib/types';
+  import Reveal from './lib/Reveal.svelte';
+  import type { RevealItem, StatusData } from './lib/types';
   import Nav from './lib/Nav.svelte';
+  import Badges from './screens/Badges.svelte';
   import Charging from './screens/Charging.svelte';
   import Cockpit from './screens/Cockpit.svelte';
   import History from './screens/History.svelte';
   import Settings from './screens/Settings.svelte';
 
   // Hash-based routing keeps every URL relative (Ingress-proof).
-  type Route = 'cockpit' | 'historie' | 'laden' | 'instellingen';
+  type Route = 'cockpit' | 'badges' | 'historie' | 'laden' | 'instellingen';
   const parse = (): Route => {
+    if (location.hash === '#/badges') return 'badges';
     if (location.hash === '#/instellingen') return 'instellingen';
     if (location.hash === '#/historie') return 'historie';
     if (location.hash === '#/laden') return 'laden';
@@ -20,6 +23,24 @@
   let route = $state<Route>(parse());
   let refresh = $state(0);
   let charging = $state(false);
+  let reveal = $state<RevealItem[]>([]);
+  let timeZone = $state<string | undefined>(undefined);
+
+  /** On opening the app: first show what is new (badges, milestones, levels, records). */
+  async function checkReveal() {
+    if (reveal.length) return;
+    try {
+      const res = await getJson<{ items: RevealItem[] }>('reveal');
+      reveal = res.items;
+    } catch {
+      // No reveal when the server cannot be reached; the screens show the error.
+    }
+  }
+
+  function revealDone() {
+    reveal = [];
+    refresh++;
+  }
 
   onMount(() => {
     const onHash = () => {
@@ -29,10 +50,20 @@
     window.addEventListener('hashchange', onHash);
     const stop = onLiveUpdate(() => refresh++);
     getJson<StatusData>('status')
-      .then((s) => (charging = s.features.charging))
+      .then((s) => {
+        charging = s.features.charging;
+        timeZone = s.timeZone;
+      })
       .catch(() => {});
+    checkReveal();
+    // Re-opening the app (back from the background) counts as opening it.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') checkReveal();
+    };
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       window.removeEventListener('hashchange', onHash);
+      document.removeEventListener('visibilitychange', onVisible);
       stop();
     };
   });
@@ -63,6 +94,8 @@
   <main>
     {#if route === 'instellingen'}
       <Settings {refresh} />
+    {:else if route === 'badges'}
+      <Badges {refresh} />
     {:else if route === 'historie'}
       <History {refresh} />
     {:else if route === 'laden'}
@@ -72,6 +105,10 @@
     {/if}
   </main>
 </div>
+
+{#if reveal.length}
+  <Reveal items={reveal} {timeZone} ondone={revealDone} />
+{/if}
 
 <style>
   .app {

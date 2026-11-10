@@ -57,6 +57,7 @@
 
   function eventTitle(e: TimelineEvent): string {
     if (e.type === 'milestone') return `Mijlpaal: ${e.name}`;
+    if (e.type === 'badge') return e.xp > 0 ? `Badge: ${e.name} (+${e.xp} XP)` : `Badge: ${e.name}`;
     return e.newRank ? `Level ${e.level}, nieuwe rang: ${e.rank}` : `Level ${e.level}`;
   }
 
@@ -65,10 +66,12 @@
     if (initial.length === 0) return null;
     const levels = initial.filter((e) => e.type === 'level');
     const milestones = initial.filter((e) => e.type === 'milestone');
+    const badges = initial.filter((e) => e.type === 'badge');
     const top = levels[0];
     const parts: string[] = [];
     if (top && top.type === 'level') parts.push(`level ${top.level} (${top.rank})`);
     if (milestones.length) parts.push(`${milestones.length} ${milestones.length === 1 ? 'mijlpaal' : 'mijlpalen'}`);
+    if (badges.length) parts.push(`${badges.length} ${badges.length === 1 ? 'badge' : 'badges'}`);
     return { ts: initial[0].ts, text: `Start van de meting: al ${parts.join(' en ')}` };
   });
 
@@ -192,8 +195,8 @@
   <section class="panel">
     <h3>Tijdlijn</h3>
     <ol class="timeline">
-      {#each h.timeline.events.slice(0, timelineShown) as e (e.type + e.ts + (e.type === 'level' ? e.level : e.km))}
-        <li class:accent={e.type === 'milestone' || (e.type === 'level' && e.newRank)}>
+      {#each h.timeline.events.slice(0, timelineShown) as e (e.type + e.ts + (e.type === 'level' ? e.level : e.type === 'badge' ? e.id : e.km))}
+        <li class:accent={e.type === 'milestone' || e.type === 'badge' || (e.type === 'level' && e.newRank)}>
           <span class="marker" aria-hidden="true"></span>
           <span class="what">{eventTitle(e)}</span>
           <span class="muted small">{date(e.ts, tz)}</span>

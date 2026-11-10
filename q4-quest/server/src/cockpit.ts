@@ -1,4 +1,5 @@
-import { buildCockpit, type Cockpit } from '../../game/src/index.ts';
+import type { Cockpit } from '../../game/src/index.ts';
+import type { GameState } from './game-state.ts';
 import type { Options, SensorKey } from './options.ts';
 import type { ReadingStore } from './readings.ts';
 
@@ -17,17 +18,11 @@ function latestNumber(store: ReadingStore, options: Options, key: SensorKey) {
   return r && Number.isFinite(value) ? { value, ts: r.ts } : null;
 }
 
-export function cockpitResponse(
-  store: ReadingStore,
-  options: Options,
-  timeZone: string,
-  now = Date.now(),
-): CockpitResponse {
-  const setupNeeded = options.entities.odometer === null;
+export function cockpitResponse(state: GameState, store: ReadingStore, options: Options): CockpitResponse {
   return {
-    setupNeeded,
-    timeZone,
-    cockpit: setupNeeded ? null : buildCockpit({ odometer: store.series('odometer'), now, timeZone }),
+    setupNeeded: state.setupNeeded,
+    timeZone: state.timeZone,
+    cockpit: state.cockpit,
     soc: latestNumber(store, options, 'soc'),
     range: latestNumber(store, options, 'range'),
   };

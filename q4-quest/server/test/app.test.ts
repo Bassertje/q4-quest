@@ -113,6 +113,53 @@ describe('GET /api/charging', () => {
   });
 });
 
+describe('badges and reveal', () => {
+  it('lists badges per category with a counter, without charging badges if not configured', async () => {
+    const all = (await make(MOCK_OPTIONS_RAW, true).app.inject({ url: '/api/badges' })).json();
+    expect(all.categories.map((c: { id: string }) => c.id)).toEqual(['rijden', 'laden', 'zuinigheid', 'mijlpalen']);
+    expect(all.unlocked).toBeGreaterThan(5);
+    expect(all.total).toBeGreaterThan(all.unlocked);
+    // A locked hidden badge does not reveal its name.
+    const rest = all.categories[0].badges.find((b: { id: string }) => b.id === 'rest_day');
+    if (rest.unlockedTs === null) expect(rest.name).toBeNull();
+
+    const odoOnly = (await make({ odometer_entity: 'sensor.my_ev_odometer' }, true).app.inject({ url: '/api/badges' })).json();
+    expect(odoOnly.categories.map((c: { id: string }) => c.id)).toEqual(['rijden', 'mijlpalen']);
+  });
+
+  it('adds badge XP to the cockpit level', async () => {
+    const { app } = make(MOCK_OPTIONS_RAW, true);
+    const badges = (await app.inject({ url: '/api/badges' })).json();
+    const cockpit = (await app.inject({ url: '/api/cockpit' })).json().cockpit;
+    expect(cockpit.bonusXp).toBe(badges.bonusXp);
+    expect(cockpit.level.xp).toBe(Math.floor(cockpit.odometer + badges.bonusXp));
+    expect(cockpit.lastUnlocked).not.toBeNull();
+  });
+
+  it('reveals everything already reached once, then nothing after marking it seen', async () => {
+    const { app } = make(MOCK_OPTIONS_RAW, true);
+    const first = (await app.inject({ url: '/api/reveal' })).json().items;
+    const kinds = new Set(first.map((i: { kind: string }) => i.kind));
+    expect(kinds.has('badge')).toBe(true);
+    expect(kinds.has('milestone')).toBe(true);
+    // Level-ups are combined into one item; existing records are not "new".
+    expect(first.filter((i: { kind: string }) => i.kind === 'level')).toHaveLength(1);
+    expect(kinds.has('record')).toBe(false);
+
+    const keys = first.flatMap((i: { keys: string[] }) => i.keys);
+    const res = await app.inject({ method: 'POST', url: '/api/seen', payload: { keys } });
+    expect(res.json().marked).toBe(keys.length);
+    expect((await app.inject({ url: '/api/reveal' })).json().items).toEqual([]);
+    const badges = (await app.inject({ url: '/api/badges' })).json();
+    expect(badges.categories.flatMap((c: { badges: { isNew: boolean }[] }) => c.badges).some((b: { isNew: boolean }) => b.isNew)).toBe(false);
+  });
+
+  it('rejects invalid seen keys', async () => {
+    const res = await make({}).app.inject({ method: 'POST', url: '/api/seen', payload: { keys: [1, 2] } });
+    expect(res.statusCode).toBe(400);
+  });
+});
+
 describe('/api/settings', () => {
   it('defaults to the automatic theme and stores a choice', async () => {
     const { app } = make({});

@@ -11,6 +11,8 @@ export interface TripBlock {
   km: number;
   /** Number of odometer readings (increases) in the block. */
   readings: number;
+  /** Time of the second reading, when the block first had two readings (null with one). */
+  confirmedTs: number | null;
 }
 
 export interface TimedState {
@@ -50,8 +52,9 @@ export function tripBlocks(odometer: TimedValue[], parkingBrake: TimedState[] = 
       current!.end = r.ts;
       current!.km += delta;
       current!.readings++;
+      if (current!.confirmedTs === null) current!.confirmedTs = r.ts;
     } else {
-      current = { start: r.ts, end: r.ts, km: delta, readings: 1 };
+      current = { start: r.ts, end: r.ts, km: delta, readings: 1, confirmedTs: null };
       trips.push(current);
     }
   }

@@ -11,7 +11,8 @@ export interface CockpitData {
     odometerTs: number;
     level: { xp: number; level: number; rank: string; levelStartXp: number; nextLevelXp: number; fraction: number };
     milestone: { previous: Milestone | null; next: Milestone; fraction: number; remainingKm: number };
-    lastMilestone: { milestone: Milestone; ts: number } | null;
+    bonusXp: number;
+    lastUnlocked: { id: string; name: string; icon: string; category: string; ts: number } | null;
     moon: { km: number; fraction: number };
     distance: { today: number; week: number; month: number };
     streak: number;
@@ -44,6 +45,7 @@ export type Series = [key: string, km: number][];
 
 export type TimelineEvent =
   | { type: 'milestone'; ts: number; km: number; name: string }
+  | { type: 'badge'; ts: number; id: string; name: string; xp: number; icon: string }
   | { type: 'level'; ts: number; level: number; rank: string; newRank: boolean };
 
 export interface TripBlock {
@@ -103,4 +105,35 @@ export interface HistoryData {
     timeline: { initial: TimelineEvent[]; events: TimelineEvent[] };
   } | null;
   chargingRecords: ChargingRecords | null;
+}
+
+export interface BadgeView {
+  id: string;
+  name: string | null;
+  description: string | null;
+  hint: string;
+  xp: number;
+  hidden: boolean;
+  icon: string;
+  unlockedTs: number | null;
+  isNew: boolean;
+}
+
+export interface BadgesData {
+  setupNeeded: boolean;
+  timeZone: string;
+  unlocked: number;
+  total: number;
+  bonusXp: number;
+  categories: { id: string; name: string; badges: BadgeView[] }[];
+}
+
+export interface RevealItem {
+  keys: string[];
+  kind: 'badge' | 'milestone' | 'level' | 'record';
+  name: string;
+  description: string;
+  icon: string;
+  ts: number;
+  xp: number;
 }

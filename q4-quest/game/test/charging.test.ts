@@ -141,6 +141,25 @@ describe('chargingSessions', () => {
     expect(sessions.map((s) => [s.start, s.end])).toEqual([[0, 45 * MIN]]);
   });
 
+  it('drops a blip with a falling SoC before merging, so it cannot move the start forward', () => {
+    const sessions = chargingSessions({
+      ...withSoc,
+      state: [
+        { ts: 10 * H, state: 'charging' }, // false positive while driving
+        { ts: 10 * H + 15 * MIN, state: 'not_charging' },
+        { ts: 10 * H + 35 * MIN, state: 'charging' }, // real session, 20 min later
+        { ts: 12 * H, state: 'not_charging' },
+      ],
+      soc: [
+        { ts: 9 * H, value: 60 },
+        { ts: 10 * H + 10 * MIN, value: 57 }, // drops during the blip
+        { ts: 12 * H, value: 80 },
+      ],
+    });
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]).toMatchObject({ start: 10 * H + 35 * MIN, end: 12 * H, socStart: 57, socEnd: 80 });
+  });
+
   it('is DC when the type sensor reports dc during or up to 10 minutes after the session', () => {
     const run = (typeTs: number) =>
       chargingSessions({

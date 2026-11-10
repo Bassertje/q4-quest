@@ -1,13 +1,7 @@
+import type { BadgeResult } from './badges.ts';
 import { currentStreak, dailyTotals, periodTotals } from './distance.ts';
 import { levelProgress, type LevelProgress } from './levels.ts';
-import {
-  MOON_KM,
-  milestoneDates,
-  milestoneProgress,
-  type Milestone,
-  type MilestoneProgress,
-  type TimedValue,
-} from './milestones.ts';
+import { MOON_KM, milestoneProgress, type MilestoneProgress, type TimedValue } from './milestones.ts';
 import { dayKey } from './time.ts';
 
 export interface CockpitInput {
@@ -15,8 +9,8 @@ export interface CockpitInput {
   odometer: TimedValue[];
   now: number;
   timeZone: string;
-  /** Bonus XP from badges (added from phase 4 onwards). */
-  bonusXp?: number;
+  /** Evaluated badges: their bonus XP counts towards the level. */
+  badges?: BadgeResult[];
 }
 
 export interface Cockpit {
@@ -24,7 +18,8 @@ export interface Cockpit {
   odometerTs: number;
   level: LevelProgress;
   milestone: MilestoneProgress;
-  lastMilestone: { milestone: Milestone; ts: number } | null;
+  bonusXp: number;
+  lastUnlocked: { id: string; name: string; icon: string; category: string; ts: number } | null;
   moon: { km: number; fraction: number };
   distance: { today: number; week: number; month: number };
   streak: number;
@@ -37,14 +32,19 @@ export function buildCockpit(input: CockpitInput): Cockpit | null {
   const odometer = last.value;
   const totals = dailyTotals(input.odometer, input.timeZone);
   const today = dayKey(input.now, input.timeZone);
-  const reached = milestoneDates(input.odometer);
+  const unlocked = (input.badges ?? []).filter((b) => b.unlockedTs !== null);
+  const bonusXp = unlocked.reduce((sum, b) => sum + b.xp, 0);
+  const latest = unlocked.reduce<BadgeResult | null>((a, b) => (!a || b.unlockedTs! >= a.unlockedTs! ? b : a), null);
   return {
     odometer,
     odometerTs: last.ts,
     // XP: one point per km on the odometer, plus badge bonus XP.
-    level: levelProgress(odometer + (input.bonusXp ?? 0)),
+    level: levelProgress(odometer + bonusXp),
+    bonusXp,
     milestone: milestoneProgress(odometer),
-    lastMilestone: reached.at(-1) ?? null,
+    lastUnlocked: latest
+      ? { id: latest.id, name: latest.name, icon: latest.icon, category: latest.category, ts: latest.unlockedTs! }
+      : null,
     moon: { km: MOON_KM, fraction: Math.min(1, odometer / MOON_KM) },
     distance: periodTotals(totals, today),
     streak: currentStreak(totals, today),

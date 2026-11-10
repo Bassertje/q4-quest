@@ -7,6 +7,8 @@ import { chargingAvailable, chargingResponse } from './charging.ts';
 import { cockpitResponse } from './cockpit.ts';
 import type { BackfillStatus } from './collector/collector.ts';
 import { schemaVersion } from './db.ts';
+import { badgesResponse, markSeen, revealResponse, seenKeys } from './badges.ts';
+import { GameStateCache } from './game-state.ts';
 import { historyResponse } from './history.ts';
 import { isTheme, readSettings, writeSettings } from './settings.ts';
 import type { HaStatus } from './ha/types.ts';
@@ -33,6 +35,8 @@ const KEEPALIVE_MS = 30_000;
 /** Build the HTTP app. Kept free of side effects so it can be tested with inject(). */
 export function buildApp(deps: AppDeps): FastifyInstance {
   const app = Fastify({ logger: false });
+  const cache = new GameStateCache(deps.store, deps.options);
+  const state = () => cache.get(deps.timeZone());
 
   app.get('/api/status', async () => ({
     version: deps.version,
@@ -51,11 +55,23 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     backfill: deps.backfill.status(),
   }));
 
-  app.get('/api/cockpit', async () => cockpitResponse(deps.store, deps.options, deps.timeZone()));
+  app.get('/api/cockpit', async () => cockpitResponse(state(), deps.store, deps.options));
 
-  app.get('/api/history', async () => historyResponse(deps.store, deps.options, deps.timeZone()));
+  app.get('/api/history', async () => historyResponse(state()));
 
-  app.get('/api/charging', async () => chargingResponse(deps.store, deps.options, deps.timeZone()));
+  app.get('/api/charging', async () => chargingResponse(state(), deps.options));
+
+  app.get('/api/badges', async () => badgesResponse(state(), seenKeys(deps.db)));
+
+  app.get('/api/reveal', async () => revealResponse(state(), deps.db));
+
+  app.post('/api/seen', async (req, reply) => {
+    const keys = (req.body as { keys?: unknown } | null)?.keys;
+    if (!Array.isArray(keys) || keys.length > 5000 || !keys.every((k) => typeof k === 'string' && k.length <= 200)) {
+      return reply.code(400).send({ error: 'keys must be a list of strings' });
+    }
+    return { marked: markSeen(deps.db, keys as string[]) };
+  });
 
   app.get('/api/settings', async () => readSettings(deps.db));
 

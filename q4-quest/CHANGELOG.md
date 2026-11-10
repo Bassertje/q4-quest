@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.5.0
+
+Badges! En twee verbeteringen.
+
+- **Badges:** 21 badges in de categorieën Rijden, Laden en Zuinigheid, plus de mijlpalen als badges.
+  - Alles wordt met terugwerkende kracht berekend: de datum is het moment waarop je de badge voor het eerst verdiende, ook als dat vóór deze update was.
+  - Het bonus-XP van badges telt mee voor je level (mijlpalen geven geen bonus-XP; de kilometers tellen al).
+  - Nieuwe tab **Badges** met per categorie een raster: ontgrendeld in kleur met datum, vergrendeld als silhouet met een hint, en één verborgen badge.
+  - Elke badge heeft een eigen pixel-art-icoon dat in de lichte en donkere modus werkt.
+  - Laadbadges gebruiken de gecorrigeerde laadsessies. "Volle bak" is nu: gemiddeld 75 kW of meer in één sessie.
+  - "Nachtuil" en "Vroege vogel" tellen alleen voor ritblokken met minstens twee metingen.
+  - Badges die van een niet-ingestelde sensor afhangen, verschijnen niet.
+- **Reveal-scherm:** bij het openen van de app zie je eerst wat er nieuw is (badges, mijlpalen, level-ups en nieuwe records), één voor één met een pixel-burst. Na 3 items kun je met "Toon alles" de rest in één lijst zien. Level-ups worden samengevoegd tot één melding. De eerste keer na deze update komt alles wat je al had verdiend op deze manier voorbij.
+- De cockpit toont bij "Laatst ontgrendeld" je nieuwste badge met icoon, en bij het level hoeveel bonus-XP erin zit. De tijdlijn in Historie toont nu ook badges.
+- **Kilometerteller in de lichte modus:** geen zwart vlak meer, maar een licht LCD-instrument met rode cijfers. De donkere modus is ongewijzigd.
+- **Laadsessies:** een korte valse melding waarin het accupercentage daalt, wordt nu weggegooid vóór het samenvoegen. Zo kan zo'n melding het begin van een echte sessie niet meer naar voren halen. Alle sessies en badges worden automatisch opnieuw berekend.
+
 ## 0.4.1
 
 Betrouwbaardere laadsessies en een lichte modus.
