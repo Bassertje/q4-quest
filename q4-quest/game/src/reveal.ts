@@ -61,7 +61,7 @@ export function revealItems(input: {
     if (b.unlockedTs === null) continue;
     const key = `badge:${b.id}`;
     if (input.seen.has(key)) continue;
-    const milestone = b.category === 'mijlpalen';
+    const milestone = b.category === 'wereldreis';
     items.push({ keys: [key], kind: milestone ? 'milestone' : 'badge', name: b.name, description: b.description, icon: b.icon, ts: b.unlockedTs, xp: b.xp });
   }
 

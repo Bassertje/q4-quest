@@ -32,9 +32,9 @@ describe('buildYearReview', () => {
     id, name: id, description: '', hint: '', category, xp, hidden: false, icon: 'car', unlockedTs, progress: null,
   });
   const badges = [
-    badge('milestone_7500', 750, odometer[0].ts, 'mijlpalen'), // reached before measuring
+    badge('milestone_7500', 750, odometer[0].ts, 'wereldreis'), // reached before measuring
     badge('first_100_day', 50, at('2026-01-02T18:00:00Z')),
-    badge('milestone_10000', 1_000, at('2026-03-10T18:00:00Z'), 'mijlpalen'),
+    badge('milestone_10000', 1_000, at('2026-03-10T18:00:00Z'), 'wereldreis'),
   ];
   const session = (iso: string, type: 'AC' | 'DC', kwh: number): ChargingSession => ({
     start: at(iso), end: at(iso) + 3_600_000, ongoing: false, type, socStart: 20, socEnd: 60, kwh, kwhMethod: 'soc', avgKw: kwh,

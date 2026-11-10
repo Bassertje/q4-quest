@@ -1,6 +1,6 @@
 # SPEC — Q4 Quest
 
-Een rustige maar verslavende game rond je elektrische auto: kilometers worden XP, mijlpalen en badges. Eén gebruiker, geen pushmeldingen. Wat nieuw is, valt direct op zodra je de app opent.
+Een rustige maar verslavende game rond je elektrische auto: kilometers worden XP, een wereldreis en badges. Eén gebruiker, geen pushmeldingen. Wat nieuw is, valt direct op zodra je de app opent.
 
 ---
 
@@ -68,11 +68,25 @@ Afgeleide gegevens worden altijd uit de opgeslagen ruwe metingen berekend. Na ee
 - Rangtitels per 5 levels:
   - Leerling (1–4), Pendelaar (5–9), Wegvreter (10–14), Kilometervreter (15–19), Snelwegridder (20–24), Asfaltlegende (25–29), Orbitaal (30+).
 
-### Mijlpalen (op kilometerstand)
-- 1.000, 2.500, 5.000, 7.500, 10.000, 15.000, 20.000, 25.000, 40.075 ("Rondje aarde"), 50.000, 75.000 en 100.000 km.
-- Daarna doorlopend per 25.000 km.
-- **Maanreis:** een badge in de categorie "Legendarisch" (zie Badges): 384.400 km op de teller.
-- Mijlpalen zijn ook badges (categorie "Mijlpalen"). Bonus-XP = mijlpaal-km ÷ 10, naar beneden afgerond (1.000 km = 100 XP, Rondje aarde = 4.007 XP, 100.000 km = 10.000 XP).
+### Wereldreis (op kilometerstand)
+De categorie **Wereldreis** vervangt de vroegere kale mijlpalen. Elke bestemming is een badge die je haalt zodra de kilometerstand de afstand bereikt. XP = km ÷ 10 (naar beneden afgerond). Het verhaal (één zin) staat bij de badge, in de detailweergave, als hint bij een vergrendelde badge en in het reveal-scherm. Elke bestemming heeft een eigen pixel-art icoon (geen logo's of merkafbeeldingen).
+
+| km | id | Naam | Verhaal | Icoon |
+|---|---|---|---|---|
+| 100 | karman | Kármánlijn | Recht omhoog was je nu in de ruimte. | raket |
+| 408 | iss | Aanmeren bij het ISS | Zo hoog cirkelt het ruimtestation boven ons. | ruimtestation |
+| 1.000 | milestone_1000 | 1.000 km | Je eerste duizend kilometer. | vlag |
+| 1.650 | rome | Alle wegen leiden naar Rome | Net zo ver als van Amsterdam naar Rome over de weg. | zuil |
+| 3.940 | route66 | Route 66 | Chicago naar Santa Monica, van begin tot eind. | verkeersbord "66" |
+| 5.860 | atlantic | Over de plas | Hemelsbreed van Amsterdam naar New York. | golven |
+| 9.289 | transsib | Trans-Siberië Express | Moskou naar Vladivostok, de langste treinreis ter wereld. | trein |
+| 16.600 | downunder | Down Under | Hemelsbreed van Amsterdam naar Sydney. | kangoeroe |
+| 21.196 | greatwall | De Chinese Muur | Alle delen van de muur achter elkaar gelegd. | muur |
+| 30.000 | panam | Pan-Americana | Van Alaska tot Vuurland. | bergen |
+| 40.075 | milestone_40075 | Rondje aarde | Eén keer rond de evenaar. | wereldbol |
+
+- De **Maanreis** (384.400 km) blijft een badge in de categorie "Legendarisch".
+- Migratie (1.2.0): de kale mijlpalen (2.500 t/m 100.000 km en de doorlopende per 25.000 km) zijn verwijderd, inclusief hun seen-vlaggen en een eventuele keuze om er een te volgen (dan valt de app terug op de automatische keuze). 1.000 km en Rondje aarde behouden hun id, datum en seen-status. De nieuwe bestemmingen worden met terugwerkende kracht berekend en verschijnen in het reveal-scherm.
 
 ### Badges
 Badges worden gedefinieerd als **data** (een array met `id`, `naam`, `beschrijving`, `hint`, `categorie`, `xp`, `vereist` (benodigde sensoren) en `check(context)`). Zo zijn ze makkelijk uit te breiden.
@@ -139,12 +153,12 @@ Badges die op tijdstip gebaseerd zijn (`night_owl`, `early_bird`) tellen alleen 
 Beste dag, beste week, beste maand, langste streak, langste ritblok, snelste laadsessie (gem. kW) en meeste laadsessies in een maand.
 
 ### "Nieuw"-moment
-- Elke badge, mijlpaal, level-up en elk nieuw record heeft een `seen`-vlag.
+- Elke badge (inclusief Wereldreis-bestemmingen), level-up, nieuwe rang en elk nieuw record heeft een `seen`-vlag.
 - Bij het openen van de app verschijnt eerst een **reveal-scherm**: niet-geziene items één voor één (oudste eerst), met een korte retro-animatie (pixel-burst, geen geluid). Elk item wordt als gezien gemarkeerd zodra je verder gaat.
 - Na 3 items verschijnt een knop **"Toon alles"**: de overige items staan dan in één lijst en worden met "Klaar" allemaal als gezien gemarkeerd. Zo wordt een grote inhaalslag (bijv. de eerste keer na de badge-update) geen reeks van 20 losse schermen.
 - Level-ups worden samengevoegd tot één item: het hoogste nieuwe level, met het aantal gestegen levels.
 - Een nieuwe rang is een eigen item ("Nieuwe rang", met het pixel-art icoon van die rang). Zijn er meerdere nieuwe rangen tegelijk, dan verschijnt alleen de hoogste.
-- Ook records die al bestonden vóór de eerste reveal, verschijnen daarin (net als badges, mijlpalen en level-ups). Daarna verschijnt een record alleen opnieuw als het wordt verbeterd in een andere periode of rit.
+- Ook records die al bestonden vóór de eerste reveal, verschijnen daarin (net als badges, bestemmingen en level-ups). Daarna verschijnt een record alleen opnieuw als het wordt verbeterd in een andere periode of rit.
 - Daarbuiten is alles rustig: geen meldingen.
 
 ---
@@ -156,22 +170,21 @@ Navigatie onderaan (mobiel-eerst), bovenaan op desktop, met de tabs Cockpit, Bad
 1. **Cockpit**
    - Grote kilometerteller in LCD-cijfers die bij het openen kort "doortelt" naar de huidige stand.
    - Level, rangtitel en XP-balk. Een tik op de rang opent het **rangenoverzicht**: alle rangen met levelbereik, XP-drempel en een eigen pixel-art icoon; de huidige rang gemarkeerd, toekomstige rangen gedimd.
-   - Voortgang naar de volgende mijlpaal.
+   - **Volgende bestemming**: naam, icoon en voortgang naar de eerstvolgende Wereldreis-badge, met "nog X km" en het verhaal. Is de hele wereldreis voltooid, dan staat er "Volgende stop: de maan".
    - Vandaag, deze week en deze maand in km.
    - De huidige streak.
    - Laatst ontgrendelde badge.
    - SoC en actieradius, als die zijn ingesteld.
    - De gevolgde badge (zie Badges → Gevolgde badge). Er is geen aparte maanreis-kaart meer; de Maanreis is een badge.
 2. **Badges**
-   - Raster per categorie (Rijden, Laden, Zuinigheid, Mijlpalen). Ontgrendeld: icoon in kleur met datum en bonus-XP. Vergrendeld: silhouet met hint. Verborgen badges tonen "???" (naam en hint blijven geheim tot ontgrendeling). Badges die van een niet-ingestelde sensor afhangen, verschijnen niet.
-   - Mijlpalen: alle vaste mijlpalen, plus elke gehaalde mijlpaal daarna en de eerstvolgende.
-   - Voortgang: vergrendelde telbare badges (mijlpalen, laadaantallen, streaks, maand-/week-km, megawattuur) tonen een dun voortgangsbalkje met "huidig / doel". Streaks tellen de huidige reeks, maand/week de lopende periode.
+   - Raster per categorie (Rijden, Laden, Zuinigheid, Wereldreis, Legendarisch). Ontgrendeld: icoon in kleur met datum en bonus-XP. Vergrendeld: silhouet met hint. Verborgen badges tonen "???" (naam en hint blijven geheim tot ontgrendeling). Badges die van een niet-ingestelde sensor afhangen, verschijnen niet.
+   - Voortgang: vergrendelde telbare badges (Wereldreis, Maanreis, laadaantallen, streaks, maand-/week-km, megawattuur) tonen een dun voortgangsbalkje met "huidig / doel". Streaks tellen de huidige reeks, maand/week de lopende periode.
    - Kaarten: twee kolommen op schermen smaller dan 420px, anders drie (vier vanaf 560px). Namen worden nooit midden in een woord afgebroken.
    - Teller "x / y".
 3. **Historie**
    - Staafgrafiek km per dag, week en maand (schakelbaar).
    - Recordlijst.
-   - Tijdlijn van gebeurtenissen (badges, mijlpalen, level-ups).
+   - Tijdlijn van gebeurtenissen (badges, Wereldreis-bestemmingen, level-ups).
 4. **Laden**
    - Lijst met sessies (datum, AC/DC, kWh-schatting, SoC van → naar, gem. kW).
    - Totalen en de verbruiksschatting.

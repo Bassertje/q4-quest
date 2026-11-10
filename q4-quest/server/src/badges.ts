@@ -17,7 +17,7 @@ const CATEGORIES: { id: BadgeCategory; name: string }[] = [
   { id: 'rijden', name: 'Rijden' },
   { id: 'laden', name: 'Laden' },
   { id: 'zuinigheid', name: 'Zuinigheid' },
-  { id: 'mijlpalen', name: 'Mijlpalen' },
+  { id: 'wereldreis', name: 'Wereldreis' },
   { id: 'legendarisch', name: 'Legendarisch' },
 ];
 

@@ -1,6 +1,9 @@
-export interface Milestone {
+export interface Destination {
   km: number;
+  id: string;
   name: string;
+  story: string;
+  icon: string;
 }
 
 export interface CockpitData {
@@ -10,7 +13,7 @@ export interface CockpitData {
     odometer: number;
     odometerTs: number;
     level: { xp: number; level: number; rank: string; levelStartXp: number; nextLevelXp: number; fraction: number };
-    milestone: { previous: Milestone | null; next: Milestone; fraction: number; remainingKm: number };
+    destination: { previous: Destination | null; next: Destination | null; fraction: number; remainingKm: number };
     bonusXp: number;
     lastUnlocked: { id: string; name: string; icon: string; category: string; ts: number } | null;
     distance: { today: number; week: number; month: number };

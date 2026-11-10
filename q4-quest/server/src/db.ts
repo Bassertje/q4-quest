@@ -57,6 +57,23 @@ export const MIGRATIONS: { version: number; name: string; sql: string }[] = [
       DELETE FROM meta WHERE key = 'reveal.records_baseline';
     `,
   },
+  {
+    // 1.2.0: the plain milestone badges (2,500 km, 5,000 km, …) were replaced
+    // by the world trip. Remove their seen flags and, if one of them was
+    // followed, clear that choice (the app then picks one automatically).
+    // The kept badges (1,000 km and Rondje aarde) keep their ids and flags.
+    version: 5,
+    name: 'world_trip',
+    sql: `
+      DELETE FROM seen_items
+      WHERE item_key LIKE 'badge:milestone!_%' ESCAPE '!'
+        AND item_key NOT IN ('badge:milestone_1000', 'badge:milestone_40075');
+      UPDATE meta SET value = ''
+      WHERE key = 'setting.followed_badge'
+        AND value LIKE 'milestone!_%' ESCAPE '!'
+        AND value NOT IN ('milestone_1000', 'milestone_40075');
+    `,
+  },
 ];
 
 export function openDatabase(path: string): DatabaseSync {

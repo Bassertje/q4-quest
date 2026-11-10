@@ -61,7 +61,7 @@
   }
 
   function eventTitle(e: TimelineEvent): string {
-    if (e.type === 'milestone') return `Mijlpaal: ${e.name} (+${km(e.xp)} XP)`;
+    if (e.type === 'milestone') return `Wereldreis: ${e.name} (+${km(e.xp)} XP)`;
     if (e.type === 'badge') return e.xp > 0 ? `Badge: ${e.name} (+${km(e.xp)} XP)` : `Badge: ${e.name}`;
     return e.newRank ? `Level ${e.level}, nieuwe rang: ${e.rank}` : `Level ${e.level}`;
   }
@@ -75,7 +75,7 @@
     const top = levels[0];
     const parts: string[] = [];
     if (top && top.type === 'level') parts.push(`level ${top.level} (${top.rank})`);
-    if (milestones.length) parts.push(`${milestones.length} ${milestones.length === 1 ? 'mijlpaal' : 'mijlpalen'}`);
+    if (milestones.length) parts.push(`${milestones.length} ${milestones.length === 1 ? 'bestemming' : 'bestemmingen'}`);
     if (badges.length) parts.push(`${badges.length} ${badges.length === 1 ? 'badge' : 'badges'}`);
     return { ts: initial[0].ts, text: `Start van de meting: al ${parts.join(' en ')}` };
   });

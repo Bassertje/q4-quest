@@ -14,7 +14,7 @@
 
   const TITLES: Record<RevealItem['kind'], string> = {
     badge: 'Badge ontgrendeld',
-    milestone: 'Mijlpaal bereikt',
+    milestone: 'Bestemming bereikt',
     level: 'Level omhoog',
     rank: 'Nieuwe rang',
     record: 'Nieuw record',

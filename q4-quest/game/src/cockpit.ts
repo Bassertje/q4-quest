@@ -1,7 +1,7 @@
 import type { BadgeResult } from './badges.ts';
 import { currentStreak, dailyTotals, periodTotals } from './distance.ts';
 import { levelProgress, type LevelProgress } from './levels.ts';
-import { milestoneProgress, type MilestoneProgress, type TimedValue } from './milestones.ts';
+import { destinationProgress, type DestinationProgress, type TimedValue } from './milestones.ts';
 import { dayKey } from './time.ts';
 
 export interface CockpitInput {
@@ -17,7 +17,8 @@ export interface Cockpit {
   odometer: number;
   odometerTs: number;
   level: LevelProgress;
-  milestone: MilestoneProgress;
+  /** Next world-trip destination ("Volgende bestemming"). */
+  destination: DestinationProgress;
   bonusXp: number;
   lastUnlocked: { id: string; name: string; icon: string; category: string; ts: number } | null;
   distance: { today: number; week: number; month: number };
@@ -40,7 +41,7 @@ export function buildCockpit(input: CockpitInput): Cockpit | null {
     // XP: one point per km on the odometer, plus badge bonus XP.
     level: levelProgress(odometer + bonusXp),
     bonusXp,
-    milestone: milestoneProgress(odometer),
+    destination: destinationProgress(odometer),
     lastUnlocked: latest
       ? { id: latest.id, name: latest.name, icon: latest.icon, category: latest.category, ts: latest.unlockedTs! }
       : null,

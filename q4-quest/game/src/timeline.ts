@@ -1,6 +1,6 @@
-import { milestoneXp, type BadgeResult } from './badges.ts';
+import type { BadgeResult } from './badges.ts';
 import { levelForXp, rankForLevel } from './levels.ts';
-import { milestoneDates, type TimedValue } from './milestones.ts';
+import { destinationDates, destinationXp, type TimedValue } from './milestones.ts';
 
 export type TimelineEvent =
   | { type: 'milestone'; ts: number; km: number; name: string; xp: number }
@@ -18,13 +18,14 @@ export function timeline(
   badges: BadgeResult[] = [],
 ): { initial: TimelineEvent[]; events: TimelineEvent[] } {
   const all: TimelineEvent[] = [];
-  for (const { milestone, ts } of milestoneDates(odometer)) {
-    all.push({ type: 'milestone', ts, km: milestone.km, name: milestone.name, xp: milestoneXp(milestone.km) });
+  // World-trip destinations (internally still called "milestone" events).
+  for (const { destination, ts } of destinationDates(odometer)) {
+    all.push({ type: 'milestone', ts, km: destination.km, name: destination.name, xp: destinationXp(destination.km) });
   }
   const unlocked = badges.filter((b) => b.unlockedTs !== null).sort((a, b) => a.unlockedTs! - b.unlockedTs!);
-  // Milestones already appear as milestone events; other badges as badge events.
+  // World-trip badges already appear as milestone events; other badges as badge events.
   for (const b of unlocked) {
-    if (b.category === 'mijlpalen') continue;
+    if (b.category === 'wereldreis') continue;
     all.push({ type: 'badge', ts: b.unlockedTs!, id: b.id, name: b.name, xp: b.xp, icon: b.icon });
   }
 

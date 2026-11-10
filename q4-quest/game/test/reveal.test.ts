@@ -4,7 +4,7 @@ import { revealItems, type RecordEntry } from '../src/reveal.ts';
 import { timeline } from '../src/timeline.ts';
 
 const badge = (id: string, unlockedTs: number | null, category: BadgeResult['category'] = 'rijden'): BadgeResult => ({
-  id, name: id, description: '', hint: '', category, xp: category === 'mijlpalen' ? 0 : 50, hidden: false, icon: 'car', unlockedTs, progress: null,
+  id, name: id, description: '', hint: '', category, xp: category === 'wereldreis' ? 0 : 50, hidden: false, icon: 'car', unlockedTs, progress: null,
 });
 
 describe('revealItems', () => {
@@ -12,7 +12,7 @@ describe('revealItems', () => {
     { ts: 1, value: 650 }, // level 3 at the first reading
     { ts: 5, value: 1_010 }, // level 4 and the 1,000 km milestone
   ];
-  const badges = [badge('first_100_day', 3), badge('day_300', null), badge('milestone_1000', 5, 'mijlpalen')];
+  const badges = [badge('first_100_day', 3), badge('day_300', null), badge('milestone_1000', 5, 'wereldreis')];
   const records: RecordEntry[] = [{ key: 'record:bestDay:2026-03-02', name: 'Beste dag', value: '360 km', label: 'ma 2 maart 2026', ts: 4 }];
   const t = timeline(odo, badges);
 

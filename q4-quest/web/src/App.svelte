@@ -40,7 +40,7 @@
   let reveal = $state<RevealItem[]>([]);
   let timeZone = $state<string | undefined>(undefined);
 
-  /** On opening the app: first show what is new (badges, milestones, levels, records). */
+  /** On opening the app: first show what is new (badges, destinations, levels, records). */
   async function checkReveal() {
     if (reveal.length) return;
     try {

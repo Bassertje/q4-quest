@@ -55,8 +55,9 @@ describe('timeline', () => {
       { ts: 2, value: 1_010 },
       { ts: 3, value: 1_200 },
     ]);
-    // 950 XP = level 3 at the first reading (levels 1–3 are "initial").
-    expect(t.initial.map((e) => (e.type === 'level' ? e.level : e.type === 'milestone' ? e.km : 0))).toEqual([3, 2, 1]);
+    // 950 km at the first reading: the Kármán line (100 km) and the ISS (408 km)
+    // are already reached, and 950 XP = level 3 (levels 1–3 are "initial").
+    expect(t.initial.map((e) => (e.type === 'level' ? e.level : e.type === 'milestone' ? e.km : 0))).toEqual([408, 100, 3, 2, 1]);
     // 1,010 km reaches the 1,000 km milestone and level 4 (1,000 XP) at once.
     expect(t.events).toEqual([
       { type: 'milestone', ts: 2, km: 1_000, name: '1.000 km', xp: 100 },
