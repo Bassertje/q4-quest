@@ -18,8 +18,25 @@ describe('buildCockpit', () => {
     expect(c.odometer).toBe(15_020);
     expect(c.level.level).toBe(16);
     expect(c.milestone.next.km).toBe(20_000);
-    expect(c.lastMilestone?.milestone.km).toBe(15_000);
+    expect(c.lastUnlocked).toBeNull(); // no badges passed in
+    expect(c.bonusXp).toBe(0);
     expect(c.distance).toEqual({ today: 70, week: 70, month: 70 });
     expect(c.streak).toBe(1);
+  });
+
+  it('adds bonus XP of unlocked badges to the level and shows the latest badge', () => {
+    const badge = (id: string, xp: number, unlockedTs: number | null) => ({
+      id, name: id, description: '', hint: '', category: 'rijden' as const, xp, hidden: false, icon: 'car', unlockedTs,
+    });
+    const c = buildCockpit({
+      odometer: [{ ts: 1, value: 15_020 }],
+      now: 2,
+      timeZone: 'UTC',
+      badges: [badge('a', 200, 1), badge('b', 100, 2), badge('c', 300, null)],
+    })!;
+    expect(c.bonusXp).toBe(300);
+    expect(c.level.xp).toBe(15_320); // level 17 starts at 15,300 XP
+    expect(c.level.level).toBe(17);
+    expect(c.lastUnlocked?.id).toBe('b');
   });
 });

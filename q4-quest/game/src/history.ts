@@ -1,4 +1,5 @@
 import { filledDaily, monthlyTotals, weeklyTotals, type Series } from './aggregate.ts';
+import type { BadgeResult } from './badges.ts';
 import { dailyTotals } from './distance.ts';
 import type { TimedValue } from './milestones.ts';
 import { drivingRecords, type DrivingRecords } from './records.ts';
@@ -11,6 +12,9 @@ export interface HistoryInput {
   parkingBrake?: TimedState[];
   now: number;
   timeZone: string;
+  badges?: BadgeResult[];
+  /** Precomputed trip blocks (otherwise derived from the odometer and parking brake). */
+  trips?: TripBlock[];
 }
 
 export interface History {
@@ -31,13 +35,13 @@ export function buildHistory(input: HistoryInput): History | null {
   const daily = filledDaily(totals, first, today > first ? today : first);
   const weekly = weeklyTotals(daily);
   const monthly = monthlyTotals(daily);
-  const trips = tripBlocks(input.odometer, input.parkingBrake);
+  const trips = input.trips ?? tripBlocks(input.odometer, input.parkingBrake);
   return {
     daily,
     weekly,
     monthly,
     records: drivingRecords({ daily, weekly, monthly, totals, trips }),
     trips,
-    timeline: timeline(input.odometer),
+    timeline: timeline(input.odometer, input.badges),
   };
 }

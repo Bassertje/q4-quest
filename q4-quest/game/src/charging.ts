@@ -102,19 +102,34 @@ function lastBefore<T extends { ts: number }>(readings: T[], ts: number): T | nu
   return found;
 }
 
+/** Whether the SoC drops during an interval (a reading below the last value before it). */
+function socDrops(soc: TimedValue[], [a, b]: Interval): boolean {
+  const before = lastBefore(soc, a);
+  if (!before) return false;
+  for (const r of soc) {
+    if (r.ts <= a) continue;
+    if (r.ts > b) break;
+    if (r.value < before.value) return true;
+  }
+  return false;
+}
+
 /**
- * Candidate charging periods: "charging" state or power > 0. Candidates less
- * than 30 minutes apart are merged. A "not charging" state ends a power
- * interval early, so a stale power value cannot keep a candidate open.
+ * Candidate charging periods: "charging" state or power > 0. A "not charging"
+ * state ends a power interval early, so a stale power value cannot keep a
+ * candidate open. With a SoC sensor, candidates during which the SoC drops are
+ * discarded first (false positives), so they cannot pull the start of a real
+ * session forward. The rest are merged when less than 30 minutes apart.
  */
-export function chargingCandidates(input: Pick<ChargingInput, 'power' | 'state' | 'now'>): Interval[] {
+export function chargingCandidates(input: Pick<ChargingInput, 'power' | 'state' | 'now' | 'soc' | 'hasSoc'>): Interval[] {
   const { power, state, now } = input;
-  const intervals = activeIntervals(state, (s) => isChargingState(s.state), now);
+  let intervals = activeIntervals(state, (s) => isChargingState(s.state), now);
   const stops = state.filter((s) => !isChargingState(s.state)).map((s) => s.ts);
   for (const [a, b] of activeIntervals(power, (p) => p.kw > 0, now)) {
     const stop = stops.find((t) => t > a && t < b);
     intervals.push([a, stop ?? b]);
   }
+  if (input.hasSoc) intervals = intervals.filter((iv) => !socDrops(input.soc, iv));
   intervals.sort((x, y) => x[0] - y[0]);
   const merged: Interval[] = [];
   for (const iv of intervals) {

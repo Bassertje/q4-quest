@@ -16,8 +16,8 @@ describe('tripBlocks', () => {
 
   it('groups increases less than 45 minutes apart', () => {
     expect(tripBlocks(odo)).toEqual([
-      { start: 600 * MIN, end: 650 * MIN, km: 40, readings: 3 },
-      { start: 700 * MIN, end: 700 * MIN, km: 10, readings: 1 },
+      { start: 600 * MIN, end: 650 * MIN, km: 40, readings: 3, confirmedTs: 620 * MIN },
+      { start: 700 * MIN, end: 700 * MIN, km: 10, readings: 1, confirmedTs: null },
     ]);
   });
 

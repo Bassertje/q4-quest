@@ -31,3 +31,11 @@ export function onLiveUpdate(callback: () => void): () => void {
     document.removeEventListener('visibilitychange', onVisible);
   };
 }
+
+export async function postJson(path: string, body: unknown): Promise<Response> {
+  return fetch(`./api/${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}

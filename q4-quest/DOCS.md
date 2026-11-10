@@ -53,6 +53,23 @@ Na het wijzigen van opties moet je de add-on herstarten.
   laadsessie (gemiddeld vermogen) en meeste laadsessies in een maand.
 - **Tijdlijn:** mijlpalen en level-ups, gedateerd op het moment dat ze voor het eerst werden gehaald.
 
+## Badges
+
+Op de tab **Badges** zie je alle badges per categorie: Rijden, Laden, Zuinigheid en Mijlpalen.
+
+- Badges worden met terugwerkende kracht berekend uit je opgeslagen gegevens. De datum is het moment
+  waarop je de badge voor het eerst verdiende.
+- Het bonus-XP van een badge telt mee voor je level. Mijlpalen geven geen bonus-XP.
+- Vergrendelde badges tonen een silhouet met een hint. Eén badge is verborgen en verschijnt pas als je
+  hem hebt.
+- Badges die een niet-ingestelde sensor nodig hebben (bijvoorbeeld laadbadges zonder laadsensoren),
+  worden niet getoond.
+- "Nachtuil" en "Vroege vogel" tellen alleen voor ritblokken met minstens twee metingen van de
+  kilometerstand.
+
+Bij het openen van de app verschijnt eerst wat er nieuw is: badges, mijlpalen, level-ups en nieuwe
+records, één voor één. Na drie items kun je met **Toon alles** de rest in één keer zien.
+
 ## Laden
 
 Het scherm **Laden** verschijnt als je een sensor voor het laadvermogen of de laadstatus hebt ingesteld.
@@ -60,7 +77,8 @@ Het scherm **Laden** verschijnt als je een sensor voor het laadvermogen of de la
 - **Laadsessie:** een periode met status "laden" of laadvermogen boven 0 is een kandidaat. Kandidaten
   die minder dan 30 minuten uit elkaar liggen worden samengevoegd. Een kandidaat telt alleen als het
   accupercentage minstens 2 procentpunt stijgt (de laatste waarde vóór de start vergeleken met de
-  hoogste waarde tot 30 minuten na het einde). Zo vallen valse meldingen weg. Zonder
+  hoogste waarde tot 30 minuten na het einde). Kandidaten waarin het accupercentage daalt, worden
+  vóór het samenvoegen weggegooid. Zo vallen valse meldingen weg. Zonder
   accupercentage-sensor telt elke kandidaat. Als statuswaarde voor laden worden onder meer
   `charging`, `laden` en `on` herkend.
 - **kWh-schatting:** de stijging van het accupercentage × `battery_kwh`. Alleen zonder

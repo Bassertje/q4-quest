@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { ICONS, pixelPath } from './icons';
+
   let { route, charging = false }: { route: string; charging?: boolean } = $props();
 
   // 16×16 pixel-style icons.
@@ -8,6 +10,12 @@
       href: '#/',
       label: 'Cockpit',
       icon: 'M4 3h8v1h2v2h1v6h-1v1H2v-1H1V6h1V4h2V3Zm0 3v1h1V6H4Zm7 0v1h1V6h-1ZM7 5v1h2V5H7Zm1 3v1H7v2h2V9H8V8Zm1-2v2h1V6H9Z',
+    },
+    {
+      id: 'badges',
+      href: '#/badges',
+      label: 'Badges',
+      icon: pixelPath(ICONS.trophy),
     },
     {
       id: 'historie',

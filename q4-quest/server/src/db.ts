@@ -34,6 +34,16 @@ export const MIGRATIONS: { version: number; name: string; sql: string }[] = [
       CREATE UNIQUE INDEX readings_key_ts ON readings (entity_key, ts);
     `,
   },
+  {
+    version: 3,
+    name: 'seen_items',
+    sql: `
+      CREATE TABLE seen_items (
+        item_key TEXT PRIMARY KEY,
+        seen_at  TEXT NOT NULL
+      );
+    `,
+  },
 ];
 
 export function openDatabase(path: string): DatabaseSync {

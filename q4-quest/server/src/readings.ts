@@ -14,6 +14,8 @@ export interface Reading {
 
 /** Small data-access layer for the readings table. */
 export class ReadingStore {
+  /** Increases whenever a reading is stored; used to cache derived data. */
+  revision = 0;
   private db: DatabaseSync;
   private insertStmt: StatementSync;
   private latestStmt: StatementSync;
@@ -56,7 +58,9 @@ export class ReadingStore {
       r.attrs ? JSON.stringify(r.attrs) : null,
       r.source,
     );
-    return Number(res.changes) > 0;
+    const stored = Number(res.changes) > 0;
+    if (stored) this.revision++;
+    return stored;
   }
 
   latest(key: SensorKey): { ts: number; value: string; attrs: Record<string, unknown> | null } | null {

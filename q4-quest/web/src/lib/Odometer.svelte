@@ -89,6 +89,7 @@
     padding: 14px 12px 10px;
     background: var(--lcd-bg);
     border: 1px solid var(--lcd-line);
+    box-shadow: var(--lcd-shadow);
     border-radius: 8px;
     overflow: hidden;
     font-family: var(--font-pixel);

@@ -14,6 +14,7 @@ function formatter(timeZone: string): Intl.DateTimeFormat {
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
+      minute: '2-digit',
       hourCycle: 'h23',
     });
     formatters.set(timeZone, f);
@@ -66,4 +67,24 @@ export function weekKey(day: string): string {
   const yearStart = Date.UTC(isoYear, 0, 1);
   const week = Math.ceil(((d.getTime() - yearStart) / 86_400_000 + 1) / 7);
   return `${isoYear}-W${String(week).padStart(2, '0')}`;
+}
+
+/** Epoch milliseconds of local midnight at the start of a day key in a time zone. */
+export function zonedMidnight(day: string, timeZone: string): number {
+  const [y, m, d] = day.split('-').map(Number);
+  const target = Date.UTC(y, m - 1, d);
+  let ts = target;
+  // Two corrections are enough to settle on the right offset, also around DST changes.
+  for (let i = 0; i < 2; i++) {
+    const p = parts(ts, timeZone);
+    const local = Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour), Number(p.minute));
+    ts -= local - target;
+  }
+  return ts;
+}
+
+/** Whether a day key is a Saturday or Sunday. */
+export function isWeekend(day: string): boolean {
+  const weekday = toUtcDate(day).getUTCDay();
+  return weekday === 0 || weekday === 6;
 }
