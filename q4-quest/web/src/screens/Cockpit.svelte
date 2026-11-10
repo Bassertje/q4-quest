@@ -312,6 +312,11 @@
     font-weight: 600;
     line-height: 1.2;
   }
+  /* Value and unit stay together; the size shrinks on narrow screens. */
+  .tiles .pixel {
+    white-space: nowrap;
+    font-size: clamp(1.45rem, 6.2vw, 1.9rem);
+  }
   .tile {
     padding: 12px;
     min-width: 0;

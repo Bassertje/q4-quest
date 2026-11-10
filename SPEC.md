@@ -222,7 +222,11 @@ Beste dag, beste week, beste maand, langste streak, langste ritblok, snelste laa
 
 ## 4. Schermen
 
-Navigatie onderaan (mobiel-eerst), bovenaan op desktop, met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laadsensoren). Instellingen zitten achter een tandwiel. De navigatie-iconen zijn pixel-art (Cockpit: een stuur; Instellingen: een tandwiel met 8 tanden en een rond gat).
+Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laadsensoren). Instellingen zitten achter een tandwiel. De navigatie-iconen zijn pixel-art (Cockpit: een stuur; Instellingen: een tandwiel met 8 tanden en een rond gat). De positie is instelbaar (Instellingen → Navigatie):
+- **Boven** (standaard): een sticky balk direct onder de kop "Q4 QUEST", met een achtergrond in de themakleur zodat content er niet doorheen schijnt, pixel-iconen met label en een rode onderstreping voor de actieve tab.
+- **Onder**: een vaste balk onderaan het scherm.
+- **Automatisch**: onder als de user agent "Home Assistant/" bevat (de Companion-app), anders boven.
+- Onderaan is er altijd ca. 24px + `env(safe-area-inset-bottom)` marge; bij navigatie onder komt daar de hoogte van de balk bij.
 
 1. **Cockpit**
    - Grote kilometerteller in LCD-cijfers die bij het openen kort "doortelt" naar de huidige stand.
@@ -253,6 +257,7 @@ Navigatie onderaan (mobiel-eerst), bovenaan op desktop, met de tabs Cockpit, Bad
    - Backfill opnieuw starten.
    - Export van de eigen data als JSON (download, nooit naar de repo).
    - Weergave: Automatisch / Licht / Donker (standaard Automatisch, via `prefers-color-scheme`). De keuze wordt in de database opgeslagen.
+   - Navigatie: Boven / Onder / Automatisch (standaard Boven). De keuze wordt in de database opgeslagen.
    - Knop "Voorbeeld jaaroverzicht": toont het jaaroverzicht van het lopende jaar met de data tot nu toe, ook vóór 1 december.
 6. **Jaaroverzicht** (volledig scherm, geen tab)
    - Swipebare kaarten (vegen, pijlen, toetsenbord of stippen): intro, totaal km (en aantal rijdagen), beste dag, beste week, langste streak, aantal laadsessies en geladen kWh, AC/DC-verhouding, Groen (CO₂, liters, bomen), nieuwe badges (met iconen en bonus-XP), level-groei (level aan het begin → nu/eind, met XP en rang), "Rondje aarde"-vergelijking (km ÷ 40.075) en een afsluiter. Kaarten zonder gegevens (bijv. laden zonder laadsensoren) vallen weg.
@@ -275,6 +280,7 @@ Navigatie onderaan (mobiel-eerst), bovenaan op desktop, met de tabs Cockpit, Bad
   - Geen merklogo's.
   - Respecteer `prefers-reduced-motion`.
   - Goed leesbaar op een telefoon, zonder horizontaal scrollen.
+  - Lijsten (ritblokken, laadsessies, records, weekuitdagingen) gebruiken één vaste rij van twee regels: regel 1 de hoofdtekst links (bijv. datum) en de waarde rechts (vet, nooit afgebroken); regel 2 klein en gedempt (bijv. tijdvak of "rond HH:MM", en indien beschikbaar " · temperatuur"). De tijdlijn toont titel en daaronder de datum.
   - Fonts lokaal meeleveren, niet via een CDN (de add-on moet offline werken).
 
 ---

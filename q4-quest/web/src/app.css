@@ -200,3 +200,42 @@ button:disabled {
   color: var(--on-accent);
   box-shadow: none;
 }
+
+/* Two-line list rows: line 1 main text left and value right (bold, never
+   wrapping); line 2 small and muted, across the full width. */
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.rows > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 12px;
+  row-gap: 2px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line);
+}
+.rows > li:first-child {
+  border-top: 0;
+}
+.row-main {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+.row-value {
+  font-weight: 600;
+  white-space: nowrap;
+  text-align: right;
+}
+.row-sub {
+  grid-column: 1 / -1;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Keep a short phrase (e.g. "gem. 10,1 kW") on one line. */
+.nw {
+  white-space: nowrap;
+}

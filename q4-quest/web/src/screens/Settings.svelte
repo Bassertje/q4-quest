@@ -2,6 +2,7 @@
   import { getJson, post } from '../lib/api';
   import { km } from '../lib/format';
   import { cachedTheme, saveTheme, type ThemeChoice } from '../lib/theme';
+  import { cachedNav, saveNav, type NavChoice } from '../lib/navPref';
   import type { StatusData } from '../lib/types';
 
   let { refresh }: { refresh: number } = $props();
@@ -39,6 +40,17 @@
     { value: 'dark', label: 'Donker' },
   ];
   let theme = $state<ThemeChoice>(cachedTheme());
+  const NAV_OPTIONS: { value: NavChoice; label: string }[] = [
+    { value: 'top', label: 'Boven' },
+    { value: 'bottom', label: 'Onder' },
+    { value: 'auto', label: 'Automatisch' },
+  ];
+  let nav = $state<NavChoice>(cachedNav());
+
+  async function chooseNav(choice: NavChoice) {
+    nav = choice;
+    await saveNav(choice);
+  }
 
   async function chooseTheme(choice: ThemeChoice) {
     theme = choice;
@@ -65,8 +77,11 @@
   $effect(() => {
     void refresh;
     load();
-    getJson<{ theme: ThemeChoice }>('settings')
-      .then((s) => (theme = s.theme))
+    getJson<{ theme: ThemeChoice; navPosition: NavChoice }>('settings')
+      .then((s) => {
+        theme = s.theme;
+        nav = s.navPosition;
+      })
       .catch(() => {});
     return () => {
       if (pollTimer) clearTimeout(pollTimer);
@@ -104,6 +119,15 @@
       {/each}
     </div>
     <p class="muted small hint">Automatisch volgt de instelling van je apparaat.</p>
+    <h4>Navigatie</h4>
+    <div class="segmented" role="group" aria-label="Navigatie">
+      {#each NAV_OPTIONS as o (o.value)}
+        <button class:active={nav === o.value} aria-pressed={nav === o.value} onclick={() => chooseNav(o.value)}>
+          {o.label}
+        </button>
+      {/each}
+    </div>
+    <p class="muted small hint">Automatisch: onderaan in de Home Assistant-app, anders bovenaan.</p>
   </section>
 
   <section class="panel">
@@ -203,6 +227,10 @@
   }
   .hint {
     margin: 8px 0 0;
+  }
+  h4 {
+    font-size: 0.9rem;
+    margin: 16px 0 8px;
   }
   h3 {
     font-size: 1rem;

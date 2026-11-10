@@ -109,21 +109,19 @@
     {#if data.sessions.length === 0}
       <p class="muted small">Nog geen laadsessies gevonden.</p>
     {:else}
-      <ul class="sessions">
+      <ul class="rows sessions">
         {#each data.sessions.slice(0, shown) as s (s.start)}
           <li class:live={s.ongoing}>
-            <div class="top">
-              <span>
-                {date(s.start, tz)}
-                <span class="muted small">· {time(s.start)} · {s.ongoing ? 'bezig' : duration(s)}</span>
-              </span>
+            <span class="row-main">{date(s.start, tz)}</span>
+            <span class="row-value">
+              {s.kwh === null ? '–' : `~${num1(s.kwh)} kWh`}
               <span class="badge" class:dc={s.type === 'DC'}>{s.type}</span>
-            </div>
-            <div class="facts">
-              <span><span class="muted">kWh</span> {s.kwh === null ? '–' : `~${num1(s.kwh)}`}</span>
-              <span><span class="muted">SoC</span> {soc(s.socStart)} → {soc(s.socEnd)}</span>
-              <span><span class="muted">gem.</span> {s.avgKw === null ? '–' : `${kw(s.avgKw)} kW`}</span>
-            </div>
+            </span>
+            <span class="row-sub">
+              <span class="nw">{time(s.start)} · {s.ongoing ? 'bezig' : duration(s)}</span> ·
+              <span class="nw">SoC {soc(s.socStart)} → {soc(s.socEnd)}</span> ·
+              <span class="nw">gem. {s.avgKw === null ? '–' : `${kw(s.avgKw)} kW`}</span>
+            </span>
           </li>
         {/each}
       </ul>
@@ -184,37 +182,16 @@
     flex-direction: column;
     min-width: 0;
   }
-  .sessions {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  .sessions li {
-    padding: 10px 0;
-    border-top: 1px solid var(--line);
-  }
-  .sessions li:first-child {
-    border-top: 0;
-    padding-top: 0;
-  }
   .sessions li.live {
     border-left: 2px solid var(--accent);
     padding-left: 10px;
   }
-  .top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-  }
-  .facts {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 16px;
-    margin-top: 2px;
+  .sessions .row-sub {
     font-variant-numeric: tabular-nums;
   }
   .badge {
+    margin-left: 6px;
+    vertical-align: 1px;
     font-family: var(--font-pixel);
     font-size: 1.1rem;
     line-height: 1;
