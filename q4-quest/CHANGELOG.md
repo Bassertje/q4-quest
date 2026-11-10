@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0
+
+Het Historie-scherm.
+
+- Navigatie: onderaan op je telefoon, bovenaan op een groter scherm. Instellingen blijven achter het tandwiel.
+- Staafgrafiek met gereden km per dag, week of maand. Tik of beweeg over een staaf voor de waarde, en blader met ‹ › terug in de tijd.
+- Records: beste dag, beste week, beste maand, langste streak en langste ritblok. De laadrecords volgen met het Laden-scherm.
+- Ritblokken: opeenvolgende kilometerstijgingen met minder dan 45 minuten ertussen. Als de parkeerrem-sensor is ingesteld, splitst het aanzetten van de parkeerrem ook een ritblok. Ritblokken zijn indicatief. De recentste ritblokken staan in een lijst.
+- Tijdlijn met mijlpalen en level-ups, met terugwerkende kracht gedateerd. Wat je bij de eerste meting al had, staat samengevat als startpunt onderaan.
+
 ## 0.2.0
 
 De cockpit en het verzamelen van gegevens.

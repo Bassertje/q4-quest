@@ -64,3 +64,22 @@ export function currentStreak(totals: Map<string, number>, today: string): numbe
   }
   return streak;
 }
+
+export interface StreakRun {
+  days: number;
+  start: string;
+  end: string;
+}
+
+/** Longest run of consecutive days with ≥ 1 km (the most recent one wins a tie). */
+export function longestStreak(totals: Map<string, number>): StreakRun | null {
+  const days = [...totals.keys()].filter((d) => (totals.get(d) ?? 0) >= STREAK_MIN_KM).sort();
+  let best: StreakRun | null = null;
+  let run: StreakRun | null = null;
+  for (const day of days) {
+    if (run !== null && addDays(run.end, 1) === day) run = { start: run.start, days: run.days + 1, end: day };
+    else run = { days: 1, start: day, end: day };
+    if (!best || run.days >= best.days) best = run;
+  }
+  return best;
+}

@@ -38,3 +38,34 @@ export interface StatusData {
     error: string | null;
   };
 }
+
+export type Series = [key: string, km: number][];
+
+export type TimelineEvent =
+  | { type: 'milestone'; ts: number; km: number; name: string }
+  | { type: 'level'; ts: number; level: number; rank: string; newRank: boolean };
+
+export interface TripBlock {
+  start: number;
+  end: number;
+  km: number;
+}
+
+export interface HistoryData {
+  setupNeeded: boolean;
+  timeZone: string;
+  history: {
+    daily: Series;
+    weekly: Series;
+    monthly: Series;
+    records: {
+      bestDay: { key: string; km: number } | null;
+      bestWeek: { key: string; km: number } | null;
+      bestMonth: { key: string; km: number } | null;
+      longestStreak: { days: number; start: string; end: string } | null;
+      longestTrip: TripBlock | null;
+    };
+    recentTrips: TripBlock[];
+    timeline: { initial: TimelineEvent[]; events: TimelineEvent[] };
+  } | null;
+}

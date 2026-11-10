@@ -20,6 +20,7 @@ export class ReadingStore {
   private beforeStmt: StatementSync;
   private seriesStmt: StatementSync;
   private countStmt: StatementSync;
+  private statesStmt: StatementSync;
 
   constructor(db: DatabaseSync) {
     this.db = db;
@@ -36,6 +37,7 @@ export class ReadingStore {
     this.seriesStmt = db.prepare(
       'SELECT ts, CAST(value AS REAL) AS value FROM readings WHERE entity_key = ? ORDER BY ts',
     );
+    this.statesStmt = db.prepare('SELECT ts, value AS state FROM readings WHERE entity_key = ? ORDER BY ts');
     this.countStmt = db.prepare('SELECT entity_key AS key, COUNT(*) AS n FROM readings GROUP BY entity_key');
   }
 
@@ -65,6 +67,11 @@ export class ReadingStore {
   /** Numeric time series for a key, sorted by time. */
   series(key: SensorKey): { ts: number; value: number }[] {
     return this.seriesStmt.all(key) as { ts: number; value: number }[];
+  }
+
+  /** Text states for a key (e.g. the parking brake), sorted by time. */
+  states(key: SensorKey): { ts: number; state: string }[] {
+    return this.statesStmt.all(key) as { ts: number; state: string }[];
   }
 
   counts(): Record<string, number> {

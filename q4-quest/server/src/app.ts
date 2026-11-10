@@ -6,6 +6,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { cockpitResponse } from './cockpit.ts';
 import type { BackfillStatus } from './collector/collector.ts';
 import { schemaVersion } from './db.ts';
+import { historyResponse } from './history.ts';
 import type { HaStatus } from './ha/types.ts';
 import { SENSOR_KEYS, type Options } from './options.ts';
 import type { ReadingStore } from './readings.ts';
@@ -48,6 +49,8 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   }));
 
   app.get('/api/cockpit', async () => cockpitResponse(deps.store, deps.options, deps.timeZone()));
+
+  app.get('/api/history', async () => historyResponse(deps.store, deps.options, deps.timeZone()));
 
   app.post('/api/backfill', async (_req, reply) => {
     if (deps.backfill.status().state === 'running') return reply.code(409).send({ error: 'already running' });

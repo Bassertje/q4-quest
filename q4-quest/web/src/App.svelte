@@ -1,18 +1,27 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { onLiveUpdate } from './lib/api';
+  import Nav from './lib/Nav.svelte';
   import Cockpit from './screens/Cockpit.svelte';
+  import History from './screens/History.svelte';
   import Settings from './screens/Settings.svelte';
 
   // Hash-based routing keeps every URL relative (Ingress-proof).
-  type Route = 'cockpit' | 'instellingen';
-  const parse = (): Route => (location.hash === '#/instellingen' ? 'instellingen' : 'cockpit');
+  type Route = 'cockpit' | 'historie' | 'instellingen';
+  const parse = (): Route => {
+    if (location.hash === '#/instellingen') return 'instellingen';
+    if (location.hash === '#/historie') return 'historie';
+    return 'cockpit';
+  };
 
   let route = $state<Route>(parse());
   let refresh = $state(0);
 
   onMount(() => {
-    const onHash = () => (route = parse());
+    const onHash = () => {
+      route = parse();
+      window.scrollTo(0, 0);
+    };
     window.addEventListener('hashchange', onHash);
     const stop = onLiveUpdate(() => refresh++);
     return () => {
@@ -42,9 +51,13 @@
     {/if}
   </header>
 
+  <Nav {route} />
+
   <main>
     {#if route === 'instellingen'}
       <Settings {refresh} />
+    {:else if route === 'historie'}
+      <History {refresh} />
     {:else}
       <Cockpit {refresh} />
     {/if}
@@ -55,7 +68,13 @@
   .app {
     max-width: 680px;
     margin: 0 auto;
-    padding: 12px 16px 32px;
+    padding: 12px 16px calc(88px + env(safe-area-inset-bottom));
+  }
+  @media (min-width: 768px) {
+    .app {
+      max-width: 760px;
+      padding-bottom: 32px;
+    }
   }
   header {
     display: flex;

@@ -45,6 +45,13 @@ Na het wijzigen van opties moet je de add-on herstarten.
 - **Streak:** het aantal dagen op rij dat je minstens 1 km hebt gereden. Heb je vandaag nog niet
   gereden, dan telt de reeks tot en met gisteren nog mee.
 
+- **Ritblok:** opeenvolgende stijgingen van de kilometerstand met minder dan 45 minuten ertussen.
+  Met een parkeerrem-sensor splitst het aanzetten van de parkeerrem ook een ritblok. Een korte
+  laadstop onderweg hoort dus bij hetzelfde ritblok. Ritblokken zijn indicatief, omdat de auto de
+  kilometerstand niet realtime doorgeeft.
+- **Records:** beste dag, week en maand, langste streak en langste ritblok.
+- **Tijdlijn:** mijlpalen en level-ups, gedateerd op het moment dat ze voor het eerst werden gehaald.
+
 ## Backfill
 
 Bij de eerste start haalt de app de geschiedenis op uit Home Assistant: de langetermijnstatistieken
