@@ -107,9 +107,12 @@ export interface ChargingData {
     ac: { sessions: number; kwh: number };
     dc: { sessions: number; kwh: number };
   } | null;
-  consumption: { kwhPer100km: number | null; km: number; kwh: number; sessions: number } | null;
+  consumption: { kwhPer100km: number | null; km: number; kwh: number; sessions: number; from: number | null } | null;
   records: ChargingRecords | null;
   green: GreenTotals | null;
+  weeklyKwh: { week: string; ac: number; dc: number; beforeStart: boolean }[];
+  socLast7d: [number, number][];
+  nextGreen: { name: string; icon: string; current: number; target: number; unit: string } | null;
 }
 
 export interface HistoryData {

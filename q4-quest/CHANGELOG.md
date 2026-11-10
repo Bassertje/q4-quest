@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0
+
+- **Verbruik nauwkeuriger:** het verbruik telt nu ook mee hoeveel de accu leger of voller is geworden: verbruikte energie = geladen kWh + (accupercentage aan het begin − aan het eind) × accucapaciteit, gedeeld door de gereden km. Het venster van 30 dagen begint nooit vóór je eerste meting van kilometerstand én accu, en het verbruik verschijnt vanaf 300 km. Dezelfde methode geldt voor de weekbadges (Zuinige week, Winterhard), de zuinigheidsuitdaging, de maandgrafiek en de CO₂-schatting.
+- **Badges worden nooit afgepakt:** gehaalde badges worden vastgelegd. Klopt een badge met een nieuwe berekening niet meer, dan blijft hij gewoon staan.
+- **Laden-pagina:** grafiek met geladen kWh per week (AC en DC), een accu-tijdlijn van de laatste 7 dagen met je laadsessies, een kleine pixel-accu per sessie ("76 → 98%"), en in Groen een rij boompjes en de voortgang naar de volgende Groen-badge. De uitleg bij Verbruik en Groen zit nu achter een ⓘ-icoon.
+- **Weekuitdaging-kaart** netter uitgelijnd: label en "+100 XP" bovenaan, titel en opdracht over de volle breedte, en onderaan voortgang en resterende dagen.
+- "Bomen (een jaar)" heet nu **Gelijk aan**: "X bomen die een jaar lang CO₂ opnemen" (Laden-scherm, jaaroverzicht en deelkaart).
+
 ## 1.3.3
 
 - **Cockpit opnieuw ingedeeld:** kilometerteller, level, weekuitdaging, vandaag/week/maand, dan de nieuwe kaart **Badges**, en onderaan Streak naast Accu.

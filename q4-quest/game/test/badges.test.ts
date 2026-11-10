@@ -25,6 +25,8 @@ function input(
     temperature: [],
     green: { co2PetrolKgPerKm: 0.18, co2GridKgPerKwh: 0.33, petrolLPer100km: 6.5 },
     challenges: [],
+    batteryKwh: 77,
+    hasSoc: false,
     timeZone: TZ,
     now: at('2026-12-31T00:00:00Z'),
     available: new Set(available),

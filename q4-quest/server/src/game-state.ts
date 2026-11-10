@@ -14,6 +14,8 @@ import {
   type GreenTotals,
   type MonthStats,
   type WeekReview,
+  periodEnergy,
+  type EnergyInput,
   buildHistory,
   chargingRecords,
   dailyTotals,
@@ -54,6 +56,30 @@ export interface GameState {
   green: GreenTotals | null;
   /** "Last week" card for the reveal (null before the first full week). */
   weekReview: WeekReview | null;
+  /** Inputs for energy-based consumption estimates. */
+  energy: EnergyInput;
+}
+
+/**
+ * Never take a badge away: badges unlocked now are recorded; a badge that was
+ * recorded before but is no longer confirmed (e.g. after a changed
+ * calculation) keeps its recorded date.
+ */
+export function keepEarnedBadges(db: DatabaseSync, badges: BadgeResult[]): BadgeResult[] {
+  const stored = new Map(
+    (db.prepare('SELECT id, unlocked_ts FROM earned_badges').all() as { id: string; unlocked_ts: number }[]).map((r) => [r.id, r.unlocked_ts]),
+  );
+  const upsert = db.prepare(
+    'INSERT INTO earned_badges (id, unlocked_ts) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET unlocked_ts = excluded.unlocked_ts',
+  );
+  return badges.map((b) => {
+    const known = stored.get(b.id);
+    if (b.unlockedTs !== null) {
+      if (known !== b.unlockedTs) upsert.run(b.id, b.unlockedTs);
+      return b;
+    }
+    return known !== undefined ? { ...b, unlockedTs: known } : b;
+  });
 }
 
 /** Which badge requirements the configured sensors satisfy. */
@@ -92,6 +118,12 @@ export function computeGameState(
     petrolLPer100km: options.petrolLPer100km,
   };
   const progress = dayProgress(odometer, timeZone);
+  const soc = options.entities.soc ? store.series('soc') : [];
+  const energy: EnergyInput = { odometer, soc, sessions: finished, batteryKwh: options.batteryKwh, hasSoc: options.entities.soc !== null };
+  const weekConsumption = (week: string) => {
+    const { start, end } = weekBounds(week, timeZone);
+    return periodEnergy(energy, start, Math.min(end, now + 1))?.kwhPer100km ?? null;
+  };
 
   const challenges = setupNeeded
     ? []
@@ -103,6 +135,7 @@ export function computeGameState(
         now,
         firstTs: odometer[0]?.ts ?? null,
         charging,
+        weekConsumption,
       });
 
   // The parking brake only helps when it is configured.
@@ -112,21 +145,23 @@ export function computeGameState(
   const badges = setupNeeded
     ? []
     : [
-        ...evaluateBadges({
+        ...keepEarnedBadges(db, evaluateBadges({
           odometer,
           dailyTotals: totals,
           trips,
           sessions: finished,
-          soc: options.entities.soc ? store.series('soc') : [],
+          soc,
           temperature,
           green: factors,
+          batteryKwh: options.batteryKwh,
+          hasSoc: options.entities.soc !== null,
           challenges: challenges
             .filter((c) => c.status === 'done' && c.completedTs !== null)
             .map((c) => ({ week: c.week, completedTs: c.completedTs! })),
           timeZone,
           now,
           available: availableRequirements(options),
-        }),
+        })),
         ...challengeBonusBadges(challenges),
       ];
   // The timeline includes badges, and their bonus XP dates the level-ups.
@@ -165,8 +200,9 @@ export function computeGameState(
     challenges,
     temperature,
     dailyTemps,
-    monthly: charging ? monthlyStats(totals, finished, dailyTemps, timeZone) : [],
-    green: setupNeeded ? null : greenTotals(totalKm, charging ? totalKwh : null, factors),
+    monthly: charging ? monthlyStats(totals, energy, dailyTemps, timeZone, now) : [],
+    green: setupNeeded ? null : greenTotals(totalKm, charging ? (periodEnergy(energy, 0, now + 1)?.usedKwh ?? totalKwh) : null, factors),
+    energy,
     weekReview,
   };
 }

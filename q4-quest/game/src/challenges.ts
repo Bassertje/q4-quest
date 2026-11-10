@@ -48,6 +48,8 @@ export function weekStats(
   dailyTotals: Map<string, number>,
   sessions: ChargingSession[],
   timeZone: string,
+  /** Weekly consumption with the energy method (used energy ÷ km); falls back to charged ÷ km. */
+  weekConsumption?: (week: string) => number | null,
 ): WeekStats {
   const days = [...dailyTotals].filter(([d]) => inWeek(week)(d));
   const km = days.reduce((s, [, v]) => s + v, 0);
@@ -59,7 +61,14 @@ export function weekStats(
     days: days.filter(([, v]) => v >= STREAK_MIN_KM).length,
     sessions: weekSessions.length,
     kwh: Math.round(kwh * 10) / 10,
-    consumption: km >= CONSUMPTION_CHALLENGE_MIN_KM && kwh > 0 ? Math.round((kwh / km) * 1000) / 10 : null,
+    consumption:
+      km < CONSUMPTION_CHALLENGE_MIN_KM
+        ? null
+        : weekConsumption
+          ? weekConsumption(week)
+          : kwh > 0
+            ? Math.round((kwh / km) * 1000) / 10
+            : null,
   };
 }
 
@@ -106,11 +115,12 @@ export function historyWeeks(
   dailyTotals: Map<string, number>,
   sessions: ChargingSession[],
   timeZone: string,
+  weekConsumption?: (week: string) => number | null,
 ): WeekStats[] {
   const earliest = shiftPeriod('week', week, -HISTORY_WEEKS);
   if (!firstDay || firstDay > isoWeekStart(earliest)) return [];
   return Array.from({ length: HISTORY_WEEKS }, (_, i) =>
-    weekStats(shiftPeriod('week', week, -(i + 1)), dailyTotals, sessions, timeZone),
+    weekStats(shiftPeriod('week', week, -(i + 1)), dailyTotals, sessions, timeZone, weekConsumption),
   );
 }
 
@@ -120,6 +130,7 @@ export interface ChallengeContext {
   sessions: ChargingSession[];
   timeZone: string;
   now: number;
+  weekConsumption?: (week: string) => number | null;
 }
 
 /** Start and end (exclusive) of an ISO week, in epoch ms in the given time zone. */
@@ -136,7 +147,7 @@ export function weekBounds(week: string, timeZone: string): { start: number; end
 export function evaluateChallenge(ch: Challenge, ctx: ChallengeContext): ChallengeResult {
   const { end } = weekBounds(ch.week, ctx.timeZone);
   const ended = ctx.now >= end;
-  const stats = weekStats(ch.week, ctx.dailyTotals, ctx.sessions.filter((s) => !s.ongoing || ended), ctx.timeZone);
+  const stats = weekStats(ch.week, ctx.dailyTotals, ctx.sessions.filter((s) => !s.ongoing || ended), ctx.timeZone, ctx.weekConsumption);
   let current: number | null;
   let completedTs: number | null = null;
   switch (ch.type) {

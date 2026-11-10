@@ -218,6 +218,10 @@ describe('weekly challenges, green and temperature', () => {
   it('reports green totals, monthly consumption with temperature, and trip start temperatures', async () => {
     const { app } = make(MOCK_OPTIONS_RAW, true);
     const charging = (await app.inject({ url: '/api/charging' })).json();
+    expect(charging.weeklyKwh).toHaveLength(12);
+    expect(charging.weeklyKwh.some((w: { ac: number; dc: number }) => w.ac + w.dc > 0)).toBe(true);
+    expect(charging.socLast7d.length).toBeGreaterThan(5);
+    expect(charging.socLast7d.every(([, v]: [number, number]) => v >= 0 && v <= 100)).toBe(true);
     expect(charging.green.co2Kg).toBeGreaterThan(0);
     expect(charging.green.liters).toBeGreaterThan(0);
     const history = (await app.inject({ url: '/api/history' })).json();

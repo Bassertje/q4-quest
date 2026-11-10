@@ -1,4 +1,5 @@
-import { addDays, dayKey, monthKey } from './time.ts';
+import { periodEnergy, type EnergyInput } from './consumption.ts';
+import { dayKey, monthKey } from './time.ts';
 import type { TimedValue } from './milestones.ts';
 import type { TimedState } from './trips.ts';
 
@@ -253,44 +254,32 @@ export function chargingTotals(sessions: ChargingSession[]): ChargingTotals {
 
 export const CONSUMPTION_DAYS = 30;
 export const CONSUMPTION_MIN_KM = 300;
-export const CONSUMPTION_MIN_SESSIONS = 3;
 
 export interface ConsumptionEstimate {
-  /** kWh per 100 km, or null when there is not enough data. */
+  /** kWh per 100 km, or null with fewer than 300 km in the window. */
   kwhPer100km: number | null;
   km: number;
+  /** Energy used (charged + SoC difference). */
   kwh: number;
   sessions: number;
+  /** Start of the window (never before odometer and SoC data exist). */
+  from: number | null;
 }
 
 /**
- * Rolling 30-day consumption estimate: charged kWh ÷ driven km. Only given
- * with at least 300 km and 3 sessions with a kWh estimate.
+ * Rolling 30-day consumption estimate: energy used ÷ km driven, where energy
+ * used = charged kWh + (SoC at start − SoC at end) × battery. The window
+ * never starts before both odometer and SoC data exist; shown from 300 km.
  */
-export function consumptionEstimate(
-  sessions: ChargingSession[],
-  dailyTotals: Map<string, number>,
-  now: number,
-  timeZone: string,
-): ConsumptionEstimate {
-  const today = dayKey(now, timeZone);
-  const firstDay = addDays(today, -(CONSUMPTION_DAYS - 1));
-  let km = 0;
-  for (const [day, value] of dailyTotals) if (day >= firstDay && day <= today) km += value;
-  let kwh = 0;
-  let count = 0;
-  for (const s of sessions) {
-    if (s.kwh === null) continue;
-    if (dayKey(s.start, timeZone) < firstDay) continue;
-    kwh += s.kwh;
-    count++;
-  }
-  const enough = km >= CONSUMPTION_MIN_KM && count >= CONSUMPTION_MIN_SESSIONS;
+export function consumptionEstimate(input: EnergyInput, now: number): ConsumptionEstimate {
+  const p = periodEnergy(input, now - CONSUMPTION_DAYS * 86_400_000, now + 1);
+  if (!p) return { kwhPer100km: null, km: 0, kwh: 0, sessions: 0, from: null };
   return {
-    kwhPer100km: enough ? Math.round((kwh / km) * 1000) / 10 : null,
-    km: Math.round(km),
-    kwh: Math.round(kwh * 10) / 10,
-    sessions: count,
+    kwhPer100km: p.km >= CONSUMPTION_MIN_KM ? p.kwhPer100km : null,
+    km: Math.round(p.km),
+    kwh: p.usedKwh,
+    sessions: p.sessions,
+    from: p.from,
   };
 }
 

@@ -90,6 +90,23 @@ export const MIGRATIONS: { version: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    // 1.4.0: earned badges are kept even if a later calculation (e.g. the new
+    // consumption method) no longer confirms them: badges are never taken away.
+    // Seed with every badge already seen in a reveal (date: when it was seen).
+    version: 7,
+    name: 'earned_badges',
+    sql: `
+      CREATE TABLE earned_badges (
+        id          TEXT PRIMARY KEY,
+        unlocked_ts INTEGER NOT NULL
+      );
+      INSERT OR IGNORE INTO earned_badges (id, unlocked_ts)
+      SELECT substr(item_key, 7), CAST(strftime('%s', seen_at) AS INTEGER) * 1000
+      FROM seen_items
+      WHERE item_key LIKE 'badge:%' AND item_key NOT LIKE 'badge:challenge!_%' ESCAPE '!';
+    `,
+  },
 ];
 
 export function openDatabase(path: string): DatabaseSync {

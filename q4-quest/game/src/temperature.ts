@@ -1,6 +1,7 @@
-import type { ChargingSession } from './charging.ts';
+import { periodEnergy, type EnergyInput } from './consumption.ts';
+import { shiftPeriod } from './periods.ts';
 import type { TimedValue } from './milestones.ts';
-import { dayKey, monthKey } from './time.ts';
+import { dayKey, monthKey, zonedMidnight } from './time.ts';
 import type { TripBlock } from './trips.ts';
 
 /** A temperature reading older than this is not used for "the temperature at" a moment. */
@@ -39,8 +40,9 @@ export function tripStartTemperatures(trips: TripBlock[], temps: TimedValue[]): 
 export interface MonthStats {
   month: string;
   km: number;
+  /** Energy used (charged + SoC difference). */
   kwh: number;
-  /** Consumption estimate; null with fewer than 100 km or no charged kWh. */
+  /** Consumption estimate; null with fewer than 100 km. */
   kwhPer100km: number | null;
   /** Mean of the daily average temperatures; null without temperature data. */
   avgTemp: number | null;
@@ -48,29 +50,29 @@ export interface MonthStats {
 
 export const MONTH_CONSUMPTION_MIN_KM = 100;
 
-/** Consumption and average temperature per calendar month, oldest first. */
+/** Consumption (energy used ÷ km) and average temperature per calendar month, oldest first. */
 export function monthlyStats(
   dailyTotals: Map<string, number>,
-  sessions: ChargingSession[],
+  energy: EnergyInput,
   dailyTemps: Map<string, number>,
   timeZone: string,
+  now: number,
 ): MonthStats[] {
-  const months = new Map<string, { km: number; kwh: number; temps: number[] }>();
-  const get = (m: string) => {
-    let v = months.get(m);
-    if (!v) months.set(m, (v = { km: 0, kwh: 0, temps: [] }));
-    return v;
-  };
-  for (const [d, km] of dailyTotals) get(monthKey(d)).km += km;
-  for (const s of sessions) if (s.kwh !== null) get(monthKey(dayKey(s.start, timeZone))).kwh += s.kwh;
-  for (const [d, t] of dailyTemps) get(monthKey(d)).temps.push(t);
-  return [...months.entries()]
-    .sort(([a], [b]) => (a < b ? -1 : 1))
-    .map(([month, v]) => ({
+  const months = new Set<string>();
+  for (const d of dailyTotals.keys()) months.add(monthKey(d));
+  for (const d of dailyTemps.keys()) months.add(monthKey(d));
+  return [...months].sort().map((month) => {
+    const from = zonedMidnight(`${month}-01`, timeZone);
+    const to = Math.min(now + 1, zonedMidnight(`${shiftPeriod('month', month, 1)}-01`, timeZone));
+    const e = periodEnergy(energy, from, to);
+    const temps = [...dailyTemps].filter(([d]) => monthKey(d) === month).map(([, t]) => t);
+    const km = [...dailyTotals].filter(([d]) => monthKey(d) === month).reduce((a, [, v]) => a + v, 0);
+    return {
       month,
-      km: Math.round(v.km),
-      kwh: Math.round(v.kwh * 10) / 10,
-      kwhPer100km: v.km >= MONTH_CONSUMPTION_MIN_KM && v.kwh > 0 ? Math.round((v.kwh / v.km) * 1000) / 10 : null,
-      avgTemp: v.temps.length ? Math.round((v.temps.reduce((a, b) => a + b, 0) / v.temps.length) * 10) / 10 : null,
-    }));
+      km: Math.round(e?.km ?? km),
+      kwh: e?.usedKwh ?? 0,
+      kwhPer100km: e && e.km >= MONTH_CONSUMPTION_MIN_KM ? e.kwhPer100km : null,
+      avgTemp: temps.length ? Math.round((temps.reduce((a, b) => a + b, 0) / temps.length) * 10) / 10 : null,
+    };
+  });
 }

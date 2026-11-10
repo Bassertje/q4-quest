@@ -187,7 +187,7 @@
               <div class="green-row">
                 <span><strong class="lcd mid">{km(r.green.liters)}</strong> liter<br /><span class="muted small">benzine niet verbrand</span></span>
                 {#if r.green.trees !== null}
-                  <span><strong class="lcd mid">{num1(r.green.trees)}</strong> bomen<br /><span class="muted small">een jaar lang CO₂ opnemen</span></span>
+                  <span><span class="muted small">Gelijk aan</span><br /><strong class="lcd mid">{num1(r.green.trees)}</strong> bomen<br /><span class="muted small">die een jaar lang CO₂ opnemen</span></span>
                 {/if}
               </div>
               <p class="muted small">schatting</p>

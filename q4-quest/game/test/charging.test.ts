@@ -3,7 +3,6 @@ import {
   chargingRecords,
   chargingSessions,
   chargingTotals,
-  consumptionEstimate,
   integrate,
   isChargingState,
   normaliseType,
@@ -238,17 +237,6 @@ describe('totals, consumption and records', () => {
       ac: { sessions: 4, kwh: 100 },
       dc: { sessions: 1, kwh: 40 },
     });
-  });
-
-  it('estimates consumption over 30 days only with enough data', () => {
-    const daily = new Map([
-      ['2026-10-05', 100], // outside the window
-      ['2026-10-20', 250],
-      ['2026-11-01', 250],
-    ]);
-    expect(consumptionEstimate(sessions, daily, now, 'UTC')).toEqual({ kwhPer100km: 18, km: 500, kwh: 90, sessions: 3 });
-    const little = new Map([['2026-11-01', 200]]);
-    expect(consumptionEstimate(sessions, little, now, 'UTC').kwhPer100km).toBeNull();
   });
 
   it('finds the fastest session and the busiest month', () => {
