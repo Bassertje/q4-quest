@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.1
+
+- **Sessielijst (Laden) vernieuwd:** sessies staan per maand onder een kop ("November 2026"), met korte datums ("ma 9 nov"). Elke rij heeft links het AC/DC-label, in het midden datum en "tijd · duur", en rechts de kWh en "start → eind%". Onder elke rij laat een dunne balk zien hoe vol de accu was en hoeveel erbij kwam. De pixel-accu is weg.
+- **Details per sessie:** tik op een sessie voor begin- en eindtijd, het gemiddelde vermogen en of het type (AC/DC) van de sensor komt of is afgeleid. Er is steeds één sessie tegelijk open.
+- **Streak- en Accu-kaart** hebben nu dezelfde opbouw als Vandaag/Week/Maand: "Op rij gereden – 9 dagen" en "Accu · bereik – 87% · 335 km".
+- **Bijgewerkt-indicator:** de regel "Bijgewerkt … geleden" onder de kilometerteller is weg. Rechtsonder in het LCD-scherm staat nu een klein label (bijv. "↻ 3U"); ouder dan 6 uur wordt het duidelijker zichtbaar. Tik of beweeg erover voor de volledige tekst.
+
 ## 1.4.0
 
 - **Verbruik nauwkeuriger:** het verbruik telt nu ook mee hoeveel de accu leger of voller is geworden: verbruikte energie = geladen kWh + (accupercentage aan het begin − aan het eind) × accucapaciteit, gedeeld door de gereden km. Het venster van 30 dagen begint nooit vóór je eerste meting van kilometerstand én accu, en het verbruik verschijnt vanaf 300 km. Dezelfde methode geldt voor de weekbadges (Zuinige week, Winterhard), de zuinigheidsuitdaging, de maandgrafiek en de CO₂-schatting.

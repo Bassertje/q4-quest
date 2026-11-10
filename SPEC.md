@@ -232,12 +232,13 @@ Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laads
 - Onderaan is er altijd ca. 24px + `env(safe-area-inset-bottom)` marge; bij navigatie onder komt daar de hoogte van de balk bij.
 
 1. **Cockpit** (in deze volgorde)
-   - Grote kilometerteller in LCD-cijfers die bij het openen kort "doortelt" naar de huidige stand.
+   - Grote kilometerteller in LCD-cijfers die bij het openen kort "doortelt" naar de huidige stand. Er staat geen regel "Bijgewerkt … geleden" onder; de kaart is zo compact mogelijk.
+   - Bijgewerkt-indicator rechtsonder binnen het LCD-scherm: een klein label in het pixel-font (ca. 35% van de hoogte van de "km"-eenheid) in het accentrood met ca. 35% opaciteit: "↻" + korte notatie van de laatste update van de kilometerstand (`NU` bij minder dan 2 minuten, anders `12M`, `3U` of `2D`). Is de update ouder dan 6 uur, dan wordt de opaciteit ca. 70%. Bij een tik of hover verschijnt de volledige tekst ("Bijgewerkt 3 uur geleden") als tooltip. Werkt in de lichte en de donkere LCD-variant.
    - Level, rangtitel en XP-balk. Een tik op de rang opent het **rangenoverzicht**: alle rangen met levelbereik, XP-drempel en een eigen pixel-art icoon; de huidige rang gemarkeerd, toekomstige rangen gedimd.
    - De weekuitdaging van deze week. Regel 1: klein label "WEEKUITDAGING" (gedempt, hoofdletters) links en "+100 XP" als kleine badge rechts. Regel 2: de titel (vet) en regel 3: de opdracht, beide over de volle breedte met het icoon links ervan. Dan de voortgangsbalk. Laatste regel: voortgang ("2 / 4 dagen") links en resterend ("nog 6 dagen") rechts. Korte labels breken nooit af.
    - Vandaag, deze week en deze maand in km.
    - Kaart **Badges** met twee helften. Links de laatst ontgrendelde badge (icoon, naam, datum). Rechts de gevolgde badge (zie Badges → Gevolgde badge) met een cirkelvormige voortgangsring in pixel-stijl (blokjes in rood op de lijnkleur) om het icoon, met de naam en "nog X" eronder. Een tik op een helft opent die badge op het Badges-scherm (`#/badges/<id>`: scrollt ernaartoe en opent de detailweergave). Er is geen losse kaart voor de gevolgde badge, en geen aparte maanreis- of bestemmingskaart.
-   - **Streak** en **Accu** naast elkaar. Accu toont "SoC % · actieradius km" (of één van beide als maar één sensor is ingesteld) en verschijnt alleen met een SoC- of actieradius-sensor.
+   - **Streak** en **Accu** naast elkaar, in dezelfde opbouw als de kaarten Vandaag/Week/Maand: label bovenaan, waarde eronder, geen subtekst. Streak: label "Op rij gereden", waarde "9 dagen". Accu: label "Accu · bereik", waarde "87% · 335 km" (met maar één sensor alleen "Accu" of "Bereik" met die waarde); verschijnt alleen met een SoC- of actieradius-sensor.
 2. **Badges**
    - Raster per categorie (Rijden, Laden, Zuinigheid, Groen, Uitdagingen, Wereldreis, Legendarisch). Ontgrendeld: icoon in kleur met datum en bonus-XP. Vergrendeld: silhouet met hint. Verborgen badges tonen "???" (naam en hint blijven geheim tot ontgrendeling). Badges die van een niet-ingestelde sensor afhangen, verschijnen niet.
    - Voortgang: vergrendelde telbare badges (Wereldreis, Maanreis, laadaantallen, streaks, maand-/week-km, megawattuur) tonen een dun voortgangsbalkje met "huidig / doel". Streaks tellen de huidige reeks, maand/week de lopende periode.
@@ -249,11 +250,14 @@ Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laads
    - Verbruik per maand met gemiddelde temperatuur (zie Temperatuur), recente ritblokken met de temperatuur bij de start, en de geschiedenis van de weekuitdagingen.
    - Tijdlijn van gebeurtenissen (badges, Wereldreis-bestemmingen, level-ups).
 4. **Laden**
-   - Lijst met sessies (datum, AC/DC, kWh-schatting, SoC van → naar, gem. kW).
+   - Lijst met sessies (datum, AC/DC, kWh-schatting, SoC van → naar; gem. kW in het uitklapdetail).
    - Totalen en de verbruiksschatting. Uitleg bij Verbruik en Groen zit achter een klein ⓘ-icoon naast de kop (standaard ingeklapt).
    - Staafgrafiek geladen kWh per week (vaste venster van 12 weken, zoals in Historie), AC en DC gestapeld in twee tinten rood, met legenda.
    - Accu-tijdlijn: lijngrafiek van de SoC over de laatste 7 dagen, met laadsessies als licht gearceerde vlakken (DC iets feller dan AC).
-   - Sessielijst in de twee-regel-opbouw: regel 1 datum links, kWh rechts; regel 2 AC/DC-label, tijd · duur · gem. kW en een kleine pixel-accu (gevuld tot het eindpercentage, geladen deel rood, startdeel gedempt) met "76 → 98%".
+   - Sessielijst gegroepeerd per maand met een kop ("November 2026"); datums in de rijen zonder jaartal, kort ("ma 9 nov").
+   - Elke rij is een grid met drie vaste kolommen en twee regels. Links het AC/DC-label (vaste breedte, verticaal gecentreerd). Midden: regel 1 de datum, regel 2 "HH:MM · duur" (gedempt). Rechts (rechts uitgelijnd): regel 1 "~X kWh" (vet), regel 2 "start → eind%" (gedempt). Alles `white-space: nowrap`; niets springt naar een extra regel.
+   - Onder elke rij een dunne (4px) balk over de volle breedte: gedempte kleur tot het startpercentage, rood van start tot eind, de rest leeg. Geen los accu-icoon in de rij.
+   - Gemiddeld vermogen staat alleen in een uitklapdetail: een tik op de rij toont begin- en eindtijd, gemiddeld kW en de bron van het type (van de laadtype-sensor, of afgeleid uit het gemiddelde vermogen). Er is maar één rij tegelijk open.
    - Groen: CO₂ bespaard, liters niet verbrand en "Gelijk aan X bomen", met het label "schatting"; een rij pixel-boompjes (één per boom, de laatste gedeeltelijk gevuld, max. 20 zichtbaar, daarna "+ X") en een dunne voortgangsbalk naar de volgende CO₂-badge.
    - Alle grafieken werken in de lichte en de donkere modus.
 5. **Instellingen** (klein, via een tandwiel)

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { getJson } from '../lib/api';
   import Bar from '../lib/Bar.svelte';
-  import { ago, date, km, num1 } from '../lib/format';
+  import { date, km, num1 } from '../lib/format';
   import Odometer from '../lib/Odometer.svelte';
   import PixelIcon from '../lib/PixelIcon.svelte';
   import BadgeRing from '../lib/BadgeRing.svelte';
@@ -74,8 +74,7 @@
   {/if}
 
   <section class="panel odo">
-    <Odometer value={c.odometer} />
-    <p class="muted small center">Bijgewerkt {ago(c.odometerTs)}</p>
+    <Odometer value={c.odometer} updatedTs={c.odometerTs} />
   </section>
 
   <section class="panel">
@@ -179,17 +178,15 @@
 
   <section class="tiles two">
     <div class="panel tile">
-      <div class="label">Streak</div>
+      <div class="label">Op rij gereden</div>
       <div class="pixel mid">{c.streak}<span class="unit">{c.streak === 1 ? 'dag' : 'dagen'}</span></div>
-      <div class="muted small">{c.streak > 0 ? 'op rij gereden' : 'rij vandaag om te starten'}</div>
     </div>
     {#if data.soc || data.range}
       <div class="panel tile">
-        <div class="label">Accu</div>
+        <div class="label">{data.soc && data.range ? 'Accu · bereik' : data.soc ? 'Accu' : 'Bereik'}</div>
         <div class="pixel mid accu">
           {#if data.soc}{Math.round(data.soc.value)}<span class="unit">%</span>{/if}{#if data.soc && data.range}<span class="sep">·</span>{/if}{#if data.range}{km(data.range.value)}<span class="unit">km</span>{/if}
         </div>
-        <div class="muted small">{data.range ? 'actieradius' : 'accupercentage'}</div>
       </div>
     {/if}
   </section>
