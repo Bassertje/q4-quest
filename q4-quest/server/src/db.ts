@@ -44,6 +44,19 @@ export const MIGRATIONS: { version: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    // Version 0.5.0 silently marked existing records as seen on the first
+    // reveal. Undo exactly those flags so the records are revealed after all;
+    // records seen in a real reveal later stay seen. Only seen flags change.
+    version: 4,
+    name: 'reveal_existing_records',
+    sql: `
+      DELETE FROM seen_items
+      WHERE item_key LIKE 'record:%'
+        AND seen_at <= (SELECT value FROM meta WHERE key = 'reveal.records_baseline');
+      DELETE FROM meta WHERE key = 'reveal.records_baseline';
+    `,
+  },
 ];
 
 export function openDatabase(path: string): DatabaseSync {

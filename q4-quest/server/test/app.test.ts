@@ -142,9 +142,9 @@ describe('badges and reveal', () => {
     const kinds = new Set(first.map((i: { kind: string }) => i.kind));
     expect(kinds.has('badge')).toBe(true);
     expect(kinds.has('milestone')).toBe(true);
-    // Level-ups are combined into one item; existing records are not "new".
+    // Level-ups are combined into one item; existing records are revealed too.
     expect(first.filter((i: { kind: string }) => i.kind === 'level')).toHaveLength(1);
-    expect(kinds.has('record')).toBe(false);
+    expect(kinds.has('record')).toBe(true);
 
     const keys = first.flatMap((i: { keys: string[] }) => i.keys);
     const res = await app.inject({ method: 'POST', url: '/api/seen', payload: { keys } });
