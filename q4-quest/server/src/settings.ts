@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { isChargePeriodMode, type ChargePeriodMode } from '../../game/src/index.ts';
 
 export const THEMES = ['auto', 'light', 'dark'] as const;
 export type Theme = (typeof THEMES)[number];
@@ -16,9 +17,11 @@ export interface Settings {
   navPosition: NavPosition;
   /** Badge chosen to follow on the cockpit (null: pick automatically). */
   followedBadge: string | null;
+  /** Period shown on the charging screen. */
+  chargingPeriod: ChargePeriodMode;
 }
 
-const DEFAULTS: Settings = { theme: 'auto', navPosition: 'top', followedBadge: null };
+const DEFAULTS: Settings = { theme: 'auto', navPosition: 'top', followedBadge: null, chargingPeriod: 'all' };
 
 function getMeta(db: DatabaseSync, key: string): string | null {
   const row = db.prepare('SELECT value FROM meta WHERE key = ?').get(key) as { value: string } | undefined;
@@ -43,6 +46,7 @@ export function readSettings(db: DatabaseSync): Settings {
     theme: isTheme(theme) ? theme : DEFAULTS.theme,
     navPosition: ((v) => (isNavPosition(v) ? v : DEFAULTS.navPosition))(getMeta(db, 'setting.nav_position')),
     followedBadge: getMeta(db, 'setting.followed_badge') || DEFAULTS.followedBadge,
+    chargingPeriod: ((v) => (isChargePeriodMode(v) ? v : DEFAULTS.chargingPeriod))(getMeta(db, 'setting.charging_period')),
   };
 }
 
@@ -50,5 +54,6 @@ export function writeSettings(db: DatabaseSync, patch: Partial<Settings>): Setti
   if (patch.theme !== undefined) setMeta(db, 'setting.theme', patch.theme);
   if (patch.navPosition !== undefined) setMeta(db, 'setting.nav_position', patch.navPosition);
   if (patch.followedBadge !== undefined) setMeta(db, 'setting.followed_badge', patch.followedBadge ?? '');
+  if (patch.chargingPeriod !== undefined) setMeta(db, 'setting.charging_period', patch.chargingPeriod);
   return readSettings(db);
 }

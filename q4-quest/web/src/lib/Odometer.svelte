@@ -158,26 +158,26 @@
     border: 0;
     background: none;
     font-family: var(--font-pixel);
-    font-size: 0.56rem; /* ~35% of the "km" unit */
+    font-size: 0.88rem; /* ~55% of the "km" unit */
     line-height: 1;
     letter-spacing: 0.05em;
     color: var(--lcd-digit);
-    opacity: 0.35;
+    opacity: 0.5;
     cursor: pointer;
   }
   .updated.stale {
-    opacity: 0.7;
+    opacity: 0.85;
   }
   .updated:hover,
   .updated:focus-visible {
     box-shadow: none;
     outline: none;
-    opacity: 0.9;
+    opacity: 1;
   }
   .tip {
     position: absolute;
     right: 6px;
-    bottom: 18px;
+    bottom: 24px;
     z-index: 2;
     padding: 3px 8px;
     font-family: var(--font-sans);

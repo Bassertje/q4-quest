@@ -1,32 +1,88 @@
 <script lang="ts">
-  import { getJson } from '../lib/api';
+  import { getJson, putJson } from '../lib/api';
+  import ChargeKwhChart from '../lib/ChargeKwhChart.svelte';
   import { dayNoYear, km, kw, monthTitle, num1 } from '../lib/format';
   import PixelIcon from '../lib/PixelIcon.svelte';
   import SocChart from '../lib/SocChart.svelte';
-  import type { ChargingData, ChargingSession } from '../lib/types';
-  import WeekKwhChart from '../lib/WeekKwhChart.svelte';
+  import type { ChargePeriodMode, ChargingData, ChargingSession, SocData, SocRange } from '../lib/types';
 
   let { refresh }: { refresh: number } = $props();
 
   const STEP = 20;
+  const MODES: { id: ChargePeriodMode; label: string }[] = [
+    { id: 'week', label: 'Week' },
+    { id: 'month', label: 'Maand' },
+    { id: 'year', label: 'Jaar' },
+    { id: 'all', label: 'Alles' },
+  ];
+  const SOC_RANGES: { id: SocRange; label: string }[] = [
+    { id: '24h', label: '24 uur' },
+    { id: '7d', label: '7 dagen' },
+    { id: '30d', label: '30 dagen' },
+  ];
 
   let data = $state<ChargingData | null>(null);
   let error = $state<string | null>(null);
   let shown = $state(STEP);
+  /** Null until the first response tells us the saved choice. */
+  let mode = $state<ChargePeriodMode | null>(null);
+  /** Null = the current period. */
+  let periodKey = $state<string | null>(null);
+  let socRange = $state<SocRange>('7d');
+  let soc = $state<SocData | null>(null);
 
   async function load() {
     try {
-      data = await getJson<ChargingData>('charging');
+      const q = mode ? `?period=${mode}${periodKey ? `&key=${encodeURIComponent(periodKey)}` : ''}` : '';
+      const next = await getJson<ChargingData>(`charging${q}`);
+      data = next;
+      if (next.period) {
+        mode = next.period.mode;
+        if (periodKey !== null) periodKey = next.period.key;
+      }
       error = null;
     } catch (err) {
       error = (err as Error).message;
     }
   }
 
+  async function loadSoc() {
+    try {
+      soc = await getJson<SocData>(`charging/soc?range=${socRange}`);
+    } catch {
+      soc = null;
+    }
+  }
+
   $effect(() => {
     void refresh;
     load();
+    loadSoc();
   });
+
+  function setMode(m: ChargePeriodMode) {
+    if (m === mode) return;
+    mode = m;
+    periodKey = null;
+    shown = STEP;
+    openSession = null;
+    load();
+    void putJson('settings', { chargingPeriod: m }).catch(() => {});
+  }
+
+  function go(key: string | null) {
+    if (!key) return;
+    periodKey = key;
+    shown = STEP;
+    openSession = null;
+    load();
+  }
+
+  function setSocRange(r: SocRange) {
+    if (r === socRange) return;
+    socRange = r;
+    loadSoc();
+  }
 
   const tz = $derived(data?.timeZone);
   const time = (ts: number) =>
@@ -45,7 +101,7 @@
   /** Shown sessions grouped per month (newest first). */
   const groups = $derived.by(() => {
     const out: { title: string; items: ChargingSession[] }[] = [];
-    for (const s of data?.sessions.slice(0, shown) ?? []) {
+    for (const s of data?.period?.sessions.slice(0, shown) ?? []) {
       const title = monthTitle(s.start, tz);
       const last = out.at(-1);
       if (last && last.title === title) last.items.push(s);
@@ -54,7 +110,7 @@
     return out;
   });
   const TREE_MAX = 20;
-  let info = $state({ consumption: false, green: false });
+  let info = $state({ charged: false, consumption: false, green: false });
 </script>
 
 <h2 class="title">Laden</h2>
@@ -74,53 +130,93 @@
     </p>
   </section>
 {:else}
-  {#if data.totals}
-    <section class="tiles">
+  {@const p = data.period}
+  <div class="toolbar">
+    <div class="segmented" role="group" aria-label="Periode">
+      {#each MODES as m (m.id)}
+        <button class:active={mode === m.id} aria-pressed={mode === m.id} onclick={() => setMode(m.id)}>{m.label}</button>
+      {/each}
+    </div>
+    {#if p && p.mode !== 'all'}
+      <div class="pager">
+        <button aria-label="Vorige periode" disabled={!p.prev} onclick={() => go(p.prev)}>‹</button>
+        <span class="plabel" aria-live="polite">{p.label}</span>
+        <button aria-label="Volgende periode" disabled={!p.next} onclick={() => go(p.next)}>›</button>
+      </div>
+    {/if}
+  </div>
+
+  {#if p}
+    {@const t = p.totals}
+    {@const c = p.consumption}
+    <div class="tiles-wrap"><section class="tiles">
       <div class="panel tile">
-        <div class="label">Sessies</div>
-        <div class="pixel">{data.totals.sessions}</div>
-        <div class="muted small nw">{data.totals.ac.sessions} AC · {data.totals.dc.sessions} DC</div>
+        <div class="tl"><span class="label">Sessies</span></div>
+        <div class="val">{t.sessions}</div>
+        <div class="sub">{t.ac.sessions} AC · {t.dc.sessions} DC</div>
       </div>
       <div class="panel tile">
-        <div class="label">Geladen</div>
-        <div class="pixel">{km(data.totals.kwh)}<span class="unit">kWh</span></div>
-        <div class="muted small">schatting</div>
+        <div class="tl">
+          <span class="label">Geladen</span>
+          <button class="info" aria-label="Uitleg geladen" aria-expanded={info.charged} onclick={() => (info.charged = !info.charged)}>ⓘ</button>
+        </div>
+        <div class="val">{km(t.kwh)}<span class="unit">kWh</span></div>
+        <div class="sub">AC {km(t.ac.kwh)} · DC {km(t.dc.kwh)}</div>
       </div>
       <div class="panel tile">
-        <div class="label head">
-          Verbruik
+        <div class="tl">
+          <span class="label">Verbruik</span>
           <button class="info" aria-label="Uitleg verbruik" aria-expanded={info.consumption} onclick={() => (info.consumption = !info.consumption)}>ⓘ</button>
         </div>
-        {#if data.consumption?.kwhPer100km != null}
-          <div class="pixel">{num1(data.consumption.kwhPer100km)}</div>
-          <div class="muted small">kWh/100 km · 30 dagen</div>
+        {#if c?.kwhPer100km != null}
+          <div class="val">{num1(c.kwhPer100km)}<span class="unit">kWh</span></div>
+          <div class="sub">per 100 km</div>
         {:else}
-          <div class="pixel muted">–</div>
-          <div class="muted small">nog te weinig data</div>
+          <div class="val muted">–</div>
+          <div class="sub">te weinig data</div>
         {/if}
       </div>
-    </section>
-    {#if info.consumption && data.consumption}
+    </section></div>
+    {#if info.charged}
       <p class="muted small note panel">
-        Schatting over de laatste 30 dagen: verbruikte energie gedeeld door de gereden km. Verbruikte energie =
-        geladen kWh + (accupercentage aan het begin − aan het eind) × {num1(data.batteryKwh)} kWh. Het venster
-        begint nooit vóór de eerste meting van kilometerstand én accu. Getoond vanaf 300 km
-        (nu {km(data.consumption.km)} km, {km(data.consumption.kwh)} kWh verbruikt).
+        Geladen kWh is een schatting: de stijging van het accupercentage × {num1(data.batteryKwh)} kWh accucapaciteit,
+        of (zonder accusensor) het laadvermogen opgeteld over de tijd. Laadverliezen tellen niet mee.
       </p>
     {/if}
-  {/if}
+    {#if info.consumption}
+      <p class="muted small note panel">
+        Schatting over de gekozen periode: verbruikte energie gedeeld door de gereden km. Verbruikte energie =
+        geladen kWh + (accupercentage aan het begin − aan het eind) × {num1(data.batteryKwh)} kWh. De periode
+        begint nooit vóór de eerste meting van kilometerstand én accu. Getoond vanaf 100 km{#if c}
+          (nu {km(c.km)} km, {km(c.usedKwh)} kWh verbruikt){/if}.
+      </p>
+    {/if}
 
-  {#if data.weeklyKwh.length}
     <section class="panel">
-      <h3>Geladen per week</h3>
-      <WeekKwhChart weeks={data.weeklyKwh} />
+      <h3>Geladen<span class="muted per">· {p.label}</span></h3>
+      <ChargeKwhChart buckets={p.buckets} bucket={p.bucket} periodLabel={p.label} />
     </section>
   {/if}
 
-  {#if data.socLast7d.length > 1}
+  {#if data.hasSoc || (data.green && data.green.co2Kg !== null)}
+    <div class="divider" role="separator"><span>Los van de periode</span></div>
+  {/if}
+
+  {#if data.hasSoc}
     <section class="panel">
-      <h3>Accu, laatste 7 dagen</h3>
-      <SocChart soc={data.socLast7d} sessions={data.sessions.filter((s) => s.end >= Date.now() - 7 * 86_400_000)} timeZone={tz} />
+      <div class="panel-head">
+        <h3>Accu</h3>
+        <div class="segmented small-seg" role="group" aria-label="Bereik accugrafiek">
+          {#each SOC_RANGES as r (r.id)}
+            <button class:active={socRange === r.id} aria-pressed={socRange === r.id} onclick={() => setSocRange(r.id)}>{r.label}</button>
+          {/each}
+        </div>
+      </div>
+      {#if soc && soc.soc.length > 1}
+        <SocChart soc={soc.soc} sessions={soc.sessions} from={soc.from} to={soc.to} timeZone={tz} />
+      {:else}
+        <p class="muted small">Nog te weinig accumetingen in deze periode.</p>
+      {/if}
     </section>
   {/if}
 
@@ -166,9 +262,9 @@
   {/if}
 
   <section class="panel">
-    <h3>Sessies</h3>
-    {#if data.sessions.length === 0}
-      <p class="muted small">Nog geen laadsessies gevonden.</p>
+    <h3>Sessies{#if p}<span class="muted per">· {p.label}</span>{/if}</h3>
+    {#if !p || p.sessions.length === 0}
+      <p class="muted small">Geen laadsessies in deze periode.</p>
     {:else}
       {#each groups as g (g.title)}
         <h4 class="month">{g.title}</h4>
@@ -203,7 +299,7 @@
           {/each}
         </ul>
       {/each}
-      {#if shown < data.sessions.length}
+      {#if shown < p.sessions.length}
         <button class="more" onclick={() => (shown += STEP)}>Meer tonen</button>
       {/if}
     {/if}
@@ -218,19 +314,83 @@
     font-size: 1rem;
     margin: 0 0 8px;
   }
+  .toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .toolbar .segmented {
+    display: flex;
+  }
+  .toolbar .segmented button {
+    flex: 1;
+  }
+  .pager {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 8px;
+  }
+  .pager button {
+    min-width: 40px;
+  }
+  .plabel {
+    text-align: center;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  /* Three tiles with exactly the same build-up: label, value, breakdown. */
+  .tiles-wrap {
+    container-type: inline-size;
+  }
   .tiles {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
+    /* The kWh tiles need a little more room than the session count. */
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr) minmax(0, 0.9fr);
+    gap: 8px;
   }
   .tile {
-    padding: 12px;
+    display: grid;
+    grid-template-rows: auto auto auto;
+    align-content: start;
+    row-gap: 4px;
+    padding: 12px 9px;
     min-width: 0;
-    overflow-wrap: anywhere;
+  }
+  .tile > * {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tl {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    height: 1.2rem;
   }
   .label {
     color: var(--muted);
     font-size: 0.85rem;
+  }
+  .tl .label {
+    font-size: min(0.85rem, 3.8cqi);
+  }
+  .tl .info {
+    padding: 0;
+  }
+  .val {
+    font-family: var(--font-pixel);
+    /* Sized on the width of the whole row, so all three tiles match. */
+    font-size: min(1.9rem, 7.6cqi);
+    line-height: 1.1;
+  }
+  .sub {
+    color: var(--muted);
+    font-size: min(0.8rem, 3.3cqi);
   }
   .pixel {
     font-family: var(--font-pixel);
@@ -238,9 +398,50 @@
     line-height: 1.05;
   }
   .unit {
-    font-size: 1rem;
+    font-size: 0.55em;
     color: var(--muted);
+    margin-left: 3px;
+  }
+  .pixel .unit {
+    font-size: 1rem;
     margin-left: 4px;
+  }
+  .per {
+    margin-left: 0.3em;
+    font-weight: 400;
+  }
+  /* Separates the period-bound part from the parts with their own range. */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 2px 4px;
+    color: var(--muted);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .divider::before,
+  .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .panel-head h3 {
+    margin: 0;
+  }
+  .small-seg button {
+    padding: 3px 8px;
+    font-size: 0.8rem;
   }
   .note {
     margin: 4px 2px 0;

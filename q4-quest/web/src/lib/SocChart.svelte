@@ -4,14 +4,18 @@
   import 'uplot/dist/uPlot.min.css';
   import { THEME_EVENT } from './theme';
 
-  /** SoC over the last 7 days with charging sessions as shaded bands (DC stronger than AC). */
+  /** SoC over a time range with charging sessions as shaded bands (DC stronger than AC). */
   let {
     soc,
     sessions,
+    from,
+    to,
     timeZone,
     height = 170,
   }: {
     soc: [number, number][];
+    from: number;
+    to: number;
     sessions: { start: number; end: number; type: 'AC' | 'DC' }[];
     timeZone?: string;
     height?: number;
@@ -21,7 +25,14 @@
   let chart: uPlot | null = null;
   let themeVersion = $state(0);
   const css = (n: string) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-  const day = new Intl.DateTimeFormat('nl-NL', { weekday: 'short', timeZone });
+  const short = $derived(to - from <= 86_400_000 + 60_000);
+  const long = $derived(to - from > 8 * 86_400_000);
+  const fmt = $derived(
+    new Intl.DateTimeFormat(
+      'nl-NL',
+      short ? { hour: '2-digit', minute: '2-digit', timeZone } : long ? { day: 'numeric', month: 'short', timeZone } : { weekday: 'short', timeZone },
+    ),
+  );
 
   function bands(u: uPlot) {
     const ctx = u.ctx;
@@ -41,16 +52,15 @@
   function options(width: number): uPlot.Options {
     const muted = css('--muted');
     const font = '11px Inter, system-ui, sans-serif';
-    const now = Date.now() / 1000;
     return {
       width,
       height,
       padding: [8, 12, 0, 0],
       legend: { show: false },
       cursor: { show: false },
-      scales: { x: { time: true, range: () => [now - 7 * 86400, now] }, y: { range: () => [0, 100] } },
+      scales: { x: { time: true, range: () => [from / 1000, to / 1000] }, y: { range: () => [0, 100] } },
       axes: [
-        { stroke: muted, font, size: 26, grid: { show: false }, ticks: { show: false }, space: 40, values: (_u, sp) => sp.map((v) => day.format(v * 1000)) },
+        { stroke: muted, font, size: 26, grid: { show: false }, ticks: { show: false }, space: long ? 56 : 40, values: (_u, sp) => sp.map((v) => fmt.format(v * 1000).replace('.', '')) },
         { stroke: muted, font, size: 36, grid: { stroke: css('--line'), width: 1 }, ticks: { show: false }, splits: () => [0, 25, 50, 75, 100], values: (_u, sp) => sp.map((v) => `${v}%`) },
       ],
       series: [{}, { stroke: css('--text'), width: 2, points: { show: false } }],
@@ -74,7 +84,7 @@
   });
 </script>
 
-<div class="chart" bind:this={container} role="img" aria-label="Accupercentage van de laatste 7 dagen met laadsessies"></div>
+<div class="chart" bind:this={container} role="img" aria-label="Accupercentage met laadsessies"></div>
 <p class="legend muted small"><span class="sw line"></span>accu <span class="sw ac"></span>AC-laden <span class="sw dc"></span>DC-laden</p>
 
 <style>

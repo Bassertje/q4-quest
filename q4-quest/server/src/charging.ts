@@ -1,17 +1,13 @@
 import {
-  chargingRecords,
   chargingSessions,
-  chargingTotals,
-  consumptionEstimate,
   toKw,
   type ChargingRecords,
   type ChargingSession,
-  type ChargingTotals,
-  type ConsumptionEstimate,
   type GreenTotals,
+  type ChargePeriodMode,
+  type ChargePeriodView,
+  chargePeriodView,
   dayKey,
-  shiftPeriod,
-  weekKey,
 } from '../../game/src/index.ts';
 import type { GameState } from './game-state.ts';
 import type { Options } from './options.ts';
@@ -41,42 +37,43 @@ export interface ChargingResponse {
   available: boolean;
   timeZone: string;
   batteryKwh: number;
-  /** Newest first. */
-  sessions: ChargingSession[];
-  totals: ChargingTotals | null;
-  consumption: ConsumptionEstimate | null;
+  /** Tiles, chart and sessions of the chosen period. */
+  period: ChargePeriodView | null;
+  hasSoc: boolean;
   records: ChargingRecords | null;
-  /** CO₂ saved, litres not burned and trees (estimates). */
+  /** CO₂ saved, litres not burned and trees (estimates, all time). */
   green: GreenTotals | null;
-  /** Charged kWh per ISO week (AC and DC), fixed window of 12 weeks ending this week. */
-  weeklyKwh: { week: string; ac: number; dc: number; beforeStart: boolean }[];
-  /** SoC readings of the last 7 days (empty without a SoC sensor). */
-  socLast7d: [number, number][];
   /** Progress towards the next CO₂ badge of the Groen category. */
   nextGreen: { name: string; icon: string; current: number; target: number; unit: string } | null;
 }
 
-const WEEK_WINDOW = 12;
 const CO2_BADGES = ['green_start', 'first_ton', 'climate_champion'];
 
-export function chargingResponse(state: GameState, options: Options): ChargingResponse {
+export function chargingResponse(state: GameState, options: Options, mode: ChargePeriodMode, key: string | null): ChargingResponse {
   const available = chargingAvailable(options);
   const { timeZone, now } = state;
-  const empty = {
-    available, timeZone, batteryKwh: options.batteryKwh, sessions: [], totals: null, consumption: null, records: null, green: null,
-    weeklyKwh: [], socLast7d: [], nextGreen: null,
+  const empty: ChargingResponse = {
+    available, timeZone, batteryKwh: options.batteryKwh, period: null, hasSoc: options.entities.soc !== null,
+    records: null, green: null, nextGreen: null,
   };
   if (!available) return empty;
   const sessions = state.sessions;
+  const firstTs = Math.min(state.odometer[0]?.ts ?? Infinity, sessions[0]?.start ?? Infinity, now);
   return {
     ...empty,
-    sessions: [...sessions].reverse(),
-    totals: chargingTotals(sessions),
-    consumption: options.entities.odometer ? consumptionEstimate(state.energy, now) : null,
+    period: chargePeriodView(
+      {
+        sessions,
+        energy: options.entities.odometer ? state.energy : { ...state.energy, odometer: [] },
+        firstDay: dayKey(firstTs, timeZone),
+        timeZone,
+        now,
+      },
+      mode,
+      key,
+    ),
     records: state.chargingRecords,
     green: state.green,
-    weeklyKwh: weeklyKwh(state),
-    socLast7d: state.energy.soc.filter((r) => r.ts >= now - 7 * 86_400_000).map((r): [number, number] => [r.ts, r.value]),
     nextGreen: nextGreenBadge(state),
   };
 }
@@ -86,23 +83,32 @@ function nextGreenBadge(state: GameState): ChargingResponse['nextGreen'] {
   return b ? { name: b.name, icon: b.icon, ...b.progress! } : null;
 }
 
-/** Charged kWh per ISO week for the last 12 weeks (AC and DC separately). */
-function weeklyKwh(state: GameState): ChargingResponse['weeklyKwh'] {
-  const current = weekKey(dayKey(state.now, state.timeZone));
-  const first = state.odometer[0] ? weekKey(dayKey(state.odometer[0].ts, state.timeZone)) : current;
-  const out: ChargingResponse['weeklyKwh'] = [];
-  for (let i = WEEK_WINDOW - 1; i >= 0; i--) {
-    const week = shiftPeriod('week', current, -i);
-    out.push({ week, ac: 0, dc: 0, beforeStart: week < first });
-  }
-  for (const s of state.sessions) {
-    if (s.kwh === null || s.ongoing) continue;
-    const row = out.find((r) => r.week === weekKey(dayKey(s.start, state.timeZone)));
-    if (row) row[s.type === 'DC' ? 'dc' : 'ac'] += s.kwh;
-  }
-  for (const r of out) {
-    r.ac = Math.round(r.ac * 10) / 10;
-    r.dc = Math.round(r.dc * 10) / 10;
-  }
-  return out;
+export const SOC_RANGES = { '24h': 1, '7d': 7, '30d': 30 } as const;
+export type SocRange = keyof typeof SOC_RANGES;
+export const isSocRange = (v: unknown): v is SocRange => typeof v === 'string' && v in SOC_RANGES;
+
+export interface SocResponse {
+  range: SocRange;
+  from: number;
+  to: number;
+  /** SoC readings in the range, plus the last one before it (empty without a SoC sensor). */
+  soc: [number, number][];
+  /** Sessions overlapping the range (shaded in the chart). */
+  sessions: { start: number; end: number; type: 'AC' | 'DC' }[];
+}
+
+/** SoC timeline for the last 24 hours, 7 days or 30 days. */
+export function socResponse(state: GameState, range: SocRange): SocResponse {
+  const to = state.now;
+  const from = to - SOC_RANGES[range] * 86_400_000;
+  const all = state.energy.soc;
+  const firstIn = all.findIndex((r) => r.ts >= from);
+  const rows = firstIn === -1 ? all.slice(-1) : all.slice(Math.max(0, firstIn - 1));
+  return {
+    range,
+    from,
+    to,
+    soc: rows.map((r): [number, number] => [Math.max(r.ts, from), r.value]),
+    sessions: state.sessions.filter((s) => s.end >= from).map((s) => ({ start: s.start, end: s.end, type: s.type })),
+  };
 }

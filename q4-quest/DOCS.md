@@ -133,10 +133,11 @@ Het scherm **Laden** verschijnt als je een sensor voor het laadvermogen of de la
 - **Gemiddeld vermogen ("gem."):** kWh gedeeld door de duur van de sessie.
 - **AC/DC:** DC als de laadtype-sensor tijdens de sessie of tot 10 minuten erna "DC" meldt, of als het
   gemiddelde vermogen boven 22 kW ligt. Anders AC.
-- **Verbruiksschatting:** verbruikte energie gedeeld door gereden km over de laatste 30 dagen.
-  Verbruikte energie = geladen kWh + (accupercentage aan het begin − aan het eind) × `battery_kwh`.
-  Het venster begint nooit vóór je eerste meting van kilometerstand én accu, en het verbruik wordt
-  getoond vanaf 300 km. Het blijft een schatting.
+- **Verbruiksschatting:** verbruikte energie gedeeld door gereden km over de periode die je op het
+  Laden-scherm kiest (week, maand, jaar of alles). Verbruikte energie = geladen kWh +
+  (accupercentage aan het begin − aan het eind) × `battery_kwh`. De periode begint nooit vóór je
+  eerste meting van kilometerstand én accu, en het verbruik wordt getoond vanaf 100 km in de
+  periode. Het blijft een schatting.
 
 ## Backfill
 

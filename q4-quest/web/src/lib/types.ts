@@ -84,6 +84,7 @@ export interface ChargingSession {
   end: number;
   ongoing: boolean;
   type: 'AC' | 'DC';
+  typeSource: 'sensor' | 'derived';
   socStart: number | null;
   socEnd: number | null;
   kwh: number | null;
@@ -96,23 +97,52 @@ export interface ChargingRecords {
   busiestMonth: { key: string; sessions: number } | null;
 }
 
-export interface ChargingData {
-  available: boolean;
-  timeZone: string;
-  batteryKwh: number;
-  sessions: ChargingSession[];
+export type ChargePeriodMode = 'week' | 'month' | 'year' | 'all';
+
+export interface ChargeBucket {
+  key: string;
+  ac: number;
+  dc: number;
+  beforeStart: boolean;
+}
+
+export interface ChargePeriod {
+  mode: ChargePeriodMode;
+  key: string;
+  label: string;
+  prev: string | null;
+  next: string | null;
+  bucket: 'day' | 'month';
+  buckets: ChargeBucket[];
   totals: {
     sessions: number;
     kwh: number;
     ac: { sessions: number; kwh: number };
     dc: { sessions: number; kwh: number };
-  } | null;
-  consumption: { kwhPer100km: number | null; km: number; kwh: number; sessions: number; from: number | null } | null;
+  };
+  consumption: { kwhPer100km: number | null; km: number; usedKwh: number } | null;
+  sessions: ChargingSession[];
+}
+
+export interface ChargingData {
+  available: boolean;
+  timeZone: string;
+  batteryKwh: number;
+  period: ChargePeriod | null;
+  hasSoc: boolean;
   records: ChargingRecords | null;
   green: GreenTotals | null;
-  weeklyKwh: { week: string; ac: number; dc: number; beforeStart: boolean }[];
-  socLast7d: [number, number][];
   nextGreen: { name: string; icon: string; current: number; target: number; unit: string } | null;
+}
+
+export type SocRange = '24h' | '7d' | '30d';
+
+export interface SocData {
+  range: SocRange;
+  from: number;
+  to: number;
+  soc: [number, number][];
+  sessions: { start: number; end: number; type: 'AC' | 'DC' }[];
 }
 
 export interface HistoryData {
