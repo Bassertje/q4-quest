@@ -7,11 +7,23 @@
   import Setup from '../lib/Setup.svelte';
   import type { BadgesData, BadgeView } from '../lib/types';
 
-  let { refresh }: { refresh: number } = $props();
+  let { refresh, openBadge = null }: { refresh: number; openBadge?: string | null } = $props();
 
   let data = $state<BadgesData | null>(null);
   let error = $state<string | null>(null);
   let selected = $state<BadgeView | null>(null);
+  let opened: string | null = null;
+
+  // Deep link (#/badges/<id>): scroll to that badge and open its details once.
+  $effect(() => {
+    const id = openBadge;
+    if (!data || !id || opened === id) return;
+    const badge = data.categories.flatMap((c) => c.badges).find((b) => b.id === id);
+    if (!badge) return;
+    opened = id;
+    selected = badge;
+    requestAnimationFrame(() => document.getElementById(`badge-${id}`)?.scrollIntoView({ block: 'center' }));
+  });
 
   async function follow(id: string | null) {
     await putJson('settings', { followedBadge: id });
@@ -65,7 +77,7 @@
       <ul class="grid">
         {#each cat.badges as b (b.id)}
           {@const open = b.unlockedTs !== null}
-          <li>
+          <li id="badge-{b.id}">
             <button
               class="card"
               class:open

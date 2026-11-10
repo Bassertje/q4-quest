@@ -200,7 +200,7 @@ Alle nieuwe badges hebben een eigen pixel-art icoon en worden met terugwerkende 
 - Bij de eerste keer openen in een nieuwe week verschijnt vóór de reveal-items één kaart "Vorige week": gereden km, aantal laadsessies (met laadsensoren) en het meest opvallende feit. Volgorde: een nieuw record dat vorige week is gezet > de weekuitdaging (gehaald of gemist) > de beste dag van de week. De kaart heeft een eigen seen-vlag per week en verschijnt pas als er een volledige week meting achter ligt.
 
 ### Gevolgde badge
-- Op de cockpit staat één **gevolgde badge**: icoon, naam, voortgangsbalk "huidig / doel" en wat er nog resteert. Een tik opent het Badges-scherm.
+- Op de cockpit staat één **gevolgde badge** in de rechterhelft van de Badges-kaart: icoon met voortgangsring, naam en wat er nog resteert. Een tik opent die badge op het Badges-scherm.
 - Op het Badges-scherm opent een tik op een badge een detailweergave met de knop **Volgen**. De keuze wordt in de database opgeslagen.
 - Alleen badges met meetbare voortgang zijn te volgen, en geen verborgen badges.
 - Zonder keuze, of als de gevolgde badge gehaald is, kiest de app automatisch de niet-gehaalde badge met het hoogste voortgangspercentage (bij gelijke stand: de kleinste rest).
@@ -228,15 +228,13 @@ Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laads
 - **Automatisch**: onder als de user agent "Home Assistant/" bevat (de Companion-app), anders boven.
 - Onderaan is er altijd ca. 24px + `env(safe-area-inset-bottom)` marge; bij navigatie onder komt daar de hoogte van de balk bij.
 
-1. **Cockpit**
+1. **Cockpit** (in deze volgorde)
    - Grote kilometerteller in LCD-cijfers die bij het openen kort "doortelt" naar de huidige stand.
    - Level, rangtitel en XP-balk. Een tik op de rang opent het **rangenoverzicht**: alle rangen met levelbereik, XP-drempel en een eigen pixel-art icoon; de huidige rang gemarkeerd, toekomstige rangen gedimd.
-   - Vandaag, deze week en deze maand in km.
-   - De huidige streak.
-   - Laatst ontgrendelde badge.
-   - SoC en actieradius, als die zijn ingesteld.
    - De weekuitdaging van deze week: doel, voortgang, resterende dagen en +100 XP.
-   - De gevolgde badge (zie Badges → Gevolgde badge). Er is geen aparte maanreis- of bestemmingskaart; de Maanreis en de Wereldreis-bestemmingen zijn badges en te volgen via de gevolgde-badgekaart.
+   - Vandaag, deze week en deze maand in km.
+   - Kaart **Badges** met twee helften. Links de laatst ontgrendelde badge (icoon, naam, datum). Rechts de gevolgde badge (zie Badges → Gevolgde badge) met een cirkelvormige voortgangsring in pixel-stijl (blokjes in rood op de lijnkleur) om het icoon, met de naam en "nog X" eronder. Een tik op een helft opent die badge op het Badges-scherm (`#/badges/<id>`: scrollt ernaartoe en opent de detailweergave). Er is geen losse kaart voor de gevolgde badge, en geen aparte maanreis- of bestemmingskaart.
+   - **Streak** en **Accu** naast elkaar. Accu toont "SoC % · actieradius km" (of één van beide als maar één sensor is ingesteld) en verschijnt alleen met een SoC- of actieradius-sensor.
 2. **Badges**
    - Raster per categorie (Rijden, Laden, Zuinigheid, Groen, Uitdagingen, Wereldreis, Legendarisch). Ontgrendeld: icoon in kleur met datum en bonus-XP. Vergrendeld: silhouet met hint. Verborgen badges tonen "???" (naam en hint blijven geheim tot ontgrendeling). Badges die van een niet-ingestelde sensor afhangen, verschijnen niet.
    - Voortgang: vergrendelde telbare badges (Wereldreis, Maanreis, laadaantallen, streaks, maand-/week-km, megawattuur) tonen een dun voortgangsbalkje met "huidig / doel". Streaks tellen de huidige reeks, maand/week de lopende periode.
@@ -276,6 +274,7 @@ Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laads
 - **Accent:** signaalrood `#E30613` voor voortgang, focus en nieuwe items. Daarnaast een zachte gloed (`box-shadow` in rood met lage opaciteit).
 - **Retro:** LCD-/pixelfont voor cijfers en koppen (bijv. VT323 of "Press Start 2P", spaarzaam gebruikt), een strakke moderne sans-serif voor de rest (bijv. Inter of Space Grotesk). Subtiele scanlines alleen op de kilometerteller en het reveal-scherm.
 - **Badge-iconen:** eigen pixel-art in SVG (16×16 of 24×24 raster), opgeschaald met `image-rendering: pixelated`.
+- **App-iconen** (lichte stijl): `icon.png` (128×128) en `logo.png` (250×100) van de add-on, plus de favicon (32×32) en `apple-touch-icon` (180×180) van de webapp. Lichte achtergrond `#F0F0ED` met subtiele horizontale scanlines, een rode (`#E30613`) pixel-art gamecontroller (kruis links, vier knoppen in ruitvorm rechts) met een zachte rode gloed, en daaronder (icoon) of ernaast (logo) "Q4" of "Q4 QUEST" in het pixelfont. De favicon toont alleen de controller. Gemaakt met `tools/make-icons.mjs`.
 - **Algemeen:**
   - Geen merklogo's.
   - Respecteer `prefers-reduced-motion`.

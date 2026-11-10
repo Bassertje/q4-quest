@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.3
+
+- **Cockpit opnieuw ingedeeld:** kilometerteller, level, weekuitdaging, vandaag/week/maand, dan de nieuwe kaart **Badges**, en onderaan Streak naast Accu.
+- **Badges-kaart:** links je laatst ontgrendelde badge, rechts je gevolgde badge met een pixel-voortgangsring om het icoon en "nog X" eronder. Tik op een helft om die badge direct op het Badges-scherm te openen. De losse kaart voor de gevolgde badge is weg.
+- **Accu-kaart:** accupercentage en actieradius samen op één kaart ("90% · 338 km").
+- **Nieuwe iconen in lichte stijl:** het add-on-icoon en -logo, en nu ook een favicon en een icoon voor het beginscherm van je telefoon: een rode pixel-gamecontroller met "Q4" op een lichte achtergrond met scanlines en een zachte gloed.
+
 ## 1.3.2
 
 - **Navigatie instelbaar:** kies in Instellingen → Navigatie tussen Boven (standaard), Onder of Automatisch. Boven is een balk die onder de kop blijft staan tijdens het scrollen, met een rode streep onder de actieve tab. Automatisch zet de navigatie onderaan in de Home Assistant-app en bovenaan in de browser. De keuze wordt bewaard.
