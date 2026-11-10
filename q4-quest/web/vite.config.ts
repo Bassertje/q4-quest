@@ -12,6 +12,8 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    // The frontend shares pure helpers from ../game.
+    fs: { allow: ['..'] },
     proxy: { '/api': 'http://localhost:8099' },
   },
 });

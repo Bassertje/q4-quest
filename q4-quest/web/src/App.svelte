@@ -1,21 +1,25 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { onLiveUpdate } from './lib/api';
+  import { getJson, onLiveUpdate } from './lib/api';
+  import type { StatusData } from './lib/types';
   import Nav from './lib/Nav.svelte';
+  import Charging from './screens/Charging.svelte';
   import Cockpit from './screens/Cockpit.svelte';
   import History from './screens/History.svelte';
   import Settings from './screens/Settings.svelte';
 
   // Hash-based routing keeps every URL relative (Ingress-proof).
-  type Route = 'cockpit' | 'historie' | 'instellingen';
+  type Route = 'cockpit' | 'historie' | 'laden' | 'instellingen';
   const parse = (): Route => {
     if (location.hash === '#/instellingen') return 'instellingen';
     if (location.hash === '#/historie') return 'historie';
+    if (location.hash === '#/laden') return 'laden';
     return 'cockpit';
   };
 
   let route = $state<Route>(parse());
   let refresh = $state(0);
+  let charging = $state(false);
 
   onMount(() => {
     const onHash = () => {
@@ -24,6 +28,9 @@
     };
     window.addEventListener('hashchange', onHash);
     const stop = onLiveUpdate(() => refresh++);
+    getJson<StatusData>('status')
+      .then((s) => (charging = s.features.charging))
+      .catch(() => {});
     return () => {
       window.removeEventListener('hashchange', onHash);
       stop();
@@ -51,13 +58,15 @@
     {/if}
   </header>
 
-  <Nav {route} />
+  <Nav {route} {charging} />
 
   <main>
     {#if route === 'instellingen'}
       <Settings {refresh} />
     {:else if route === 'historie'}
       <History {refresh} />
+    {:else if route === 'laden'}
+      <Charging {refresh} />
     {:else}
       <Cockpit {refresh} />
     {/if}

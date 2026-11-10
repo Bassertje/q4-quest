@@ -3,6 +3,7 @@ const nf1 = new Intl.NumberFormat('nl-NL', { maximumFractionDigits: 1 });
 
 export const km = (v: number) => nf0.format(Math.round(v));
 export const num1 = (v: number) => nf1.format(v);
+export const kw = (v: number) => nf1.format(v);
 export const pct = (fraction: number) => `${nf1.format(fraction * 100)}%`;
 
 export function date(ts: number, timeZone?: string): string {

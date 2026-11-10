@@ -89,6 +89,8 @@ Een badge wordt **met terugwerkende kracht** berekend. De ontgrendeldatum is het
 | early_bird | Vroege vogel | een ritblok dat start tussen 05:00 en 06:00 | 75 |
 | rest_day | Rustdag | 7 dagen zonder te rijden (verborgen badge) | 25 |
 
+Badges die op tijdstip gebaseerd zijn (`night_owl`, `early_bird`) tellen alleen voor ritblokken met minstens twee odometer-metingen. Een ritblok met één meting (begin = eind) zegt te weinig over het werkelijke vertrektijdstip.
+
 **Laden** (alleen als de sensoren zijn ingesteld)
 
 | id | Naam | Voorwaarde | XP |

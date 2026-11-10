@@ -3,6 +3,7 @@ import { Readable } from 'node:stream';
 import type { DatabaseSync } from 'node:sqlite';
 import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { chargingAvailable, chargingResponse } from './charging.ts';
 import { cockpitResponse } from './cockpit.ts';
 import type { BackfillStatus } from './collector/collector.ts';
 import { schemaVersion } from './db.ts';
@@ -44,6 +45,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       configured: deps.options.entities[key] !== null,
     })),
     batteryKwh: deps.options.batteryKwh,
+    features: { charging: chargingAvailable(deps.options) },
     db: { schemaVersion: schemaVersion(deps.db), readings: deps.store.counts() },
     backfill: deps.backfill.status(),
   }));
@@ -51,6 +53,8 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   app.get('/api/cockpit', async () => cockpitResponse(deps.store, deps.options, deps.timeZone()));
 
   app.get('/api/history', async () => historyResponse(deps.store, deps.options, deps.timeZone()));
+
+  app.get('/api/charging', async () => chargingResponse(deps.store, deps.options, deps.timeZone()));
 
   app.post('/api/backfill', async (_req, reply) => {
     if (deps.backfill.status().state === 'running') return reply.code(409).send({ error: 'already running' });

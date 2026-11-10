@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.4.0
+
+Laden, en een paar verbeteringen in de Historie.
+
+- Nieuw scherm **Laden** (alleen zichtbaar als een laadvermogen- of laadstatus-sensor is ingesteld):
+  - Laadsessies worden herkend aan een laadvermogen boven 0 of de status "laden". Een onderbreking van maximaal 15 minuten hoort nog bij dezelfde sessie.
+  - Per sessie: datum, AC/DC, geschatte kWh, accupercentage van → naar en piekvermogen. Het vermogen wordt in W of kW gelezen; de eenheid komt uit de sensor.
+  - De kWh-schatting komt uit het gemeten vermogen (trapeziumregel). Bij minder dan 3 vermogensmetingen wordt het verschil in accupercentage × accucapaciteit gebruikt.
+  - Zonder laadtype-sensor wordt AC/DC afgeleid uit het piekvermogen (gemarkeerd met een vraagteken).
+  - Totalen (sessies, kWh, AC/DC) en een verbruiksschatting over de laatste 30 dagen. Die verschijnt pas vanaf 300 km en 3 sessies en heet altijd "schatting".
+- Records in de Historie: snelste laadsessie (piek-kW) en meeste laadsessies in een maand.
+- "Langste ritblok" heet nu "Grootste ritblok (indicatief)".
+- Een ritblok met maar één meting toont "rond HH:MM" in plaats van een tijdvak.
+- Grafiek: Week toont altijd 12 weken en Maand altijd 12 maanden, eindigend bij de huidige of gekozen periode. Periodes zonder data krijgen een staaf van 0; periodes van vóór de eerste meting zijn gedimd. De staven hebben een vaste breedte, zijn gelijkmatig verdeeld en raken nooit de rand.
+- Nieuw icoon: een pixel-art gamecontroller. Het zijbalk-icoon is nu `mdi:gamepad-variant`.
+
 ## 0.3.0
 
 Het Historie-scherm.

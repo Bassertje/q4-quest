@@ -1,8 +1,8 @@
 <script lang="ts">
-  let { route }: { route: string } = $props();
+  let { route, charging = false }: { route: string; charging?: boolean } = $props();
 
   // 16×16 pixel-style icons.
-  const items = [
+  const all = [
     {
       id: 'cockpit',
       href: '#/',
@@ -15,7 +15,15 @@
       label: 'Historie',
       icon: 'M1 14h14v1H1v-1Zm1-5h3v4H2V9Zm4-4h3v8H6V5Zm4-3h3v11h-3V2Z',
     },
+    {
+      id: 'laden',
+      href: '#/laden',
+      label: 'Laden',
+      icon: 'M9 1h2v1h-1v3H9v2h4v1h-1v1h-1v1h-1v1H9v1H8v1H7v1H5v-1h1v-3h1V9H3V8h1V7h1V6h1V5h1V4h1V3h1V1Z',
+    },
   ];
+  // The charging tab only appears when charging sensors are configured.
+  const items = $derived(all.filter((i) => i.id !== 'laden' || charging));
 </script>
 
 <nav aria-label="Hoofdmenu">
