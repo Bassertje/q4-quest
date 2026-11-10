@@ -1,7 +1,7 @@
 import type { BadgeResult } from './badges.ts';
 import { currentStreak, dailyTotals, periodTotals } from './distance.ts';
 import { levelProgress, type LevelProgress } from './levels.ts';
-import { MOON_KM, milestoneProgress, type MilestoneProgress, type TimedValue } from './milestones.ts';
+import { milestoneProgress, type MilestoneProgress, type TimedValue } from './milestones.ts';
 import { dayKey } from './time.ts';
 
 export interface CockpitInput {
@@ -20,7 +20,6 @@ export interface Cockpit {
   milestone: MilestoneProgress;
   bonusXp: number;
   lastUnlocked: { id: string; name: string; icon: string; category: string; ts: number } | null;
-  moon: { km: number; fraction: number };
   distance: { today: number; week: number; month: number };
   streak: number;
 }
@@ -45,7 +44,6 @@ export function buildCockpit(input: CockpitInput): Cockpit | null {
     lastUnlocked: latest
       ? { id: latest.id, name: latest.name, icon: latest.icon, category: latest.category, ts: latest.unlockedTs! }
       : null,
-    moon: { km: MOON_KM, fraction: Math.min(1, odometer / MOON_KM) },
     distance: periodTotals(totals, today),
     streak: currentStreak(totals, today),
   };

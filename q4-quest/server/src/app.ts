@@ -8,6 +8,7 @@ import { cockpitResponse } from './cockpit.ts';
 import type { BackfillStatus } from './collector/collector.ts';
 import { schemaVersion } from './db.ts';
 import { badgesResponse, markSeen, revealResponse, seenKeys } from './badges.ts';
+import { isFollowable } from '../../game/src/index.ts';
 import { GameStateCache } from './game-state.ts';
 import { historyResponse } from './history.ts';
 import { yearResponse, yearsResponse } from './year.ts';
@@ -56,13 +57,15 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     backfill: deps.backfill.status(),
   }));
 
-  app.get('/api/cockpit', async () => cockpitResponse(state(), deps.store, deps.options));
+  app.get('/api/cockpit', async () =>
+    cockpitResponse(state(), deps.store, deps.options, readSettings(deps.db).followedBadge),
+  );
 
   app.get('/api/history', async () => historyResponse(state()));
 
   app.get('/api/charging', async () => chargingResponse(state(), deps.options));
 
-  app.get('/api/badges', async () => badgesResponse(state(), seenKeys(deps.db)));
+  app.get('/api/badges', async () => badgesResponse(state(), seenKeys(deps.db), readSettings(deps.db).followedBadge));
 
   app.get('/api/years', async () => yearsResponse(state()));
 
@@ -91,7 +94,16 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     if (body.theme !== undefined && !isTheme(body.theme)) {
       return reply.code(400).send({ error: 'theme must be auto, light or dark' });
     }
-    return writeSettings(deps.db, { theme: body.theme as 'auto' | 'light' | 'dark' | undefined });
+    const followed = body.followedBadge;
+    if (followed !== undefined && followed !== null) {
+      // Only visible badges with measurable progress can be followed.
+      const badge = typeof followed === 'string' ? state().badges.find((b) => b.id === followed) : undefined;
+      if (!badge || !isFollowable(badge)) return reply.code(400).send({ error: 'this badge cannot be followed' });
+    }
+    return writeSettings(deps.db, {
+      theme: body.theme as 'auto' | 'light' | 'dark' | undefined,
+      followedBadge: followed as string | null | undefined,
+    });
   });
 
   app.post('/api/backfill', async (_req, reply) => {

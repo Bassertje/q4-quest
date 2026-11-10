@@ -116,7 +116,10 @@ describe('GET /api/charging', () => {
 describe('badges and reveal', () => {
   it('lists badges per category with a counter, without charging badges if not configured', async () => {
     const all = (await make(MOCK_OPTIONS_RAW, true).app.inject({ url: '/api/badges' })).json();
-    expect(all.categories.map((c: { id: string }) => c.id)).toEqual(['rijden', 'laden', 'zuinigheid', 'mijlpalen']);
+    expect(all.categories.map((c: { id: string }) => c.id)).toEqual(['rijden', 'laden', 'zuinigheid', 'mijlpalen', 'legendarisch']);
+    const moon = all.categories.at(-1).badges[0];
+    expect(moon).toMatchObject({ id: 'moon_trip', name: 'Maanreis', xp: 5000, unlockedTs: null, followable: true });
+    expect(moon.progress.target).toBe(384_400);
     expect(all.unlocked).toBeGreaterThan(5);
     expect(all.total).toBeGreaterThan(all.unlocked);
     // A locked hidden badge does not reveal its name.
@@ -124,7 +127,7 @@ describe('badges and reveal', () => {
     if (rest.unlockedTs === null) expect(rest.name).toBeNull();
 
     const odoOnly = (await make({ odometer_entity: 'sensor.my_ev_odometer' }, true).app.inject({ url: '/api/badges' })).json();
-    expect(odoOnly.categories.map((c: { id: string }) => c.id)).toEqual(['rijden', 'mijlpalen']);
+    expect(odoOnly.categories.map((c: { id: string }) => c.id)).toEqual(['rijden', 'mijlpalen', 'legendarisch']);
   });
 
   it('adds badge XP to the cockpit level', async () => {
@@ -186,13 +189,39 @@ describe('year overview', () => {
   });
 });
 
+describe('followed badge', () => {
+  it('picks one automatically, follows a chosen badge, and rejects unfollowable ones', async () => {
+    const { app } = make(MOCK_OPTIONS_RAW, true);
+    const auto = (await app.inject({ url: '/api/cockpit' })).json().followed;
+    expect(auto.auto).toBe(true);
+    expect(auto.remaining).toBe(auto.target - auto.current);
+
+    const put = await app.inject({ method: 'PUT', url: '/api/settings', payload: { followedBadge: 'moon_trip' } });
+    expect(put.json().followedBadge).toBe('moon_trip');
+    const chosen = (await app.inject({ url: '/api/cockpit' })).json().followed;
+    expect(chosen).toMatchObject({ id: 'moon_trip', name: 'Maanreis', auto: false, target: 384_400, unit: 'km' });
+    const badges = (await app.inject({ url: '/api/badges' })).json();
+    expect(badges.followedId).toBe('moon_trip');
+    expect(badges.followedAuto).toBe(false);
+
+    // No measurable progress (first_100_day) or hidden (rest_day): not followable.
+    for (const id of ['first_100_day', 'rest_day', 'does_not_exist']) {
+      const bad = await app.inject({ method: 'PUT', url: '/api/settings', payload: { followedBadge: id } });
+      expect(bad.statusCode).toBe(400);
+    }
+    // null clears the choice again.
+    await app.inject({ method: 'PUT', url: '/api/settings', payload: { followedBadge: null } });
+    expect((await app.inject({ url: '/api/cockpit' })).json().followed.auto).toBe(true);
+  });
+});
+
 describe('/api/settings', () => {
   it('defaults to the automatic theme and stores a choice', async () => {
     const { app } = make({});
-    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'auto' });
+    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'auto', followedBadge: null });
     const put = await app.inject({ method: 'PUT', url: '/api/settings', payload: { theme: 'light' } });
-    expect(put.json()).toEqual({ theme: 'light' });
-    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'light' });
+    expect(put.json()).toEqual({ theme: 'light', followedBadge: null });
+    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'light', followedBadge: null });
   });
 
   it('rejects an unknown theme', async () => {

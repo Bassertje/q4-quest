@@ -1,9 +1,10 @@
 import type { BadgeResult } from './badges.ts';
+import { rankIcon } from './levels.ts';
 import type { ChargingRecords } from './charging.ts';
 import type { DrivingRecords } from './records.ts';
 import type { TimelineEvent } from './timeline.ts';
 
-export type RevealKind = 'badge' | 'milestone' | 'level' | 'record';
+export type RevealKind = 'badge' | 'milestone' | 'level' | 'rank' | 'record';
 
 export interface RevealItem {
   /** Seen-flag keys this item covers (a level item covers all levels gained). */
@@ -82,11 +83,28 @@ export function revealItems(input: {
     });
   }
 
+  // A new rank is its own item (the highest new one; Leerling is the starting rank).
+  const unseenRanks = levels
+    .filter((l) => l.newRank && l.level > 0 && !input.seen.has(`rank:${l.rank}`))
+    .sort((a, b) => a.level - b.level);
+  const topRank = unseenRanks.at(-1);
+  if (topRank) {
+    items.push({
+      keys: unseenRanks.map((l) => `rank:${l.rank}`),
+      kind: 'rank',
+      name: topRank.rank,
+      description: `Nieuwe rang vanaf level ${topRank.level}`,
+      icon: rankIcon(topRank.rank),
+      ts: topRank.ts,
+      xp: 0,
+    });
+  }
+
   for (const r of input.records) {
     if (input.seen.has(r.key)) continue;
     items.push({ keys: [r.key], kind: 'record', name: r.name, description: `${r.value} · ${r.label}`, icon: 'crown', ts: r.ts || input.now, xp: 0 });
   }
 
-  const order: Record<RevealKind, number> = { milestone: 0, badge: 1, record: 2, level: 3 };
+  const order: Record<RevealKind, number> = { milestone: 0, badge: 1, record: 2, level: 3, rank: 4 };
   return items.sort((a, b) => a.ts - b.ts || order[a.kind] - order[b.kind]);
 }

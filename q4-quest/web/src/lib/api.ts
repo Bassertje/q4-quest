@@ -39,3 +39,11 @@ export async function postJson(path: string, body: unknown): Promise<Response> {
     body: JSON.stringify(body),
   });
 }
+
+export async function putJson(path: string, body: unknown): Promise<Response> {
+  return fetch(`./api/${path}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}

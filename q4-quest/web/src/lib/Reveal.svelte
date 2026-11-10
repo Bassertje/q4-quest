@@ -16,6 +16,7 @@
     badge: 'Badge ontgrendeld',
     milestone: 'Mijlpaal bereikt',
     level: 'Level omhoog',
+    rank: 'Nieuwe rang',
     record: 'Nieuw record',
   };
 

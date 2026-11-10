@@ -1,14 +1,23 @@
 <script lang="ts">
   import { getJson } from '../lib/api';
   import { date, km } from '../lib/format';
+  import { putJson } from '../lib/api';
+  import BadgeDetail from '../lib/BadgeDetail.svelte';
   import PixelIcon from '../lib/PixelIcon.svelte';
   import Setup from '../lib/Setup.svelte';
-  import type { BadgesData } from '../lib/types';
+  import type { BadgesData, BadgeView } from '../lib/types';
 
   let { refresh }: { refresh: number } = $props();
 
   let data = $state<BadgesData | null>(null);
   let error = $state<string | null>(null);
+  let selected = $state<BadgeView | null>(null);
+
+  async function follow(id: string | null) {
+    await putJson('settings', { followedBadge: id });
+    await load();
+    selected = null;
+  }
 
   async function load() {
     try {
@@ -56,7 +65,15 @@
       <ul class="grid">
         {#each cat.badges as b (b.id)}
           {@const open = b.unlockedTs !== null}
-          <li class:open class:new={b.isNew}>
+          <li>
+            <button
+              class="card"
+              class:open
+              class:new={b.isNew}
+              class:following={data.followedId === b.id}
+              onclick={() => (selected = b)}
+              aria-haspopup="dialog"
+            >
             <PixelIcon icon={b.icon} size={44} locked={!open} />
             <span class="name">{open ? b.name : b.name ?? '???'}</span>
             {#if open}
@@ -71,12 +88,23 @@
                 <span class="count">{km(b.progress.current)} / {km(b.progress.target)} {b.progress.unit}</span>
               {/if}
             {/if}
-            {#if b.isNew}<span class="tag">nieuw</span>{/if}
+            {#if b.isNew}<span class="tag">nieuw</span>{:else if data.followedId === b.id}<span class="tag follow-tag">volgt</span>{/if}
+            </button>
           </li>
         {/each}
       </ul>
     </section>
   {/each}
+{/if}
+
+{#if selected && data}
+  <BadgeDetail
+    badge={selected}
+    timeZone={data.timeZone}
+    followed={data.followedId === selected.id && !data.followedAuto}
+    onfollow={follow}
+    onclose={() => (selected = null)}
+  />
 {/if}
 
 <style>
@@ -133,6 +161,15 @@
     }
   }
   li {
+    display: flex;
+    min-width: 0;
+  }
+  .card {
+    width: 100%;
+    font: inherit;
+    color: inherit;
+    background: none;
+    cursor: pointer;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -144,7 +181,10 @@
     border-radius: 10px;
     min-width: 0;
   }
-  li.new {
+  .card.following {
+    border-color: var(--muted);
+  }
+  .card.new {
     border-color: var(--accent);
     box-shadow: var(--glow);
   }
@@ -158,7 +198,7 @@
     overflow-wrap: normal;
     max-width: 100%;
   }
-  li:not(.open) .name {
+  .card:not(.open) .name {
     color: var(--muted);
   }
   .hint {
@@ -188,6 +228,9 @@
     font-size: 1.05rem;
     color: var(--accent);
     line-height: 1;
+  }
+  .tag.follow-tag {
+    background: var(--muted);
   }
   .tag {
     position: absolute;

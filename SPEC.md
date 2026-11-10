@@ -71,7 +71,7 @@ Afgeleide gegevens worden altijd uit de opgeslagen ruwe metingen berekend. Na ee
 ### Mijlpalen (op kilometerstand)
 - 1.000, 2.500, 5.000, 7.500, 10.000, 15.000, 20.000, 25.000, 40.075 ("Rondje aarde"), 50.000, 75.000 en 100.000 km.
 - Daarna doorlopend per 25.000 km.
-- **Maanreis:** een permanente voortgangsbalk naar 384.400 km.
+- **Maanreis:** een badge in de categorie "Legendarisch" (zie Badges): 384.400 km op de teller.
 - Mijlpalen zijn ook badges (categorie "Mijlpalen"). Bonus-XP = mijlpaal-km ÷ 10, naar beneden afgerond (1.000 km = 100 XP, Rondje aarde = 4.007 XP, 100.000 km = 10.000 XP).
 
 ### Badges
@@ -123,6 +123,18 @@ Badges die op tijdstip gebaseerd zijn (`night_owl`, `early_bird`) tellen alleen 
 |---|---|---|---|
 | eco_week | Zuinige week | weekschatting ≤ 17 kWh/100 km bij ≥ 150 km | 100 |
 
+**Legendarisch**
+
+| id | Naam | Voorwaarde | XP |
+|---|---|---|---|
+| moon_trip | Maanreis | kilometerstand ≥ 384.400 km (de afstand tot de maan), met voortgang | 5.000 |
+
+### Gevolgde badge
+- Op de cockpit staat één **gevolgde badge**: icoon, naam, voortgangsbalk "huidig / doel" en wat er nog resteert. Een tik opent het Badges-scherm.
+- Op het Badges-scherm opent een tik op een badge een detailweergave met de knop **Volgen**. De keuze wordt in de database opgeslagen.
+- Alleen badges met meetbare voortgang zijn te volgen, en geen verborgen badges.
+- Zonder keuze, of als de gevolgde badge gehaald is, kiest de app automatisch de niet-gehaalde badge met het hoogste voortgangspercentage (bij gelijke stand: de kleinste rest).
+
 ### Records
 Beste dag, beste week, beste maand, langste streak, langste ritblok, snelste laadsessie (gem. kW) en meeste laadsessies in een maand.
 
@@ -131,6 +143,7 @@ Beste dag, beste week, beste maand, langste streak, langste ritblok, snelste laa
 - Bij het openen van de app verschijnt eerst een **reveal-scherm**: niet-geziene items één voor één (oudste eerst), met een korte retro-animatie (pixel-burst, geen geluid). Elk item wordt als gezien gemarkeerd zodra je verder gaat.
 - Na 3 items verschijnt een knop **"Toon alles"**: de overige items staan dan in één lijst en worden met "Klaar" allemaal als gezien gemarkeerd. Zo wordt een grote inhaalslag (bijv. de eerste keer na de badge-update) geen reeks van 20 losse schermen.
 - Level-ups worden samengevoegd tot één item: het hoogste nieuwe level, met het aantal gestegen levels.
+- Een nieuwe rang is een eigen item ("Nieuwe rang", met het pixel-art icoon van die rang). Zijn er meerdere nieuwe rangen tegelijk, dan verschijnt alleen de hoogste.
 - Ook records die al bestonden vóór de eerste reveal, verschijnen daarin (net als badges, mijlpalen en level-ups). Daarna verschijnt een record alleen opnieuw als het wordt verbeterd in een andere periode of rit.
 - Daarbuiten is alles rustig: geen meldingen.
 
@@ -138,16 +151,17 @@ Beste dag, beste week, beste maand, langste streak, langste ritblok, snelste laa
 
 ## 4. Schermen
 
-Navigatie onderaan (mobiel-eerst), bovenaan op desktop, met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laadsensoren). Instellingen zitten achter een tandwiel. De navigatie-iconen zijn pixel-art (Cockpit: een stuur).
+Navigatie onderaan (mobiel-eerst), bovenaan op desktop, met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laadsensoren). Instellingen zitten achter een tandwiel. De navigatie-iconen zijn pixel-art (Cockpit: een stuur; Instellingen: een tandwiel met 8 tanden en een rond gat).
 
 1. **Cockpit**
    - Grote kilometerteller in LCD-cijfers die bij het openen kort "doortelt" naar de huidige stand.
-   - Level, rangtitel en XP-balk.
+   - Level, rangtitel en XP-balk. Een tik op de rang opent het **rangenoverzicht**: alle rangen met levelbereik, XP-drempel en een eigen pixel-art icoon; de huidige rang gemarkeerd, toekomstige rangen gedimd.
    - Voortgang naar de volgende mijlpaal.
    - Vandaag, deze week en deze maand in km.
    - De huidige streak.
    - Laatst ontgrendelde badge.
    - SoC en actieradius, als die zijn ingesteld.
+   - De gevolgde badge (zie Badges → Gevolgde badge). Er is geen aparte maanreis-kaart meer; de Maanreis is een badge.
 2. **Badges**
    - Raster per categorie (Rijden, Laden, Zuinigheid, Mijlpalen). Ontgrendeld: icoon in kleur met datum en bonus-XP. Vergrendeld: silhouet met hint. Verborgen badges tonen "???" (naam en hint blijven geheim tot ontgrendeling). Badges die van een niet-ingestelde sensor afhangen, verschijnen niet.
    - Mijlpalen: alle vaste mijlpalen, plus elke gehaalde mijlpaal daarna en de eerstvolgende.
@@ -170,6 +184,7 @@ Navigatie onderaan (mobiel-eerst), bovenaan op desktop, met de tabs Cockpit, Bad
    - Knop "Voorbeeld jaaroverzicht": toont het jaaroverzicht van het lopende jaar met de data tot nu toe, ook vóór 1 december.
 6. **Jaaroverzicht** (volledig scherm, geen tab)
    - Swipebare kaarten (vegen, pijlen, toetsenbord of stippen): intro, totaal km (en aantal rijdagen), beste dag, beste week, langste streak, aantal laadsessies en geladen kWh, AC/DC-verhouding, nieuwe badges (met iconen en bonus-XP), level-groei (level aan het begin → nu/eind, met XP en rang), "Rondje aarde"-vergelijking (km ÷ 40.075) en een afsluiter. Kaarten zonder gegevens (bijv. laden zonder laadsensoren) vallen weg.
+   - **Deelkaart** als laatste slide: een PNG van 1080×1920, getekend met canvas (geen screenshot-library) in de huisstijl van het actieve thema, pas nadat de fonts geladen zijn. Inhoud: "Q4 Quest" + jaar, grote LCD-weergave van de gereden km dat jaar, een raster met hoogtepunten (beste dag, beste week, langste streak, laadsessies, geladen kWh, AC/DC-verhouding, level en rang aan het eind van het jaar) en de in dat jaar gehaalde badges als pixel-iconen. Niets herleidbaars: geen totale kilometerstand van de auto, geen ritdatums of -tijden. De slide toont een voorbeeld; de knop **Delen** gebruikt `navigator.share` met het bestand als `canShare({ files })` dat ondersteunt, en downloadt anders `q4-quest-<jaar>.png`.
    - Alles per kalenderjaar in de tijdzone van HA. Begon de meting in dat jaar, dan loopt het overzicht vanaf de eerste meting; badges die al bij de eerste meting gehaald waren, tellen niet als nieuw.
    - Beschikbaar vanaf 1 december van dat jaar; eerdere jaren blijven altijd terug te kijken (lijst "Jaaroverzichten" in Historie). In december (en in januari voor het vorige jaar) staat een melding op de Cockpit.
 

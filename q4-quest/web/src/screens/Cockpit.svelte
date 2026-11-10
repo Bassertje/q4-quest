@@ -1,9 +1,10 @@
 <script lang="ts">
   import { getJson } from '../lib/api';
   import Bar from '../lib/Bar.svelte';
-  import { ago, date, km, pct } from '../lib/format';
+  import { ago, date, km } from '../lib/format';
   import Odometer from '../lib/Odometer.svelte';
   import PixelIcon from '../lib/PixelIcon.svelte';
+  import RankOverview from '../lib/RankOverview.svelte';
   import Setup from '../lib/Setup.svelte';
   import type { CockpitData, YearsData } from '../lib/types';
 
@@ -13,6 +14,7 @@
   let error = $state<string | null>(null);
 
   let years = $state<YearsData | null>(null);
+  let showRanks = $state(false);
 
   /** In December the new overview is announced; in January last year's. */
   const banner = $derived.by(() => {
@@ -79,7 +81,9 @@
     <div class="row">
       <div>
         <div class="pixel big">LEVEL {c.level.level}</div>
-        <div class="rank">{c.level.rank}</div>
+        <button class="rank" onclick={() => (showRanks = true)} aria-haspopup="dialog">
+          {c.level.rank} <span class="chev" aria-hidden="true">›</span>
+        </button>
       </div>
       <div class="muted small right">
         {km(c.level.xp)} / {km(c.level.nextLevelXp)} XP<br />
@@ -153,16 +157,27 @@
     </section>
   {/if}
 
-  <section class="panel">
-    <div class="row">
-      <div>
-        <div class="label">Maanreis</div>
-        <div class="pixel mid">{pct(c.moon.fraction)}</div>
+  {#if data.followed}
+    {@const f = data.followed}
+    <a class="panel followed link" href="#/badges">
+      <div class="row">
+        <div class="unlocked">
+          <PixelIcon icon={f.icon} size={36} />
+          <span>
+            <span class="label">Gevolgde badge{f.auto ? ' · automatisch' : ''}</span>
+            <span class="badge-name block">{f.name}</span>
+          </span>
+        </div>
+        <div class="muted small right">nog {km(f.remaining)} {f.unit}</div>
       </div>
-      <div class="muted small right">{km(c.odometer)} / {km(c.moon.km)} km</div>
-    </div>
-    <Bar fraction={c.moon.fraction} label="Voortgang van de maanreis" />
-  </section>
+      <Bar fraction={f.current / f.target} label="Voortgang van {f.name}" />
+      <div class="muted small count">{km(f.current)} / {km(f.target)} {f.unit}</div>
+    </a>
+  {/if}
+{/if}
+
+{#if showRanks && c}
+  <RankOverview current={c.level.rank} level={c.level.level} xp={c.level.xp} onclose={() => (showRanks = false)} />
 {/if}
 
 <style>
@@ -204,7 +219,26 @@
     color: var(--muted);
     margin-left: 4px;
   }
+  .followed .row {
+    align-items: center;
+  }
+  .block {
+    display: block;
+  }
+  .count {
+    margin-top: 6px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .chev {
+    color: var(--accent);
+  }
   .rank {
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: left;
+    cursor: pointer;
     font-weight: 600;
   }
   .tiles {
