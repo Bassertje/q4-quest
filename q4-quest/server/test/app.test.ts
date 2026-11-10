@@ -263,10 +263,19 @@ describe('followed badge', () => {
 describe('/api/settings', () => {
   it('defaults to the automatic theme and stores a choice', async () => {
     const { app } = make({});
-    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'auto', followedBadge: null });
+    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'auto', navPosition: 'top', followedBadge: null });
     const put = await app.inject({ method: 'PUT', url: '/api/settings', payload: { theme: 'light' } });
-    expect(put.json()).toEqual({ theme: 'light', followedBadge: null });
-    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'light', followedBadge: null });
+    expect(put.json()).toEqual({ theme: 'light', navPosition: 'top', followedBadge: null });
+    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'light', navPosition: 'top', followedBadge: null });
+  });
+
+  it('stores the navigation position (default top) and rejects unknown values', async () => {
+    const { app } = make({});
+    const put = await app.inject({ method: 'PUT', url: '/api/settings', payload: { navPosition: 'auto' } });
+    expect(put.json().navPosition).toBe('auto');
+    expect((await app.inject({ url: '/api/settings' })).json().navPosition).toBe('auto');
+    const bad = await app.inject({ method: 'PUT', url: '/api/settings', payload: { navPosition: 'left' } });
+    expect(bad.statusCode).toBe(400);
   });
 
   it('rejects an unknown theme', async () => {

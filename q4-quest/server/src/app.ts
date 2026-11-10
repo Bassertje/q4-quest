@@ -12,7 +12,7 @@ import { isFollowable } from '../../game/src/index.ts';
 import { GameStateCache } from './game-state.ts';
 import { historyResponse } from './history.ts';
 import { yearResponse, yearsResponse } from './year.ts';
-import { isTheme, readSettings, writeSettings } from './settings.ts';
+import { isNavPosition, isTheme, readSettings, writeSettings } from './settings.ts';
 import type { HaStatus } from './ha/types.ts';
 import { SENSOR_KEYS, type Options } from './options.ts';
 import type { ReadingStore } from './readings.ts';
@@ -94,6 +94,9 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     if (body.theme !== undefined && !isTheme(body.theme)) {
       return reply.code(400).send({ error: 'theme must be auto, light or dark' });
     }
+    if (body.navPosition !== undefined && !isNavPosition(body.navPosition)) {
+      return reply.code(400).send({ error: 'navPosition must be top, bottom or auto' });
+    }
     const followed = body.followedBadge;
     if (followed !== undefined && followed !== null) {
       // Only visible badges with measurable progress can be followed.
@@ -102,6 +105,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     }
     return writeSettings(deps.db, {
       theme: body.theme as 'auto' | 'light' | 'dark' | undefined,
+      navPosition: body.navPosition as 'top' | 'bottom' | 'auto' | undefined,
       followedBadge: followed as string | null | undefined,
     });
   });

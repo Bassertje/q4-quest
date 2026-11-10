@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.2
+
+- **Navigatie instelbaar:** kies in Instellingen → Navigatie tussen Boven (standaard), Onder of Automatisch. Boven is een balk die onder de kop blijft staan tijdens het scrollen, met een rode streep onder de actieve tab. Automatisch zet de navigatie onderaan in de Home Assistant-app en bovenaan in de browser. De keuze wordt bewaard.
+- **Nettere lijsten:** ritblokken, laadsessies, records en weekuitdagingen hebben nu een vaste opbouw van twee regels: datum of naam links en de waarde rechts (vet, nooit afgebroken), met daaronder klein het tijdvak (of "rond HH:MM"), de temperatuur en andere details.
+- Op smalle schermen blijven waarde en eenheid in de cockpit-tegels bij elkaar.
+
 ## 1.3.1
 
 - De kaart "Volgende bestemming" is van de cockpit verwijderd. De Wereldreis-bestemmingen zijn gewoon badges en blijven te volgen via de kaart met de gevolgde badge (tik op een badge en kies Volgen). De automatische keuze van de gevolgde badge is ongewijzigd.

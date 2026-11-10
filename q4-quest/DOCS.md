@@ -149,6 +149,9 @@ bestaande gegevens blijven bewaard en dubbele metingen worden overgeslagen.
 Onder **Instellingen → Weergave** kies je Automatisch (volgt de licht/donker-instelling van je
 apparaat), Licht of Donker. De keuze wordt in de database van de add-on bewaard.
 
+
+Onder **Instellingen → Navigatie** kies je waar de navigatie staat: Boven (standaard), Onder, of
+Automatisch (onderaan in de Home Assistant-app, bovenaan in de browser).
 ## Export
 
 Via **Instellingen → Exporteren** download je al je opgeslagen metingen als JSON-bestand.

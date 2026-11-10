@@ -5,6 +5,7 @@
   import type { RevealItem, StatusData } from './lib/types';
   import { ICONS, pixelPath } from './lib/icons';
   import Nav from './lib/Nav.svelte';
+  import { cachedNav, isNavChoice, NAV_EVENT, resolveNav, type NavChoice } from './lib/navPref';
   import Badges from './screens/Badges.svelte';
   import Charging from './screens/Charging.svelte';
   import Cockpit from './screens/Cockpit.svelte';
@@ -37,6 +38,8 @@
   }
   let refresh = $state(0);
   let charging = $state(false);
+  let navChoice = $state<NavChoice>(cachedNav());
+  const navPosition = $derived(resolveNav(navChoice, navigator.userAgent));
   let reveal = $state<RevealItem[]>([]);
   let timeZone = $state<string | undefined>(undefined);
 
@@ -74,6 +77,16 @@
       })
       .catch(() => {});
     checkReveal();
+    getJson<{ navPosition: NavChoice }>('settings')
+      .then((s) => {
+        if (isNavChoice(s.navPosition)) navChoice = s.navPosition;
+      })
+      .catch(() => {});
+    const onNav = (e: Event) => {
+      const choice = (e as CustomEvent).detail;
+      if (isNavChoice(choice)) navChoice = choice;
+    };
+    window.addEventListener(NAV_EVENT, onNav);
     // Re-opening the app (back from the background) counts as opening it.
     const onVisible = () => {
       if (document.visibilityState === 'visible') checkReveal();
@@ -82,12 +95,13 @@
     return () => {
       window.removeEventListener('hashchange', onHash);
       document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener(NAV_EVENT, onNav);
       stop();
     };
   });
 </script>
 
-<div class="app">
+<div class="app nav-{navPosition}">
   <header>
     <a class="logo" href="#/">Q4 QUEST</a>
     {#if route === 'instellingen'}
@@ -101,7 +115,7 @@
     {/if}
   </header>
 
-  <Nav {route} {charging} />
+  <Nav {route} {charging} position={navPosition} />
 
   <main>
     {#if route === 'instellingen'}
@@ -128,15 +142,14 @@
 
 <style>
   .app {
-    max-width: 680px;
+    max-width: 760px;
     margin: 0 auto;
-    padding: 12px 16px calc(88px + env(safe-area-inset-bottom));
+    /* Always ~24px plus the safe area at the bottom… */
+    padding: 12px 16px calc(24px + env(safe-area-inset-bottom));
   }
-  @media (min-width: 768px) {
-    .app {
-      max-width: 760px;
-      padding-bottom: 32px;
-    }
+  /* …and room for the fixed bar when the navigation is at the bottom. */
+  .app.nav-bottom {
+    padding-bottom: calc(72px + 24px + env(safe-area-inset-bottom));
   }
   header {
     display: flex;

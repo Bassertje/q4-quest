@@ -92,6 +92,30 @@
     new Date(ts).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', timeZone: tz });
   const STATUS_LABEL = { active: 'loopt', done: 'gehaald', missed: 'gemist' } as const;
 
+  /** Records as uniform two-line rows: label and value, then the period or date. */
+  const recordRows = $derived.by(() => {
+    const rows: { label: string; note?: string; value: string; sub: string }[] = [];
+    const rec = data?.history?.records;
+    if (!rec) return rows;
+    if (rec.bestDay) rows.push({ label: 'Beste dag', value: `${km(rec.bestDay.km)} km`, sub: periodLabel(rec.bestDay.key, true) });
+    if (rec.bestWeek) rows.push({ label: 'Beste week', value: `${km(rec.bestWeek.km)} km`, sub: periodLabel(rec.bestWeek.key, true) });
+    if (rec.bestMonth) rows.push({ label: 'Beste maand', value: `${km(rec.bestMonth.km)} km`, sub: periodLabel(rec.bestMonth.key, true) });
+    if (rec.longestStreak)
+      rows.push({
+        label: 'Langste streak',
+        value: `${rec.longestStreak.days} ${rec.longestStreak.days === 1 ? 'dag' : 'dagen'}`,
+        sub: `${dayShort(rec.longestStreak.start)} – ${dayShort(rec.longestStreak.end)}`,
+      });
+    if (rec.longestTrip)
+      rows.push({ label: 'Grootste ritblok', note: '(indicatief)', value: `${km(rec.longestTrip.km)} km`, sub: date(rec.longestTrip.start, tz) });
+    const cr = data?.chargingRecords;
+    if (cr?.fastest)
+      rows.push({ label: 'Snelste laadsessie', note: '(gem.)', value: `${kw(cr.fastest.avgKw ?? 0)} kW`, sub: date(cr.fastest.start, tz) });
+    if (cr?.busiestMonth)
+      rows.push({ label: 'Meeste laadsessies', value: `${cr.busiestMonth.sessions} sessies`, sub: periodLabel(cr.busiestMonth.key, true) });
+    return rows;
+  });
+
   /** A block with a single reading has no real duration: show an approximate time. */
   const tripTime = (t: { start: number; end: number }) =>
     t.start === t.end ? `rond ${time(t.start)}` : `${time(t.start)}–${time(t.end)}`;
@@ -143,52 +167,14 @@
 
   <section class="panel">
     <h3>Records</h3>
-    <ul class="list">
-      {#if h.records.bestDay}
+    <ul class="rows">
+      {#each recordRows as r (r.label)}
         <li>
-          <span>Beste dag</span>
-          <span class="right"><strong>{km(h.records.bestDay.km)} km</strong><span class="muted small">{periodLabel(h.records.bestDay.key, true)}</span></span>
+          <span class="row-main">{r.label}{#if r.note}&nbsp;<span class="muted small">{r.note}</span>{/if}</span>
+          <span class="row-value">{r.value}</span>
+          <span class="row-sub">{r.sub}</span>
         </li>
-      {/if}
-      {#if h.records.bestWeek}
-        <li>
-          <span>Beste week</span>
-          <span class="right"><strong>{km(h.records.bestWeek.km)} km</strong><span class="muted small">{periodLabel(h.records.bestWeek.key, true)}</span></span>
-        </li>
-      {/if}
-      {#if h.records.bestMonth}
-        <li>
-          <span>Beste maand</span>
-          <span class="right"><strong>{km(h.records.bestMonth.km)} km</strong><span class="muted small">{periodLabel(h.records.bestMonth.key, true)}</span></span>
-        </li>
-      {/if}
-      {#if h.records.longestStreak}
-        <li>
-          <span>Langste streak</span>
-          <span class="right">
-            <strong>{h.records.longestStreak.days} {h.records.longestStreak.days === 1 ? 'dag' : 'dagen'}</strong>
-            <span class="muted small">{dayShort(h.records.longestStreak.start)} – {dayShort(h.records.longestStreak.end)}</span>
-          </span>
-        </li>
-      {/if}
-      {#if h.records.longestTrip}
-        <li>
-          <span>Grootste ritblok <span class="muted small">(indicatief)</span></span>
-          <span class="right"><strong>{km(h.records.longestTrip.km)} km</strong><span class="muted small">{date(h.records.longestTrip.start, tz)}</span></span>
-        </li>
-      {/if}
-      {#if data.chargingRecords?.fastest}
-        <li>
-          <span>Snelste laadsessie <span class="muted small">(gem.)</span></span>
-          <span class="right"><strong>{kw(data.chargingRecords.fastest.avgKw ?? 0)} kW</strong><span class="muted small">{date(data.chargingRecords.fastest.start, tz)}</span></span>
-        </li>
-      {/if}
-      {#if data.chargingRecords?.busiestMonth}
-        <li>
-          <span>Meeste laadsessies</span>
-          <span class="right"><strong>{data.chargingRecords.busiestMonth.sessions} sessies</strong><span class="muted small">{periodLabel(data.chargingRecords.busiestMonth.key, true)}</span></span>
-        </li>
-      {/if}
+      {/each}
     </ul>
     {#if !h.records.bestDay}
       <p class="muted small">Nog geen records: rij eerst een stukje.</p>
@@ -199,11 +185,12 @@
     <section class="panel">
       <h3>Recente ritblokken</h3>
       <p class="muted small">Indicatief: opeenvolgende kilometerstijgingen met minder dan 45 minuten ertussen.</p>
-      <ul class="list">
+      <ul class="rows">
         {#each allTrips ? h.recentTrips : h.recentTrips.slice(0, TRIPS_SHOWN) as t (t.start)}
           <li>
-            <span>{date(t.start, tz)}<span class="muted small">&nbsp;· {tripTime(t)}{#if t.startTemp !== null}&nbsp;· {num1(t.startTemp)} °C{/if}</span></span>
-            <strong>{km(t.km)} km</strong>
+            <span class="row-main">{date(t.start, tz)}</span>
+            <span class="row-value">{km(t.km)} km</span>
+            <span class="row-sub">{tripTime(t)}{t.startTemp !== null ? ` · ${num1(t.startTemp)} °C` : ''}</span>
           </li>
         {/each}
       </ul>
@@ -227,17 +214,12 @@
   {#if data.challenges.length}
     <section class="panel">
       <h3>Weekuitdagingen</h3>
-      <ul class="list">
+      <ul class="rows">
         {#each data.challenges.slice(0, challengesShown) as c (c.week)}
           <li>
-            <span>
-              {periodLabel(c.week, true)}
-              <span class="muted small block">{c.goal}</span>
-            </span>
-            <span class="right">
-              <strong class:accent={c.status === 'done'}>{STATUS_LABEL[c.status]}</strong>
-              <span class="muted small">{c.current === null ? '–' : num1(c.current)} / {num1(c.target)} {c.unit}</span>
-            </span>
+            <span class="row-main">{periodLabel(c.week, true)}</span>
+            <span class="row-value" class:accent={c.status === 'done'}>{STATUS_LABEL[c.status]}</span>
+            <span class="row-sub">{c.goal} · {c.current === null ? '–' : num1(c.current)} / {num1(c.target)} {c.unit}</span>
           </li>
         {/each}
       </ul>
@@ -288,9 +270,6 @@
     gap: 8px;
     margin-bottom: 8px;
   }
-  .block {
-    display: block;
-  }
   .accent {
     color: var(--accent);
   }
@@ -308,30 +287,6 @@
   }
   .range {
     margin: 8px 0 0;
-  }
-  .list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  .list li {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 4px 12px;
-    padding: 8px 0;
-    border-top: 1px solid var(--line);
-  }
-  .list li:first-child {
-    border-top: 0;
-  }
-  .right {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    margin-left: auto;
-    text-align: right;
   }
   .more {
     margin-top: 8px;

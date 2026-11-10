@@ -1,7 +1,11 @@
 <script lang="ts">
   import { ICONS, pixelPath } from './icons';
 
-  let { route, charging = false }: { route: string; charging?: boolean } = $props();
+  let {
+    route,
+    charging = false,
+    position = 'top',
+  }: { route: string; charging?: boolean; position?: 'top' | 'bottom' } = $props();
 
   // 16×16 pixel-style icons.
   const all = [
@@ -34,7 +38,7 @@
   const items = $derived(all.filter((i) => i.id !== 'laden' || charging));
 </script>
 
-<nav aria-label="Hoofdmenu">
+<nav aria-label="Hoofdmenu" class={position}>
   {#each items as item (item.id)}
     <a href={item.href} class:active={route === item.id} aria-current={route === item.id ? 'page' : undefined}>
       <svg viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d={item.icon} /></svg>
@@ -45,31 +49,15 @@
 
 <style>
   nav {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
     z-index: 10;
     display: flex;
-    justify-content: center;
-    gap: 8px;
-    padding: 6px 16px calc(6px + env(safe-area-inset-bottom));
-    background: var(--nav-bg);
-    border-top: 1px solid var(--line);
-    backdrop-filter: blur(6px);
+    background: var(--bg);
   }
   a {
-    flex: 1;
-    max-width: 160px;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 2px;
-    padding: 6px;
-    border-radius: 8px;
     color: var(--muted);
     text-decoration: none;
-    font-size: 0.8rem;
   }
   a.active {
     color: var(--text);
@@ -82,39 +70,72 @@
     outline: 1px solid var(--accent);
   }
   svg {
-    width: 22px;
-    height: 22px;
     fill: currentColor;
     shape-rendering: crispEdges;
   }
 
-  /* Desktop: navigation at the top, under the header. */
-  @media (min-width: 768px) {
-    nav {
-      position: static;
-      justify-content: flex-start;
-      padding: 0;
-      background: none;
-      border: 0;
-      border-bottom: 1px solid var(--line);
-      backdrop-filter: none;
-      margin-bottom: 4px;
-    }
-    a {
+  /* Top: a sticky bar right under the header, with a solid background so
+     content does not show through, and a red underline for the active tab. */
+  nav.top {
+    position: sticky;
+    top: 0;
+    margin: 0 -16px 8px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--line);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  nav.top a {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 6px 8px;
+    font-size: 0.85rem;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    white-space: nowrap;
+  }
+  nav.top a.active {
+    border-bottom-color: var(--accent);
+  }
+  nav.top svg {
+    width: 18px;
+    height: 18px;
+    flex: none;
+  }
+  @media (min-width: 560px) {
+    nav.top a {
       flex: none;
-      flex-direction: row;
-      gap: 8px;
+      padding: 10px 14px 8px;
       font-size: 0.95rem;
-      border-radius: 0;
-      padding: 8px 12px;
-      border-bottom: 2px solid transparent;
     }
-    a.active {
-      border-bottom-color: var(--accent);
-    }
-    svg {
-      width: 18px;
-      height: 18px;
-    }
+  }
+
+  /* Bottom: fixed bar, as in the Companion app. */
+  nav.bottom {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px 16px calc(6px + env(safe-area-inset-bottom));
+    background: var(--nav-bg);
+    border-top: 1px solid var(--line);
+    backdrop-filter: blur(6px);
+  }
+  nav.bottom a {
+    flex: 1;
+    max-width: 160px;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+  }
+  nav.bottom svg {
+    width: 22px;
+    height: 22px;
   }
 </style>
