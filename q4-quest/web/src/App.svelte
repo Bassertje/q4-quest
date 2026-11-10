@@ -8,6 +8,7 @@
   import Charging from './screens/Charging.svelte';
   import Cockpit from './screens/Cockpit.svelte';
   import History from './screens/History.svelte';
+  import YearReview from './screens/YearReview.svelte';
   import Settings from './screens/Settings.svelte';
 
   // Hash-based routing keeps every URL relative (Ingress-proof).
@@ -21,6 +22,18 @@
   };
 
   let route = $state<Route>(parse());
+
+  /** Year overview: #/jaar/2026 or #/jaar/2026/voorbeeld (preview before 1 December). */
+  const parseYear = () => {
+    const m = location.hash.match(/^#\/jaar\/(\d{4})(\/voorbeeld)?$/);
+    return m ? { year: Number(m[1]), preview: Boolean(m[2]) } : null;
+  };
+  let yearView = $state(parseYear());
+  let cameFrom = '#/historie';
+
+  function closeYear() {
+    location.hash = cameFrom;
+  }
   let refresh = $state(0);
   let charging = $state(false);
   let reveal = $state<RevealItem[]>([]);
@@ -44,6 +57,10 @@
 
   onMount(() => {
     const onHash = () => {
+      const nextYear = parseYear();
+      if (nextYear && !yearView) cameFrom = route === 'cockpit' ? '#/' : `#/${route}`;
+      yearView = nextYear;
+      if (nextYear) return; // the overview is an overlay; keep the page underneath
       route = parse();
       window.scrollTo(0, 0);
     };
@@ -106,7 +123,11 @@
   </main>
 </div>
 
-{#if reveal.length}
+{#if yearView}
+  {#key `${yearView.year}-${yearView.preview}`}
+    <YearReview year={yearView.year} preview={yearView.preview} onclose={closeYear} />
+  {/key}
+{:else if reveal.length}
   <Reveal items={reveal} {timeZone} ondone={revealDone} />
 {/if}
 

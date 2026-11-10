@@ -26,7 +26,7 @@ describe('buildCockpit', () => {
 
   it('adds bonus XP of unlocked badges to the level and shows the latest badge', () => {
     const badge = (id: string, xp: number, unlockedTs: number | null) => ({
-      id, name: id, description: '', hint: '', category: 'rijden' as const, xp, hidden: false, icon: 'car', unlockedTs,
+      id, name: id, description: '', hint: '', category: 'rijden' as const, xp, hidden: false, icon: 'car', unlockedTs, progress: null,
     });
     const c = buildCockpit({
       odometer: [{ ts: 1, value: 15_020 }],

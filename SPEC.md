@@ -72,7 +72,7 @@ Afgeleide gegevens worden altijd uit de opgeslagen ruwe metingen berekend. Na ee
 - 1.000, 2.500, 5.000, 7.500, 10.000, 15.000, 20.000, 25.000, 40.075 ("Rondje aarde"), 50.000, 75.000 en 100.000 km.
 - Daarna doorlopend per 25.000 km.
 - **Maanreis:** een permanente voortgangsbalk naar 384.400 km.
-- Mijlpalen zijn ook badges (categorie "Mijlpalen"). Ze geven **geen** bonus-XP: de kilometers tellen al als XP.
+- Mijlpalen zijn ook badges (categorie "Mijlpalen"). Bonus-XP = mijlpaal-km ÷ 10, naar beneden afgerond (1.000 km = 100 XP, Rondje aarde = 4.007 XP, 100.000 km = 10.000 XP).
 
 ### Badges
 Badges worden gedefinieerd als **data** (een array met `id`, `naam`, `beschrijving`, `hint`, `categorie`, `xp`, `vereist` (benodigde sensoren) en `check(context)`). Zo zijn ze makkelijk uit te breiden.
@@ -138,7 +138,7 @@ Beste dag, beste week, beste maand, langste streak, langste ritblok, snelste laa
 
 ## 4. Schermen
 
-Navigatie onderaan (mobiel-eerst), bovenaan op desktop, met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laadsensoren). Instellingen zitten achter een tandwiel.
+Navigatie onderaan (mobiel-eerst), bovenaan op desktop, met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laadsensoren). Instellingen zitten achter een tandwiel. De navigatie-iconen zijn pixel-art (Cockpit: een stuur).
 
 1. **Cockpit**
    - Grote kilometerteller in LCD-cijfers die bij het openen kort "doortelt" naar de huidige stand.
@@ -151,6 +151,8 @@ Navigatie onderaan (mobiel-eerst), bovenaan op desktop, met de tabs Cockpit, Bad
 2. **Badges**
    - Raster per categorie (Rijden, Laden, Zuinigheid, Mijlpalen). Ontgrendeld: icoon in kleur met datum en bonus-XP. Vergrendeld: silhouet met hint. Verborgen badges tonen "???" (naam en hint blijven geheim tot ontgrendeling). Badges die van een niet-ingestelde sensor afhangen, verschijnen niet.
    - Mijlpalen: alle vaste mijlpalen, plus elke gehaalde mijlpaal daarna en de eerstvolgende.
+   - Voortgang: vergrendelde telbare badges (mijlpalen, laadaantallen, streaks, maand-/week-km, megawattuur) tonen een dun voortgangsbalkje met "huidig / doel". Streaks tellen de huidige reeks, maand/week de lopende periode.
+   - Kaarten: twee kolommen op schermen smaller dan 420px, anders drie (vier vanaf 560px). Namen worden nooit midden in een woord afgebroken.
    - Teller "x / y".
 3. **Historie**
    - Staafgrafiek km per dag, week en maand (schakelbaar).
@@ -165,6 +167,11 @@ Navigatie onderaan (mobiel-eerst), bovenaan op desktop, met de tabs Cockpit, Bad
    - Backfill opnieuw starten.
    - Export van de eigen data als JSON (download, nooit naar de repo).
    - Weergave: Automatisch / Licht / Donker (standaard Automatisch, via `prefers-color-scheme`). De keuze wordt in de database opgeslagen.
+   - Knop "Voorbeeld jaaroverzicht": toont het jaaroverzicht van het lopende jaar met de data tot nu toe, ook vóór 1 december.
+6. **Jaaroverzicht** (volledig scherm, geen tab)
+   - Swipebare kaarten (vegen, pijlen, toetsenbord of stippen): intro, totaal km (en aantal rijdagen), beste dag, beste week, langste streak, aantal laadsessies en geladen kWh, AC/DC-verhouding, nieuwe badges (met iconen en bonus-XP), level-groei (level aan het begin → nu/eind, met XP en rang), "Rondje aarde"-vergelijking (km ÷ 40.075) en een afsluiter. Kaarten zonder gegevens (bijv. laden zonder laadsensoren) vallen weg.
+   - Alles per kalenderjaar in de tijdzone van HA. Begon de meting in dat jaar, dan loopt het overzicht vanaf de eerste meting; badges die al bij de eerste meting gehaald waren, tellen niet als nieuw.
+   - Beschikbaar vanaf 1 december van dat jaar; eerdere jaren blijven altijd terug te kijken (lijst "Jaaroverzichten" in Historie). In december (en in januari voor het vorige jaar) staat een melding op de Cockpit.
 
 ---
 
@@ -194,7 +201,7 @@ Werk ze op volgorde af. Elke fase eindigt met een werkende, installeerbare versi
 2. **Historie:** dagtotalen, ritblokken, records, het Historie-scherm en de grafieken. → `0.3.0`
 3. **Laden:** laadsessies, kWh-schatting, verbruik en het Laden-scherm. → `0.4.0`
 4. **Badges:** badge-engine met terugwerkende kracht, het Badges-scherm, het reveal-scherm en de seen-vlaggen. → `0.5.0`
-5. **Jaaroverzicht:** een swipebare reeks kaarten met de hoogtepunten van het jaar (totaal km, beste dag, nieuwe badges, laadstats), beschikbaar vanaf 1 december. → `1.0.0`
+5. **Jaaroverzicht:** een swipebare reeks kaarten met de hoogtepunten van het jaar (zie Schermen → Jaaroverzicht), beschikbaar vanaf 1 december en daarna per jaar terug te kijken, met een voorbeeldknop in Instellingen. → `1.0.0`
 
 ## 7. Niet in scope
 Locatie/GPS, meerdere gebruikers of bestuurders, pushmeldingen, iets terugschrijven naar HA, en externe diensten of analytics.

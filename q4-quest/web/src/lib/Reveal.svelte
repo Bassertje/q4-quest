@@ -75,7 +75,7 @@
           <h2>{current.name}</h2>
           <p class="desc">{current.description}</p>
           <p class="muted small">{date(current.ts)}</p>
-          {#if current.xp > 0}<p class="xp">+{current.xp} XP</p>{/if}
+          {#if current.xp > 0}<p class="xp">+{current.xp.toLocaleString('nl-NL')} XP</p>{/if}
         </div>
       {/key}
       <div class="actions">
@@ -97,7 +97,7 @@
               <strong>{item.name}</strong>
               <span class="muted small">{item.description}</span>
             </span>
-            {#if item.xp > 0}<span class="xp small-xp">+{item.xp}</span>{/if}
+            {#if item.xp > 0}<span class="xp small-xp">+{item.xp.toLocaleString('nl-NL')}</span>{/if}
           </li>
         {/each}
       </ul>

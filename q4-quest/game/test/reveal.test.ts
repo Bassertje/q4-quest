@@ -4,7 +4,7 @@ import { revealItems, type RecordEntry } from '../src/reveal.ts';
 import { timeline } from '../src/timeline.ts';
 
 const badge = (id: string, unlockedTs: number | null, category: BadgeResult['category'] = 'rijden'): BadgeResult => ({
-  id, name: id, description: '', hint: '', category, xp: category === 'mijlpalen' ? 0 : 50, hidden: false, icon: 'car', unlockedTs,
+  id, name: id, description: '', hint: '', category, xp: category === 'mijlpalen' ? 0 : 50, hidden: false, icon: 'car', unlockedTs, progress: null,
 });
 
 describe('revealItems', () => {

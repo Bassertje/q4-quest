@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BADGES, bonusEvents, evaluateBadges, milestoneBadges, type BadgeInput, type Requirement } from '../src/badges.ts';
+import { BADGES, bonusEvents, evaluateBadges, milestoneBadges, milestoneXp, type BadgeInput, type Requirement } from '../src/badges.ts';
 import type { ChargingSession } from '../src/charging.ts';
 import { dailyTotals } from '../src/distance.ts';
 import { timeline } from '../src/timeline.ts';
@@ -54,9 +54,12 @@ describe('badge definitions', () => {
     });
   });
 
-  it('milestone badges give no XP and include the next milestone', () => {
+  it('milestone badges give km ÷ 10 XP and include the next milestone', () => {
     const m = milestoneBadges(130_000);
-    expect(m.every((b) => b.xp === 0)).toBe(true);
+    expect(m.find((b) => b.id === 'milestone_1000')?.xp).toBe(100);
+    expect(m.find((b) => b.id === 'milestone_40075')?.xp).toBe(4_007); // Rondje aarde, rounded down
+    expect(m.find((b) => b.id === 'milestone_100000')?.xp).toBe(10_000);
+    expect(milestoneXp(125_000)).toBe(12_500);
     expect(m.map((b) => b.id)).toContain('milestone_150000');
     expect(m.map((b) => b.id)).not.toContain('milestone_175000');
     expect(milestoneBadges(500)).toHaveLength(12);
@@ -164,6 +167,33 @@ describe('charging badges', () => {
   });
 });
 
+describe('badge progress', () => {
+  const odo = [
+    { ts: at('2026-03-01T06:00:00Z'), value: 12_345 },
+    { ts: at('2026-03-02T12:00:00Z'), value: 12_400 },
+    { ts: at('2026-03-03T12:00:00Z'), value: 12_460 },
+  ];
+  const sessions = Array.from({ length: 6 }, (_, n) => ({
+    start: at('2026-03-02T20:00:00Z') + n * H, end: at('2026-03-02T20:30:00Z') + n * H, ongoing: false,
+    type: 'AC' as const, socStart: 40, socEnd: 60, kwh: 15.4, kwhMethod: 'soc' as const, avgKw: 30.8,
+  }));
+  const results = evaluateBadges(input(odo, { sessions, now: at('2026-03-03T18:00:00Z') }));
+  const progress = (id: string) => results.find((b) => b.id === id)?.progress;
+
+  it('reports current / target for countable badges', () => {
+    expect(progress('milestone_15000')).toEqual({ current: 12_460, target: 15_000, unit: 'km' });
+    expect(progress('charges_10')).toEqual({ current: 6, target: 10, unit: 'sessies' });
+    expect(progress('streak_7')).toEqual({ current: 2, target: 7, unit: 'dagen' });
+    expect(progress('month_1000')).toEqual({ current: 115, target: 1000, unit: 'km' });
+    expect(progress('mwh_1')).toEqual({ current: 92, target: 1000, unit: 'kWh' });
+  });
+
+  it('caps progress at the target and has none for other badges', () => {
+    expect(progress('milestone_10000')).toEqual({ current: 10_000, target: 10_000, unit: 'km' });
+    expect(progress('first_100_day')).toBeNull();
+  });
+});
+
 describe('bonus XP over time', () => {
   it('lets badge XP cause level-ups in the timeline', () => {
     const odo = [
@@ -172,7 +202,7 @@ describe('bonus XP over time', () => {
     ];
     // 60 km + 50 bonus XP = 110 XP: level 1 at the moment of the badge.
     const badges = [
-      { id: 'x', name: 'X', description: '', hint: '', category: 'rijden' as const, xp: 50, hidden: false, icon: 'car', unlockedTs: 20 },
+      { id: 'x', name: 'X', description: '', hint: '', category: 'rijden' as const, xp: 50, hidden: false, icon: 'car', unlockedTs: 20, progress: null },
     ];
     const t = timeline(odo, badges);
     expect(t.events).toEqual([

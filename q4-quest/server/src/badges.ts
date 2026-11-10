@@ -49,6 +49,7 @@ export interface BadgeView {
   icon: string;
   unlockedTs: number | null;
   isNew: boolean;
+  progress: { current: number; target: number; unit: string } | null;
 }
 
 export function badgesResponse(state: GameState, seen: Set<string>) {
@@ -76,6 +77,7 @@ export function badgesResponse(state: GameState, seen: Set<string>) {
             icon: b.icon,
             unlockedTs: b.unlockedTs,
             isNew: b.unlockedTs !== null && !seen.has(`badge:${b.id}`),
+            progress: b.progress,
           };
         }),
     })).filter((c) => c.badges.length > 0),

@@ -61,9 +61,15 @@
             <span class="name">{open ? b.name : b.name ?? '???'}</span>
             {#if open}
               <span class="muted small">{date(b.unlockedTs!, data.timeZone)}</span>
-              {#if b.xp > 0}<span class="xp">+{b.xp} XP</span>{/if}
+              {#if b.xp > 0}<span class="xp">+{km(b.xp)} XP</span>{/if}
             {:else}
               <span class="muted small hint">{b.hint}</span>
+              {#if b.progress}
+                <span class="progress" role="progressbar" aria-label="Voortgang {b.name}" aria-valuemin="0" aria-valuemax={b.progress.target} aria-valuenow={b.progress.current}>
+                  <span class="fill" style:width="{(b.progress.current / b.progress.target) * 100}%"></span>
+                </span>
+                <span class="count">{km(b.progress.current)} / {km(b.progress.target)} {b.progress.unit}</span>
+              {/if}
             {/if}
             {#if b.isNew}<span class="tag">nieuw</span>{/if}
           </li>
@@ -82,6 +88,11 @@
   }
   .title {
     font-size: 2rem;
+  }
+  @media (max-width: 419px) {
+    .title {
+      font-size: 1.7rem;
+    }
   }
   .counter {
     display: flex;
@@ -108,8 +119,13 @@
     margin: 0;
     padding: 0;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
+  }
+  @media (min-width: 420px) {
+    .grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
   }
   @media (min-width: 560px) {
     .grid {
@@ -137,9 +153,9 @@
     font-size: 0.85rem;
     line-height: 1.25;
     margin-top: 4px;
-    /* Break long Dutch words at syllables, not at random letters. */
-    hyphens: auto;
-    overflow-wrap: break-word;
+    /* Never break inside a word. */
+    hyphens: none;
+    overflow-wrap: normal;
     max-width: 100%;
   }
   li:not(.open) .name {
@@ -147,6 +163,25 @@
   }
   .hint {
     line-height: 1.3;
+  }
+  .progress {
+    display: block;
+    width: 100%;
+    height: 4px;
+    margin-top: 6px;
+    background: var(--track);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress .fill {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+  }
+  .count {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
   }
   .xp {
     font-family: var(--font-pixel);

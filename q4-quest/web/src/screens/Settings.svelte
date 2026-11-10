@@ -106,6 +106,15 @@
   </section>
 
   <section class="panel">
+    <h3>Jaaroverzicht</h3>
+    <p class="muted small">
+      Het jaaroverzicht verschijnt op 1 december. Met deze knop bekijk je nu al een voorbeeld met de
+      data tot nu toe.
+    </p>
+    <a class="button" href="#/jaar/{new Date().getFullYear()}/voorbeeld">Voorbeeld jaaroverzicht</a>
+  </section>
+
+  <section class="panel">
     <h3>Verbinding</h3>
     <div class="conn">
       <span class="dot" class:on={ok}></span>
