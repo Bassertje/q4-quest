@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.2
+
+- **Levelkaart rustiger:** de XP-tekst naast het level is weg. Onder de balk staat nu één regel: links je totaal ("26.837 XP"), rechts "nog 763 tot level 23", net als bij de weekuitdaging.
+- **Rangenoverzicht:** bovenaan staat nu je totaal aan XP, met daaronder hoeveel uit kilometers komt en hoeveel bonus.
+
 ## 1.6.1
 
 - **Historie-tegel "Gem. per dag"** (was "Gem. per rijdag"): de gereden km gedeeld door alle dagen in de periode, ook de dagen dat je niet reed. Daaronder nog steeds je hoogste dagafstand.

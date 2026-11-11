@@ -85,13 +85,12 @@
           {c.level.rank} <span class="chev" aria-hidden="true">›</span>
         </button>
       </div>
-      <div class="muted small right">
-        {km(c.level.xp)} / {km(c.level.nextLevelXp)} XP<br />
-        {#if c.bonusXp > 0}waarvan {km(c.bonusXp)} bonus<br />{/if}
-        nog {km(c.level.nextLevelXp - c.level.xp)} XP
-      </div>
     </div>
     <Bar fraction={c.level.fraction} label="Voortgang naar het volgende level" />
+    <div class="ch-foot">
+      <span class="nw">{km(c.level.xp)} XP</span>
+      <span class="nw">nog {km(c.level.nextLevelXp - c.level.xp)} tot level {c.level.level + 1}</span>
+    </div>
   </section>
 
 
@@ -193,7 +192,7 @@
 {/if}
 
 {#if showRanks && c}
-  <RankOverview current={c.level.rank} level={c.level.level} xp={c.level.xp} onclose={() => (showRanks = false)} />
+  <RankOverview current={c.level.rank} level={c.level.level} xp={c.level.xp} bonusXp={c.bonusXp} onclose={() => (showRanks = false)} />
 {/if}
 
 <style>
@@ -203,9 +202,6 @@
   .center {
     text-align: center;
     margin: 8px 0 0;
-  }
-  .right {
-    text-align: right;
   }
   .row {
     display: flex;

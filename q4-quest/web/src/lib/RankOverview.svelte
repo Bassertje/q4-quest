@@ -4,7 +4,13 @@
   import { km } from './format';
   import PixelIcon from './PixelIcon.svelte';
 
-  let { current, level, xp, onclose }: { current: string; level: number; xp: number; onclose: () => void } = $props();
+  let {
+    current,
+    level,
+    xp,
+    bonusXp,
+    onclose,
+  }: { current: string; level: number; xp: number; bonusXp: number; onclose: () => void } = $props();
 
   const ranks = rankList();
   const currentIndex = $derived(ranks.findIndex((r) => r.title === current));
@@ -23,7 +29,11 @@
     <h2>Rangen</h2>
     <button class="close" aria-label="Sluiten" onclick={onclose}>✕</button>
   </div>
-  <p class="muted small">Je bent level {level} met {km(xp)} XP. Elke 5 levels krijg je een nieuwe rang.</p>
+  <div class="xp-summary">
+    <div class="xp-total">{km(xp)}<span class="xp-unit">XP</span></div>
+    <div class="muted small nw">{km(xp - bonusXp)} uit kilometers · {km(bonusXp)} bonus</div>
+  </div>
+  <p class="muted small">Je bent level {level}. Elke 5 levels krijg je een nieuwe rang.</p>
   <ol>
     {#each ranks as r, i (r.title)}
       <li class:current={i === currentIndex} class:future={i > currentIndex}>
@@ -41,6 +51,19 @@
 </div>
 
 <style>
+  .xp-summary {
+    margin: 0 0 8px;
+  }
+  .xp-total {
+    font-family: var(--font-pixel);
+    font-size: 1.8rem;
+    line-height: 1.1;
+  }
+  .xp-unit {
+    font-size: 1rem;
+    color: var(--muted);
+    margin-left: 4px;
+  }
   .backdrop {
     position: fixed;
     inset: 0;
