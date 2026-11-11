@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.3
+
+- **Opgelost: geen updates meer na een herstart van Home Assistant.** Als Home Assistant herstartte terwijl de add-on opnieuw probeerde te verbinden, kon die poging blijven hangen en kwamen er geen nieuwe gegevens meer binnen (zoals de kilometerstand). De add-on breekt zo'n poging nu na 30 seconden af en probeert het opnieuw, en controleert elke minuut of de verbinding nog leeft. Gemiste metingen worden daarna uit de geschiedenis van Home Assistant opgehaald.
+
 ## 1.6.2
 
 - **Levelkaart rustiger:** de XP-tekst naast het level is weg. Onder de balk staat nu één regel: links je totaal ("26.837 XP"), rechts "nog 763 tot level 23", net als bij de weekuitdaging.
