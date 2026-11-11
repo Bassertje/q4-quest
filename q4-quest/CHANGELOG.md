@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.0
+
+- **Periodekeuze ook op Historie:** dezelfde knop Week · Maand · Jaar · Alles met ‹ › als op Laden. Elke pagina onthoudt haar eigen keuze (standaard Alles).
+- **Historie vernieuwd:** vier tegels bovenaan (Gereden, Rijdagen, Gem. per rijdag en Drukste dag), daaronder de km-grafiek die de periode volgt (per dag bij Week en Maand, per maand bij Jaar en Alles) met een samenvatting zoals "705 km · 12 okt – 11 nov". De oude knoppen Dag/Week/Maand en de pijltjes in de grafiek zijn weg.
+- **Ritblokken volgen de periode;** de records blijven over alle tijd ("Records · altijd").
+- **Laden: vierde tegel Gem. laadvermogen** met de gemiddelden voor AC en DC. De vier tegels staan nu in een raster van 2×2, net als op Historie.
+- **Grafieken:** het eerste en laatste label onder de x-as vallen nu altijd binnen de grafiek.
+- Kleine opmaak: "november 2026 · gem. 4,8 °C" heeft weer spaties, en op een smal scherm (375px) springt geen tekst meer naar een extra regel.
+
 ## 1.5.1
 
 - **Nieuwe volgorde op Laden:** de accugrafiek staat nu bovenaan, daarna de periodekeuze, de tegels, Geladen, Groen en de sessies. De kop "Los van de periode" is weg.

@@ -98,6 +98,35 @@ export interface ChargingRecords {
 }
 
 export type ChargePeriodMode = 'week' | 'month' | 'year' | 'all';
+export type ViewPeriodMode = ChargePeriodMode;
+
+/** The part of a period response the period picker needs. */
+export interface PeriodNav {
+  mode: ViewPeriodMode;
+  key: string;
+  label: string;
+  prev: string | null;
+  next: string | null;
+}
+
+export interface HistoryPeriod extends PeriodNav {
+  fromDay: string;
+  toDay: string;
+  dataFrom: string | null;
+  dataTo: string | null;
+  bucket: 'day' | 'month';
+  buckets: { key: string; km: number; beforeStart: boolean }[];
+  stats: {
+    km: number;
+    drivingDays: number;
+    days: number;
+    avgPerDrivingDay: number | null;
+    maxDayKm: number;
+    busiestWeekday: { day: string; km: number } | null;
+  } | null;
+  trips: (TripBlock & { startTemp: number | null })[];
+  tripCount: number;
+}
 
 export interface ChargeBucket {
   key: string;
@@ -122,6 +151,7 @@ export interface ChargePeriod {
   };
   consumption: { kwhPer100km: number | null; km: number; usedKwh: number } | null;
   sessions: ChargingSession[];
+  power: { avgKw: number | null; acKw: number | null; dcKw: number | null };
   green: GreenTotals | null;
 }
 
@@ -162,9 +192,9 @@ export interface HistoryData {
       longestStreak: { days: number; start: string; end: string } | null;
       longestTrip: TripBlock | null;
     };
-    recentTrips: (TripBlock & { startTemp: number | null })[];
     timeline: { initial: TimelineEvent[]; events: TimelineEvent[] };
   } | null;
+  period: HistoryPeriod | null;
   chargingRecords: ChargingRecords | null;
   monthly: MonthStats[];
   dailyTemps: [string, number][];

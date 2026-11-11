@@ -119,21 +119,26 @@
   {#if shown}
     <span class="pixel">{shown.kwhPer100km === null ? '–' : num1(shown.kwhPer100km)}<span class="unit">kWh/100 km</span></span>
     <span class="muted small">
-      {periodLabel(shown.month, true)}{#if showTemp && shown.avgTemp !== null} · gem. {num1(shown.avgTemp)} °C{/if}
+      {periodLabel(shown.month, true)}{#if showTemp && shown.avgTemp !== null}{' · '}gem. {num1(shown.avgTemp)} °C{/if}
     </span>
   {/if}
 </div>
 <div class="chart" bind:this={container} role="img" aria-label="Verbruik per maand{showTemp ? ' met gemiddelde temperatuur' : ''}"></div>
 <p class="muted small legend">
-  <span class="sw bar"></span> verbruik (schatting){#if showTemp}<span class="sw line"></span> gemiddelde temperatuur{/if}
+  <span class="item"><span class="sw bar"></span> verbruik (schatting)</span>{#if showTemp}<span class="item"><span class="sw line"></span> gem. temperatuur</span>{/if}
 </p>
 
 <style>
+  /* Value and label never break; on a narrow screen the label moves below the value as a whole. */
   .readout {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
-    gap: 10px;
+    gap: 2px 10px;
     min-height: 2rem;
+  }
+  .readout > * {
+    white-space: nowrap;
   }
   .pixel {
     font-family: var(--font-pixel);
@@ -151,9 +156,16 @@
   }
   .legend {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    margin: 6px 0 0;
+  }
+  .legend .item {
+    display: inline-flex;
     align-items: center;
     gap: 6px;
-    margin: 6px 0 0;
+    white-space: nowrap;
   }
   .sw {
     display: inline-block;

@@ -61,7 +61,15 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     cockpitResponse(state(), deps.store, deps.options, readSettings(deps.db).followedBadge),
   );
 
-  app.get('/api/history', async () => historyResponse(state()));
+  app.get('/api/history', async (req, reply) => {
+    const q = req.query as { period?: string; key?: string };
+    if (q.period !== undefined && !isChargePeriodMode(q.period)) {
+      return reply.code(400).send({ error: 'period must be week, month, year or all' });
+    }
+    const mode = q.period ?? readSettings(deps.db).historyPeriod;
+    const key = typeof q.key === 'string' && q.key.length <= 10 ? q.key : null;
+    return historyResponse(state(), mode, key);
+  });
 
   app.get('/api/charging', async (req, reply) => {
     const q = req.query as { period?: string; key?: string };
@@ -111,8 +119,10 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     if (body.navPosition !== undefined && !isNavPosition(body.navPosition)) {
       return reply.code(400).send({ error: 'navPosition must be top, bottom or auto' });
     }
-    if (body.chargingPeriod !== undefined && !isChargePeriodMode(body.chargingPeriod)) {
-      return reply.code(400).send({ error: 'chargingPeriod must be week, month, year or all' });
+    for (const field of ['chargingPeriod', 'historyPeriod'] as const) {
+      if (body[field] !== undefined && !isChargePeriodMode(body[field])) {
+        return reply.code(400).send({ error: `${field} must be week, month, year or all` });
+      }
     }
     const followed = body.followedBadge;
     if (followed !== undefined && followed !== null) {
@@ -125,6 +135,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       navPosition: body.navPosition as 'top' | 'bottom' | 'auto' | undefined,
       followedBadge: followed as string | null | undefined,
       chargingPeriod: body.chargingPeriod as 'week' | 'month' | 'year' | 'all' | undefined,
+      historyPeriod: body.historyPeriod as 'week' | 'month' | 'year' | 'all' | undefined,
     });
   });
 

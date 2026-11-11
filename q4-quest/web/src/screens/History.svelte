@@ -1,27 +1,27 @@
 <script lang="ts">
-  import { getJson } from '../lib/api';
-  import { chartWindow, periodOf, shiftPeriod, type PeriodMode } from '../../../game/src/periods.ts';
+  import { getJson, putJson } from '../lib/api';
+  import { periodRangeLabel } from '../../../game/src/history-period.ts';
   import BarChart from '../lib/BarChart.svelte';
   import ConsumptionChart from '../lib/ConsumptionChart.svelte';
   import { date, dayShort, km, kw, num1, periodLabel } from '../lib/format';
+  import PeriodPicker from '../lib/PeriodPicker.svelte';
   import Setup from '../lib/Setup.svelte';
-  import type { HistoryData, Series, TimelineEvent, YearsData } from '../lib/types';
+  import StatTile from '../lib/StatTile.svelte';
+  import type { HistoryData, TimelineEvent, ViewPeriodMode, YearsData } from '../lib/types';
 
   let { refresh }: { refresh: number } = $props();
 
-  type Mode = 'dag' | 'week' | 'maand';
-  /** Fixed number of bars per view; the window ends at the current (or chosen) period. */
-  const WINDOW: Record<Mode, number> = { dag: 31, week: 12, maand: 12 };
-  const PERIOD: Record<Mode, PeriodMode> = { dag: 'day', week: 'week', maand: 'month' };
   const TIMELINE_STEP = 15;
-  const TRIPS_SHOWN = 5;
+  const TRIPS_STEP = 5;
 
   let data = $state<HistoryData | null>(null);
   let error = $state<string | null>(null);
-  let mode = $state<Mode>('dag');
-  let offset = $state(0); // number of windows back from the current period
+  /** Null until the first response tells us the saved choice. */
+  let mode = $state<ViewPeriodMode | null>(null);
+  /** Null = the current period. */
+  let periodKey = $state<string | null>(null);
   let timelineShown = $state(TIMELINE_STEP);
-  let allTrips = $state(false);
+  let tripsShown = $state(TRIPS_STEP);
   let challengesShown = $state(8);
   /** Daily average temperature, shown in the day chart readout. */
   const dayTempNotes = $derived(
@@ -35,7 +35,13 @@
       .then((y) => (years = y))
       .catch(() => {});
     try {
-      data = await getJson<HistoryData>('history');
+      const q = mode ? `?period=${mode}${periodKey ? `&key=${encodeURIComponent(periodKey)}` : ''}` : '';
+      const next = await getJson<HistoryData>(`history${q}`);
+      data = next;
+      if (next.period) {
+        mode = next.period.mode;
+        if (periodKey !== null) periodKey = next.period.key;
+      }
       error = null;
     } catch (err) {
       error = (err as Error).message;
@@ -47,24 +53,22 @@
     load();
   });
 
-  const h = $derived(data?.history ?? null);
-  const full = $derived<Series>(h ? (mode === 'dag' ? h.daily : mode === 'week' ? h.weekly : h.monthly) : []);
-  const today = $derived(h?.daily.at(-1)?.[0] ?? null);
-  const firstKey = $derived(h && h.daily.length ? periodOf(PERIOD[mode], h.daily[0][0]) : null);
-  const bars = $derived.by(() => {
-    if (!today || !firstKey) return [];
-    const current = periodOf(PERIOD[mode], today);
-    const end = shiftPeriod(PERIOD[mode], current, -offset * WINDOW[mode]);
-    return chartWindow(full, PERIOD[mode], end, WINDOW[mode], firstKey);
-  });
-  // Allow going back as long as the window still starts after the first measurement.
-  const canGoBack = $derived(bars.length > 0 && firstKey !== null && bars[0].key > firstKey);
-  const windowTotal = $derived(bars.reduce((sum, b) => sum + b.km, 0));
-
-  function setMode(m: Mode) {
+  function setMode(m: ViewPeriodMode) {
     mode = m;
-    offset = 0;
+    periodKey = null;
+    tripsShown = TRIPS_STEP;
+    load();
+    void putJson('settings', { historyPeriod: m }).catch(() => {});
   }
+
+  function go(key: string) {
+    periodKey = key;
+    tripsShown = TRIPS_STEP;
+    load();
+  }
+
+  const h = $derived(data?.history ?? null);
+  const p = $derived(data?.period ?? null);
 
   function eventTitle(e: TimelineEvent): string {
     if (e.type === 'milestone') return `Wereldreis: ${e.name} (+${km(e.xp)} XP)`;
@@ -135,28 +139,42 @@
 {:else if !h}
   <section class="panel"><p class="muted">Nog geen kilometerstand ontvangen.</p></section>
 {:else}
-  <section class="panel">
-    <div class="toolbar">
-      <div class="segmented" role="group" aria-label="Periode">
-        {#each ['dag', 'week', 'maand'] as m (m)}
-          <button class:active={mode === m} aria-pressed={mode === m} onclick={() => setMode(m as Mode)}>
-            {m === 'dag' ? 'Dag' : m === 'week' ? 'Week' : 'Maand'}
-          </button>
-        {/each}
-      </div>
-      <div class="paging">
-        <button aria-label="Eerder" disabled={!canGoBack} onclick={() => offset++}>‹</button>
-        <button aria-label="Later" disabled={offset === 0} onclick={() => offset--}>›</button>
-      </div>
+  <PeriodPicker {mode} period={p} onmode={setMode} ongo={go} />
+
+  {#if p}
+    {@const st = p.stats}
+    <div class="stat-tiles-wrap">
+      <section class="stat-tiles">
+        <StatTile label="Gereden" value={st ? km(st.km) : null} unit="km" sub={st ? `${km(st.km / st.days)} km per dag` : 'geen data'} />
+        <StatTile label="Rijdagen" value={st ? String(st.drivingDays) : null} sub={st ? `van ${st.days}` : 'geen data'} />
+        <StatTile
+          label="Gem. per rijdag"
+          value={st?.avgPerDrivingDay != null ? km(st.avgPerDrivingDay) : null}
+          unit="km"
+          sub={st?.avgPerDrivingDay != null ? `hoogste ${km(st.maxDayKm)} km` : 'geen data'}
+        />
+        <StatTile
+          label="Drukste dag"
+          value={st?.busiestWeekday ? st.busiestWeekday.day : null}
+          sub={st?.busiestWeekday ? `${km(st.busiestWeekday.km)} km totaal` : 'geen data'}
+        />
+      </section>
     </div>
-    <BarChart {bars} notes={mode === 'dag' ? dayTempNotes : undefined} />
-    {#if bars.length}
-      <p class="muted small range">
-        {periodLabel(bars[0].key, true)} – {periodLabel(bars[bars.length - 1].key, true)}:
-        {km(windowTotal)} km
+
+    <section class="panel">
+      <h3>Gereden<span class="muted per">· {p.label}</span></h3>
+      <BarChart
+        bars={p.buckets}
+        bucket={p.bucket}
+        notes={p.bucket === 'day' ? dayTempNotes : undefined}
+        current={p.dataTo ? (p.bucket === 'day' ? p.dataTo : p.dataTo.slice(0, 7)) : null}
+      />
+      <p class="summary">
+        <strong class="nw">{km(p.stats?.km ?? 0)} km</strong>
+        <span class="muted nw">{periodRangeLabel(p.dataFrom, p.dataTo)}</span>
       </p>
-    {/if}
-  </section>
+    </section>
+  {/if}
 
   {#if data.monthly.length}
     <section class="panel">
@@ -166,7 +184,7 @@
   {/if}
 
   <section class="panel">
-    <h3>Records</h3>
+    <h3>Records<span class="muted per">· altijd</span></h3>
     <ul class="rows">
       {#each recordRows as r (r.label)}
         <li>
@@ -181,21 +199,27 @@
     {/if}
   </section>
 
-  {#if h.recentTrips.length}
+  {#if p}
     <section class="panel">
-      <h3>Recente ritblokken</h3>
+      <h3>Ritblokken<span class="muted per">· {p.label}</span></h3>
       <p class="muted small">Indicatief: opeenvolgende kilometerstijgingen met minder dan 45 minuten ertussen.</p>
-      <ul class="rows">
-        {#each allTrips ? h.recentTrips : h.recentTrips.slice(0, TRIPS_SHOWN) as t (t.start)}
-          <li>
-            <span class="row-main">{date(t.start, tz)}</span>
-            <span class="row-value">{km(t.km)} km</span>
-            <span class="row-sub">{tripTime(t)}{t.startTemp !== null ? ` · ${num1(t.startTemp)} °C` : ''}</span>
-          </li>
-        {/each}
-      </ul>
-      {#if h.recentTrips.length > TRIPS_SHOWN}
-        <button class="more" onclick={() => (allTrips = !allTrips)}>{allTrips ? 'Minder tonen' : 'Meer tonen'}</button>
+      {#if p.trips.length === 0}
+        <p class="muted small">Geen ritblokken in deze periode.</p>
+      {:else}
+        <ul class="rows">
+          {#each p.trips.slice(0, tripsShown) as t (t.start)}
+            <li>
+              <span class="row-main">{date(t.start, tz)}</span>
+              <span class="row-value">{km(t.km)} km</span>
+              <span class="row-sub">{tripTime(t)}{t.startTemp !== null ? ` · ${num1(t.startTemp)} °C` : ''}</span>
+            </li>
+          {/each}
+        </ul>
+        {#if tripsShown < p.trips.length}
+          <button class="more" onclick={() => (tripsShown += 20)}>Meer tonen</button>
+        {:else if p.tripCount > p.trips.length}
+          <p class="muted small">De nieuwste {p.trips.length} van {km(p.tripCount)} ritblokken.</p>
+        {/if}
       {/if}
     </section>
   {/if}
@@ -219,7 +243,7 @@
           <li>
             <span class="row-main">{periodLabel(c.week, true)}</span>
             <span class="row-value" class:accent={c.status === 'done'}>{STATUS_LABEL[c.status]}</span>
-            <span class="row-sub">{c.goal} · {c.current === null ? '–' : num1(c.current)} / {num1(c.target)} {c.unit}</span>
+            <span class="row-sub nw" title={c.goal}>{c.title} · {c.current === null ? '–' : num1(c.current)} / {num1(c.target)} {c.unit}</span>
           </li>
         {/each}
       </ul>
@@ -264,29 +288,26 @@
     font-size: 1rem;
     margin: 0 0 8px;
   }
-  .toolbar {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 8px;
-  }
   .accent {
     color: var(--accent);
+  }
+  .per {
+    margin-left: 0.3em;
+    font-weight: 400;
+  }
+  .summary {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 8px 0 0;
+  }
+  .nw {
+    white-space: nowrap;
   }
   .years {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-  }
-  .paging {
-    display: flex;
-    gap: 6px;
-  }
-  .paging button {
-    padding: 6px 12px;
-  }
-  .range {
-    margin: 8px 0 0;
   }
   .more {
     margin-top: 8px;

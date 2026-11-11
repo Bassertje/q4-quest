@@ -23,3 +23,5 @@ export * from './green.ts';
 export * from './temperature.ts';
 export * from './year.ts';
 export * from './charge-period.ts';
+export * from './period-view.ts';
+export * from './history-period.ts';

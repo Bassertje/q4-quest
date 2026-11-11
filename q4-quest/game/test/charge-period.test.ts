@@ -93,3 +93,12 @@ describe('chargePeriodView', () => {
     expect(chargePeriodView(input(), 'month', '2026-10').green).toBeNull();
   });
 });
+
+describe('averagePower', () => {
+  it('averages kWh ÷ duration per session, overall and per type', async () => {
+    const { averagePower } = await import('../src/charge-period.ts');
+    const s = (type: 'AC' | 'DC', avgKw: number | null, ongoing = false) => ({ type, avgKw, ongoing }) as ChargingSession;
+    expect(averagePower([s('AC', 10), s('AC', 11), s('DC', 90), s('DC', null), s('AC', 50, true)])).toEqual({ avgKw: 37, acKw: 10.5, dcKw: 90 });
+    expect(averagePower([s('AC', 7.4)])).toEqual({ avgKw: 7.4, acKw: 7.4, dcKw: null });
+  });
+});
