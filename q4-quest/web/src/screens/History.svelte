@@ -145,13 +145,13 @@
     {@const st = p.stats}
     <div class="stat-tiles-wrap">
       <section class="stat-tiles">
-        <StatTile label="Gereden" value={st ? km(st.km) : null} unit="km" sub={st ? `${km(st.km / st.days)} km per dag` : 'geen data'} />
+        <StatTile label="Gereden" value={st ? km(st.km) : null} unit="km" sub={st ? periodRangeLabel(p.dataFrom, p.dataTo) : 'geen data'} />
         <StatTile label="Rijdagen" value={st ? String(st.drivingDays) : null} sub={st ? `van ${st.days}` : 'geen data'} />
         <StatTile
-          label="Gem. per rijdag"
-          value={st?.avgPerDrivingDay != null ? km(st.avgPerDrivingDay) : null}
+          label="Gem. per dag"
+          value={st ? num1(st.avgPerDay) : null}
           unit="km"
-          sub={st?.avgPerDrivingDay != null ? `hoogste ${km(st.maxDayKm)} km` : 'geen data'}
+          sub={st ? `hoogste ${km(st.maxDayKm)} km` : 'geen data'}
         />
         <StatTile
           label="Drukste dag"

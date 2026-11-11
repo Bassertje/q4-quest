@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.1
+
+- **Historie-tegel "Gem. per dag"** (was "Gem. per rijdag"): de gereden km gedeeld door alle dagen in de periode, ook de dagen dat je niet reed. Daaronder nog steeds je hoogste dagafstand.
+- **Historie-tegel "Gereden"** toont nu de periode zelf, bijvoorbeeld "2 nov – 11 nov" (met jaartal als de periode over de jaarwisseling loopt).
+
 ## 1.6.0
 
 - **Periodekeuze ook op Historie:** dezelfde knop Week · Maand · Jaar · Alles met ‹ › als op Laden. Elke pagina onthoudt haar eigen keuze (standaard Alles).
