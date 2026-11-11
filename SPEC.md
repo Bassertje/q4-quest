@@ -42,6 +42,7 @@ Functies die afhangen van een optionele sensor die niet is ingesteld, worden ver
 - Abonneer op `state_changed` voor de ingestelde entities. Sla elke geldige wijziging op als `readings(entity_key, ts, value, attrs_json)`.
 - Negeer `unknown` en `unavailable`. Negeer een odometerwaarde die **lager** is dan de vorige: log hem, maar tel hem niet mee.
 - Bij een herstart of herverbinding: haal de gemiste periode op via de history-API en ga verder. Gebruik reconnect met backoff.
+- De verbinding bewaakt zichzelf: een verbindingspoging die binnen 30 seconden niet tot een geslaagde aanmelding komt (bijv. terwijl HA herstart), wordt afgebroken en opnieuw geprobeerd. Een actieve verbinding stuurt elke minuut een `ping`; komt er binnen 20 seconden geen `pong`, dan wordt de verbinding verbroken en opnieuw opgebouwd (met het ophalen van de gemiste periode).
 
 ### Backfill (eenmalig, en opnieuw te starten vanuit een instellingenpagina)
 1. Haal long-term statistics op (`recorder/statistics_during_period`, per uur) voor de odometer, als die bestaan.

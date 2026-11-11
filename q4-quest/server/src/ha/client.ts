@@ -1,5 +1,8 @@
 import type { HaStatus } from './types.ts';
 
+/** WebSocket.OPEN */
+const OPEN = 1;
+
 interface Pending {
   resolve: (value: unknown) => void;
   reject: (err: Error) => void;
@@ -7,6 +10,35 @@ interface Pending {
 
 const BACKOFF_MIN_MS = 5_000;
 const BACKOFF_MAX_MS = 5 * 60_000;
+
+/**
+ * Timings that keep the connection alive. A connection attempt that does not
+ * reach "auth_ok" in time is abandoned (for example while Home Assistant is
+ * restarting and the attempt neither opens nor fails), and a connection that
+ * stops answering pings is dropped. Both lead to a normal reconnect.
+ */
+export interface HaClientTimings {
+  connectTimeoutMs: number;
+  pingIntervalMs: number;
+  pongTimeoutMs: number;
+}
+
+export const DEFAULT_TIMINGS: HaClientTimings = {
+  connectTimeoutMs: 30_000,
+  pingIntervalMs: 60_000,
+  pongTimeoutMs: 20_000,
+};
+
+/** The parts of the WebSocket API the client uses (replaceable in tests). */
+export interface SocketLike {
+  readonly readyState: number;
+  send(data: string): void;
+  close(): void;
+  addEventListener(type: 'message', listener: (event: { data: unknown }) => void): void;
+  addEventListener(type: 'error' | 'close' | 'open', listener: () => void): void;
+}
+
+export type SocketFactory = (url: string) => SocketLike;
 
 /** Exponential backoff with a cap: 5s, 10s, 20s, ... up to 5 minutes. */
 export function backoffDelay(attempt: number): number {
@@ -37,7 +69,6 @@ export class HaClient {
 
   private url: string;
   private token: string;
-  private ws: WebSocket | null = null;
   private nextId = 1;
   private pending = new Map<number, Pending>();
   private attempt = 0;
@@ -45,10 +76,18 @@ export class HaClient {
   private stopped = false;
   private subscriptions = new Map<number, (event: unknown) => void>();
   private connectHandlers: (() => void)[] = [];
+  private socketFactory: SocketFactory;
+  private timings: HaClientTimings;
+  private connectTimer: NodeJS.Timeout | null = null;
+  private pingTimer: NodeJS.Timeout | null = null;
+  private pongTimer: NodeJS.Timeout | null = null;
+  private ws: SocketLike | null = null;
 
-  constructor(url: string, token: string) {
+  constructor(url: string, token: string, opts: { socketFactory?: SocketFactory; timings?: Partial<HaClientTimings> } = {}) {
     this.url = url;
     this.token = token;
+    this.socketFactory = opts.socketFactory ?? ((u) => new WebSocket(u) as unknown as SocketLike);
+    this.timings = { ...DEFAULT_TIMINGS, ...opts.timings };
   }
 
   start(): void {
@@ -59,6 +98,7 @@ export class HaClient {
   stop(): void {
     this.stopped = true;
     if (this.timer) clearTimeout(this.timer);
+    this.clearLiveness();
     this.ws?.close();
   }
 
@@ -86,7 +126,7 @@ export class HaClient {
   /** Send a WebSocket command and wait for its result. */
   call<T = unknown>(type: string, payload: Record<string, unknown> = {}): Promise<T> {
     const ws = this.ws;
-    if (!ws || ws.readyState !== WebSocket.OPEN || this.status.state !== 'connected') {
+    if (!ws || ws.readyState !== OPEN || this.status.state !== 'connected') {
       return Promise.reject(new Error('not connected'));
     }
     const id = this.nextId++;
@@ -98,16 +138,23 @@ export class HaClient {
 
   private connect(): void {
     this.status.state = 'connecting';
-    let ws: WebSocket;
+    let ws: SocketLike;
     try {
-      ws = new WebSocket(this.url);
+      ws = this.socketFactory(this.url);
     } catch (err) {
       this.fail((err as Error).message);
       return;
     }
     this.ws = ws;
+    // Give up on an attempt that never gets to "auth_ok"; otherwise a hung
+    // attempt (no open, no error, no close) would stop all reconnects.
+    this.connectTimer = setTimeout(() => {
+      this.connectTimer = null;
+      if (this.ws === ws && this.status.state !== 'connected') this.drop(ws, 'connect timeout');
+    }, this.timings.connectTimeoutMs);
 
     ws.addEventListener('message', (event) => {
+      if (this.ws !== ws) return;
       let msg: Record<string, any>;
       try {
         msg = JSON.parse(String(event.data));
@@ -117,17 +164,58 @@ export class HaClient {
       this.onMessage(msg);
     });
     ws.addEventListener('error', () => {
-      this.status.lastError = 'websocket error';
+      if (this.ws === ws) this.status.lastError = 'websocket error';
     });
-    ws.addEventListener('close', () => {
-      this.ws = null;
-      for (const p of this.pending.values()) p.reject(new Error('connection closed'));
-      this.pending.clear();
-      this.subscriptions.clear();
-      if (this.status.state !== 'auth_failed') this.status.state = 'disconnected';
-      this.status.connectedSince = null;
-      this.scheduleReconnect();
-    });
+    ws.addEventListener('close', () => this.teardown(ws));
+  }
+
+  /** Clean up after a socket ended (or was abandoned) and schedule a reconnect. */
+  private teardown(ws: SocketLike): void {
+    if (this.ws !== ws) return; // already handled
+    this.ws = null;
+    this.clearLiveness();
+    for (const p of this.pending.values()) p.reject(new Error('connection closed'));
+    this.pending.clear();
+    this.subscriptions.clear();
+    if (this.status.state !== 'auth_failed') this.status.state = 'disconnected';
+    this.status.connectedSince = null;
+    this.scheduleReconnect();
+  }
+
+  /** Abandon a socket that hangs or stopped answering, and reconnect. */
+  private drop(ws: SocketLike, reason: string): void {
+    console.warn(`[ha] ${reason}`);
+    this.status.lastError = reason;
+    this.teardown(ws);
+    try {
+      ws.close();
+    } catch {
+      // The socket is abandoned either way.
+    }
+  }
+
+  private clearLiveness(): void {
+    if (this.connectTimer) clearTimeout(this.connectTimer);
+    if (this.pingTimer) clearInterval(this.pingTimer);
+    if (this.pongTimer) clearTimeout(this.pongTimer);
+    this.connectTimer = this.pingTimer = this.pongTimer = null;
+  }
+
+  /** Ping Home Assistant every minute; drop the connection when a pong does not arrive in time. */
+  private startHeartbeat(ws: SocketLike): void {
+    this.pingTimer = setInterval(() => {
+      if (this.ws !== ws || this.pongTimer) return;
+      try {
+        ws.send(JSON.stringify({ id: this.nextId++, type: 'ping' }));
+      } catch {
+        this.drop(ws, 'ping failed');
+        return;
+      }
+      this.pongTimer = setTimeout(() => {
+        this.pongTimer = null;
+        if (this.ws === ws) this.drop(ws, 'no answer to ping');
+      }, this.timings.pongTimeoutMs);
+    }, this.timings.pingIntervalMs);
   }
 
   private onMessage(msg: Record<string, any>): void {
@@ -137,6 +225,10 @@ export class HaClient {
         break;
       case 'auth_ok':
         this.attempt = 0;
+        if (this.connectTimer) clearTimeout(this.connectTimer);
+        this.connectTimer = null;
+        if (this.ws) this.startHeartbeat(this.ws);
+        console.log('[ha] connected');
         this.status.state = 'connected';
         this.status.connectedSince = new Date().toISOString();
         this.status.lastError = null;
@@ -147,6 +239,10 @@ export class HaClient {
         this.status.state = 'auth_failed';
         this.status.lastError = 'authentication failed';
         this.ws?.close();
+        break;
+      case 'pong':
+        if (this.pongTimer) clearTimeout(this.pongTimer);
+        this.pongTimer = null;
         break;
       case 'event':
         this.subscriptions.get(msg.id)?.(msg.event);
