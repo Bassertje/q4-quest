@@ -255,7 +255,7 @@ button:disabled {
   grid-template-rows: auto auto auto;
   align-content: start;
   row-gap: 4px;
-  padding: 12px;
+  padding: 12px 10px;
   min-width: 0;
 }
 .stat-tile > * {
@@ -302,5 +302,6 @@ button:disabled {
 }
 .st-sub {
   color: var(--muted);
-  font-size: min(0.8rem, 3.9cqi);
+  /* Fits "14 jul 2025 – 11 nov 2026" on one line at 375px. */
+  font-size: min(0.8rem, 3.5cqi);
 }

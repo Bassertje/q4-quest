@@ -20,8 +20,8 @@ export interface HistoryPeriodStats {
   drivingDays: number;
   /** Days of the period with measurements (from the first measurement up to and including today). */
   days: number;
-  /** Km ÷ driving days (null without driving days). */
-  avgPerDrivingDay: number | null;
+  /** Km ÷ all measured days of the period (days without trips count as 0 km). */
+  avgPerDay: number;
   /** Most km on a single day. */
   maxDayKm: number;
   /** Weekday with the most km in total (null without driving). */
@@ -82,7 +82,7 @@ export function historyPeriodView(input: HistoryPeriodInput, mode: ViewPeriodMod
       km: r1(km),
       drivingDays,
       days,
-      avgPerDrivingDay: drivingDays ? r1(km / drivingDays) : null,
+      avgPerDay: r1(km / days),
       maxDayKm: r1(maxDay),
       busiestWeekday: perWeekday[best] > 0 ? { day: WEEKDAYS[best], km: r1(perWeekday[best]) } : null,
     };

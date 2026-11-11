@@ -120,7 +120,7 @@ export interface HistoryPeriod extends PeriodNav {
     km: number;
     drivingDays: number;
     days: number;
-    avgPerDrivingDay: number | null;
+    avgPerDay: number;
     maxDayKm: number;
     busiestWeekday: { day: string; km: number } | null;
   } | null;

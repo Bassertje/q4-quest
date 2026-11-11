@@ -247,9 +247,9 @@ Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laads
 3. **Historie** (van boven naar beneden)
    - **Periodekeuze** (gedeeld onderdeel, zie Periodekeuze hieronder; eigen bewaarde keuze `setting.history_period`, standaard Alles).
    - **Vier tegels** in een raster van 2×2, met dezelfde opbouw als de Laden-tegels (zie Statistiektegels):
-     - Gereden: km in de periode / "X km per dag" (gemiddeld over de gemeten dagen).
+     - Gereden: km in de periode / de werkelijke periode in korte datums ("2 nov – 11 nov"; jaartal alleen bij een jaargrens), vanaf de start van de meting en tot en met vandaag (bij Alles dus vanaf de start van de meting).
      - Rijdagen: aantal dagen met ≥ 1 km / "van Y" (Y = dagen in de periode vanaf de start van de meting tot en met vandaag).
-     - Gem. per rijdag: gereden km ÷ rijdagen / "hoogste X km" (de hoogste dag in de periode).
+     - Gem. per dag: gereden km ÷ alle dagen in de periode vanaf de start van de meting tot en met vandaag (dagen zonder ritten tellen mee als 0 km), met één decimaal / "hoogste X km" (de hoogste dagafstand in de periode).
      - Drukste dag: de weekdag met het meeste totaal aantal km in de periode ("ma") / "X km totaal".
      - Zonder data in de periode: "–" met "geen data".
    - **km-grafiek** ("Gereden · <periode>"): volgt de periodekeuze; Week en Maand per dag, Jaar en Alles per maand; vaste vensters (alle dagen/maanden van de periode, ook zonder data), dagen/maanden vóór de meting gedimd. Geen eigen Dag/Week/Maand-knoppen of pijltjes in de kaart. Boven de grafiek de waarde van de aangetikte staaf, of anders van vandaag (met de daggemiddelde temperatuur bij dagen). Onder de grafiek een samenvattingsregel: de km van de periode vet links ("705 km") en gedempt het gemeten bereik met korte datums ("12 okt – 11 nov"; jaartal alleen als de periode over een jaargrens gaat), nooit afgebroken (`white-space: nowrap`).
