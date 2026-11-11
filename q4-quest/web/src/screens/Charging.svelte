@@ -2,19 +2,15 @@
   import { getJson, putJson } from '../lib/api';
   import ChargeKwhChart from '../lib/ChargeKwhChart.svelte';
   import { dayNoYear, km, kw, monthTitle, num1 } from '../lib/format';
+  import PeriodPicker from '../lib/PeriodPicker.svelte';
   import PixelIcon from '../lib/PixelIcon.svelte';
+  import StatTile from '../lib/StatTile.svelte';
   import SocChart from '../lib/SocChart.svelte';
   import type { ChargePeriodMode, ChargingData, ChargingSession, SocData, SocRange } from '../lib/types';
 
   let { refresh }: { refresh: number } = $props();
 
   const STEP = 20;
-  const MODES: { id: ChargePeriodMode; label: string }[] = [
-    { id: 'week', label: 'Week' },
-    { id: 'month', label: 'Maand' },
-    { id: 'year', label: 'Jaar' },
-    { id: 'all', label: 'Alles' },
-  ];
   const SOC_RANGES: { id: SocRange; label: string }[] = [
     { id: '24h', label: '24 uur' },
     { id: '7d', label: '7 dagen' },
@@ -61,7 +57,6 @@
   });
 
   function setMode(m: ChargePeriodMode) {
-    if (m === mode) return;
     mode = m;
     periodKey = null;
     shown = STEP;
@@ -70,8 +65,7 @@
     void putJson('settings', { chargingPeriod: m }).catch(() => {});
   }
 
-  function go(key: string | null) {
-    if (!key) return;
+  function go(key: string) {
     periodKey = key;
     shown = STEP;
     openSession = null;
@@ -98,6 +92,11 @@
   const pct = (v: number | null) => (v === null ? '?' : `${Math.round(v)}`);
   const clamp = (v: number | null) => Math.max(0, Math.min(100, v ?? 0));
   let openSession = $state<number | null>(null);
+  /** "AC X · DC Y" with the averages per type; a missing type is left out. */
+  function powerSub(p: { acKw: number | null; dcKw: number | null }): string {
+    const parts = [p.acKw !== null ? `AC ${kw(p.acKw)}` : '', p.dcKw !== null ? `DC ${kw(p.dcKw)}` : ''].filter(Boolean);
+    return parts.length ? parts.join(' · ') : 'geen sessies';
+  }
   /** Shown sessions grouped per month (newest first). */
   const groups = $derived.by(() => {
     const out: { title: string; items: ChargingSession[] }[] = [];
@@ -149,52 +148,37 @@
     </section>
   {/if}
 
-  <div class="toolbar">
-    <div class="segmented" role="group" aria-label="Periode">
-      {#each MODES as m (m.id)}
-        <button class:active={mode === m.id} aria-pressed={mode === m.id} onclick={() => setMode(m.id)}>{m.label}</button>
-      {/each}
-    </div>
-    {#if p && p.mode !== 'all'}
-      <div class="pager">
-        <button aria-label="Vorige periode" disabled={!p.prev} onclick={() => go(p.prev)}>‹</button>
-        <span class="plabel" aria-live="polite">{p.label}</span>
-        <button aria-label="Volgende periode" disabled={!p.next} onclick={() => go(p.next)}>›</button>
-      </div>
-    {/if}
-  </div>
+  <PeriodPicker {mode} period={p} onmode={setMode} ongo={go} />
 
   {#if p}
     {@const t = p.totals}
     {@const c = p.consumption}
-    <div class="tiles-wrap"><section class="tiles">
-      <div class="panel tile">
-        <div class="tl"><span class="label">Sessies</span></div>
-        <div class="val">{t.sessions}</div>
-        <div class="sub">{t.ac.sessions} AC · {t.dc.sessions} DC</div>
-      </div>
-      <div class="panel tile">
-        <div class="tl">
-          <span class="label">Geladen</span>
-          <button class="info" aria-label="Uitleg geladen" aria-expanded={info.charged} onclick={() => (info.charged = !info.charged)}>ⓘ</button>
-        </div>
-        <div class="val">{km(t.kwh)}<span class="unit">kWh</span></div>
-        <div class="sub">AC {km(t.ac.kwh)} · DC {km(t.dc.kwh)}</div>
-      </div>
-      <div class="panel tile">
-        <div class="tl">
-          <span class="label">Verbruik</span>
-          <button class="info" aria-label="Uitleg verbruik" aria-expanded={info.consumption} onclick={() => (info.consumption = !info.consumption)}>ⓘ</button>
-        </div>
-        {#if c?.kwhPer100km != null}
-          <div class="val">{num1(c.kwhPer100km)}<span class="unit">kWh</span></div>
-          <div class="sub">per 100 km</div>
-        {:else}
-          <div class="val muted">–</div>
-          <div class="sub">te weinig data</div>
-        {/if}
-      </div>
-    </section></div>
+    {@const pw = p.power}
+    <div class="stat-tiles-wrap">
+      <section class="stat-tiles">
+        <StatTile label="Sessies" value={String(t.sessions)} sub="{t.ac.sessions} AC · {t.dc.sessions} DC" />
+        <StatTile
+          label="Geladen"
+          value={km(t.kwh)}
+          unit="kWh"
+          sub="AC {km(t.ac.kwh)} · DC {km(t.dc.kwh)}"
+          info={{ open: info.charged, toggle: () => (info.charged = !info.charged), aria: 'Uitleg geladen' }}
+        />
+        <StatTile
+          label="Verbruik"
+          value={c?.kwhPer100km != null ? num1(c.kwhPer100km) : null}
+          unit="kWh"
+          sub={c?.kwhPer100km != null ? 'per 100 km' : 'te weinig data'}
+          info={{ open: info.consumption, toggle: () => (info.consumption = !info.consumption), aria: 'Uitleg verbruik' }}
+        />
+        <StatTile
+          label="Gem. laadvermogen"
+          value={pw.avgKw !== null ? kw(pw.avgKw) : null}
+          unit="kW"
+          sub={powerSub(pw)}
+        />
+      </section>
+    </div>
     {#if info.charged}
       <p class="muted small note panel">
         Geladen kWh is een schatting: de stijging van het accupercentage × {num1(data.batteryKwh)} kWh accucapaciteit,
@@ -252,10 +236,10 @@
         {@const gp = data.greenProgress}
         <div class="next">
           {#if gp.next}
-            <span class="muted small">Totaal {km(gp.totalKg)} kg · nog {km(Math.max(0, gp.next.target - gp.totalKg))} kg tot <strong>{gp.next.name}</strong></span>
+            <span class="muted next-label">Totaal {km(gp.totalKg)} kg · nog {km(Math.max(0, gp.next.target - gp.totalKg))} kg tot <strong>{gp.next.name}</strong></span>
             <span class="next-bar"><span style:width="{Math.min(100, (gp.totalKg / gp.next.target) * 100)}%"></span></span>
           {:else}
-            <span class="muted small">Totaal {km(gp.totalKg)} kg · Alle Groen-badges gehaald</span>
+            <span class="muted next-label">Totaal {km(gp.totalKg)} kg · Alle Groen-badges gehaald</span>
             <span class="next-bar"><span style:width="100%"></span></span>
           {/if}
         </div>
@@ -316,83 +300,9 @@
     font-size: 1rem;
     margin: 0 0 8px;
   }
-  .toolbar {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-  .toolbar .segmented {
-    display: flex;
-  }
-  .toolbar .segmented button {
-    flex: 1;
-  }
-  .pager {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: 8px;
-  }
-  .pager button {
-    min-width: 40px;
-  }
-  .plabel {
-    text-align: center;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  /* Three tiles with exactly the same build-up: label, value, breakdown. */
-  .tiles-wrap {
-    container-type: inline-size;
-  }
-  .tiles {
-    display: grid;
-    /* The kWh tiles need a little more room than the session count. */
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr) minmax(0, 0.9fr);
-    gap: 8px;
-  }
-  .tile {
-    display: grid;
-    grid-template-rows: auto auto auto;
-    align-content: start;
-    row-gap: 4px;
-    padding: 12px 9px;
-    min-width: 0;
-  }
-  .tile > * {
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .tl {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 4px;
-    height: 1.2rem;
-  }
   .label {
     color: var(--muted);
     font-size: 0.85rem;
-  }
-  .tl .label {
-    font-size: min(0.85rem, 3.8cqi);
-  }
-  .tl .info {
-    padding: 0;
-  }
-  .val {
-    font-family: var(--font-pixel);
-    /* Sized on the width of the whole row, so all three tiles match. */
-    font-size: min(1.9rem, 7.6cqi);
-    line-height: 1.1;
-  }
-  .sub {
-    color: var(--muted);
-    font-size: min(0.8rem, 3.3cqi);
   }
   .pixel {
     font-family: var(--font-pixel);
@@ -584,6 +494,16 @@
     flex-direction: column;
     gap: 4px;
     margin-top: 12px;
+  }
+  .next {
+    container-type: inline-size;
+  }
+  /* One line, also on a narrow screen. */
+  .next-label {
+    font-size: min(0.85rem, 3.8cqi);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .next-bar {
     display: block;

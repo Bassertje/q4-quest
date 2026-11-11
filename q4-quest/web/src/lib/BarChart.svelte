@@ -3,10 +3,24 @@
   import uPlot from 'uplot';
   import 'uplot/dist/uPlot.min.css';
   import type { ChartBar } from '../../../game/src/periods.ts';
+  import { bucketTick, drawXLabels, tickIndexes } from './chartAxis';
   import { km, periodLabel } from './format';
   import { THEME_EVENT } from './theme';
 
-  let { bars, height = 200, notes }: { bars: ChartBar[]; height?: number; notes?: Map<string, string> } = $props();
+  let {
+    bars,
+    bucket,
+    height = 200,
+    notes,
+    current = null,
+  }: {
+    bars: ChartBar[];
+    bucket: 'day' | 'month';
+    height?: number;
+    notes?: Map<string, string>;
+    /** Key of the bar shown when none is selected (default: the last bar). */
+    current?: string | null;
+  } = $props();
 
   const MAX_BAR_PX = 28;
   const BAR_FRACTION = 0.6;
@@ -59,6 +73,15 @@
     ctx.restore();
   }
 
+  function drawLabels(u: uPlot) {
+    const n = bars.length;
+    const longest = Math.max(1, ...bars.map((b) => bucketTick(b.key, bucket, n).length));
+    // As many labels as fit (about 7px per character plus room), at most 8.
+    const fit = Math.floor(u.bbox.width / devicePixelRatio / (longest * 7 + 14));
+    const labels = tickIndexes(n, Math.max(1, Math.min(8, fit)));
+    drawXLabels(u, labels.map((i) => [i, bucketTick(bars[i].key, bucket, n)] as [number, string]), n, css('--muted'));
+  }
+
   function options(width: number): uPlot.Options {
     const muted = css('--muted');
     const font = '11px Inter, system-ui, sans-serif';
@@ -81,16 +104,9 @@
           size: 26,
           grid: { show: false },
           ticks: { show: false },
-          // Label every k-th bar, counted back from the newest so it is always labelled.
-          splits: (u) => {
-            const slot = u.bbox.width / devicePixelRatio / Math.max(1, n);
-            const longest = Math.max(0, ...bars.map((b) => periodLabel(b.key).length));
-            const k = Math.max(1, Math.ceil((longest * 7 + 12) / slot));
-            const out: number[] = [];
-            for (let i = n - 1; i >= 0; i -= k) out.unshift(i);
-            return out;
-          },
-          values: (_u, splits) => splits.map((i) => (Number.isInteger(i) && bars[i] ? periodLabel(bars[i].key) : '')),
+          // Labels are drawn in drawLabels(), so the outer ones can be aligned inside the chart.
+          splits: () => [],
+          values: () => [],
         },
         {
           stroke: muted,
@@ -103,7 +119,7 @@
       ],
       series: [{}, { stroke: 'transparent', width: 0, points: { show: false } }],
       hooks: {
-        draw: [drawBars],
+        draw: [drawBars, drawLabels],
         setCursor: [
           (u) => {
             const idx = u.cursor.idx;
@@ -141,7 +157,11 @@
     };
   });
 
-  const shown = $derived(bars[selected ?? bars.length - 1]);
+  const fallback = $derived.by(() => {
+    const i = current === null ? -1 : bars.findIndex((b) => b.key === current);
+    return i >= 0 ? i : bars.length - 1;
+  });
+  const shown = $derived(bars[selected ?? fallback]);
 </script>
 
 <div class="readout" aria-live="polite">

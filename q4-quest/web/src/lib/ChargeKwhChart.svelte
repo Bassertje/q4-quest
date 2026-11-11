@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import uPlot from 'uplot';
   import 'uplot/dist/uPlot.min.css';
+  import { bucketTick, drawXLabels, tickIndexes } from './chartAxis';
   import { km, num1, periodLabel } from './format';
   import { THEME_EVENT } from './theme';
 
@@ -19,12 +20,11 @@
     height?: number;
   } = $props();
   const weeks = $derived(buckets);
-  const weekday = (day: string) => periodLabel(day, true).split(' ')[0];
 
-  /** Axis label for a bucket. */
-  function tick(key: string): string {
-    if (bucket === 'month') return periodLabel(key);
-    return weeks.length <= 7 ? weekday(key) : String(Number(key.slice(8)));
+  function drawLabels(u: uPlot) {
+    const n = weeks.length;
+    const labels = tickIndexes(n, 8).map((i) => [i, bucketTick(weeks[i].key, bucket, n)] as [number, string]);
+    drawXLabels(u, labels, n, css('--muted'));
   }
 
   let container: HTMLDivElement;
@@ -77,17 +77,15 @@
       axes: [
         {
           stroke: muted, font, size: 26, grid: { show: false }, ticks: { show: false },
-          splits: () => {
-            const step = Math.max(1, Math.ceil(n / 8));
-            return weeks.map((_, i) => i).filter((i) => i % step === 0);
-          },
-          values: (_u, sp) => sp.map((i) => (weeks[i] ? tick(weeks[i].key) : '')),
+          // Labels are drawn in drawLabels(), so the outer ones can be aligned inside the chart.
+          splits: () => [],
+          values: () => [],
         },
         { stroke: muted, font, size: 40, grid: { stroke: css('--line'), width: 1 }, ticks: { show: false } },
       ],
       series: [{}, { stroke: 'transparent', width: 0, points: { show: false } }],
       hooks: {
-        draw: [draw],
+        draw: [draw, drawLabels],
         setCursor: [(u) => { const i = u.cursor.idx ?? null; if (i !== selected) { selected = i; u.redraw(false); } }],
       },
     };

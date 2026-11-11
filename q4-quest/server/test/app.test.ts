@@ -72,8 +72,30 @@ describe('GET /api/history', () => {
     expect(h.monthly.length).toBeGreaterThanOrEqual(4);
     expect(h.records.bestDay.km).toBeGreaterThan(0);
     expect(h.records.longestTrip.km).toBeGreaterThan(0);
-    expect(h.recentTrips.length).toBe(20);
     expect(h.timeline.initial.length).toBeGreaterThan(0);
+    const p = body.period;
+    expect(p.mode).toBe('all');
+    expect(p.bucket).toBe('month');
+    expect(p.trips.length).toBeGreaterThan(20);
+    expect(p.stats.km).toBeGreaterThan(1000);
+    expect(p.stats.drivingDays).toBeLessThanOrEqual(p.stats.days);
+  });
+
+  it('serves the history per period and remembers the choice separately from charging', async () => {
+    const { app } = make(MOCK_OPTIONS_RAW, true);
+    const month = (await app.inject({ url: '/api/history?period=month' })).json().period;
+    expect(month.bucket).toBe('day');
+    expect(month.next).toBeNull();
+    const all = (await app.inject({ url: '/api/history' })).json().period;
+    expect(month.stats.km).toBeLessThan(all.stats.km);
+    expect(month.trips.length).toBeLessThan(all.trips.length);
+    const week = (await app.inject({ url: `/api/history?period=week&key=2000-W01` })).json().period;
+    expect(week.prev).toBeNull();
+    expect((await app.inject({ url: '/api/history?period=dag' })).statusCode).toBe(400);
+    await app.inject({ method: 'PUT', url: '/api/settings', payload: { historyPeriod: 'month' } });
+    expect((await app.inject({ url: '/api/history' })).json().period.mode).toBe('month');
+    expect((await app.inject({ url: '/api/charging' })).json().period.mode).toBe('all');
+    expect((await app.inject({ method: 'PUT', url: '/api/settings', payload: { historyPeriod: 'x' } })).statusCode).toBe(400);
   });
 
   it('asks for setup without an odometer', async () => {
@@ -234,7 +256,7 @@ describe('weekly challenges, green and temperature', () => {
     const history = (await app.inject({ url: '/api/history' })).json();
     expect(history.hasTemperature).toBe(true);
     expect(history.monthly.some((m: { avgTemp: number | null }) => m.avgTemp !== null)).toBe(true);
-    expect(history.history.recentTrips.some((t: { startTemp: number | null }) => t.startTemp !== null)).toBe(true);
+    expect(history.period.trips.some((t: { startTemp: number | null }) => t.startTemp !== null)).toBe(true);
   });
 
   it('serves the charging screen per period and remembers the choice', async () => {
@@ -302,10 +324,10 @@ describe('followed badge', () => {
 describe('/api/settings', () => {
   it('defaults to the automatic theme and stores a choice', async () => {
     const { app } = make({});
-    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'auto', navPosition: 'top', followedBadge: null, chargingPeriod: 'all' });
+    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'auto', navPosition: 'top', followedBadge: null, chargingPeriod: 'all', historyPeriod: 'all' });
     const put = await app.inject({ method: 'PUT', url: '/api/settings', payload: { theme: 'light' } });
-    expect(put.json()).toEqual({ theme: 'light', navPosition: 'top', followedBadge: null, chargingPeriod: 'all' });
-    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'light', navPosition: 'top', followedBadge: null, chargingPeriod: 'all' });
+    expect(put.json()).toEqual({ theme: 'light', navPosition: 'top', followedBadge: null, chargingPeriod: 'all', historyPeriod: 'all' });
+    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'light', navPosition: 'top', followedBadge: null, chargingPeriod: 'all', historyPeriod: 'all' });
   });
 
   it('stores the navigation position (default top) and rejects unknown values', async () => {
