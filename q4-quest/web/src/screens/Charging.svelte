@@ -1,7 +1,7 @@
 <script lang="ts">
   import { getJson, putJson } from '../lib/api';
   import ChargeKwhChart from '../lib/ChargeKwhChart.svelte';
-  import { dayNoYear, km, kw, monthTitle, num1 } from '../lib/format';
+  import { dayNoYear, km, kw, monthTitle, num1, socRange as socSpan } from '../lib/format';
   import PeriodPicker from '../lib/PeriodPicker.svelte';
   import PixelIcon from '../lib/PixelIcon.svelte';
   import StatTile from '../lib/StatTile.svelte';
@@ -89,7 +89,6 @@
     return `${h} u ${String(min % 60).padStart(2, '0')}`;
   }
 
-  const pct = (v: number | null) => (v === null ? '?' : `${Math.round(v)}`);
   const clamp = (v: number | null) => Math.max(0, Math.min(100, v ?? 0));
   let openSession = $state<number | null>(null);
   /** "AC X · DC Y" with the averages per type; a missing type is left out. */
@@ -262,11 +261,11 @@
                 <span class="badge" class:dc={s.type === 'DC'}>{s.type}</span>
                 <span class="mid">
                   <span class="l1">{dayNoYear(s.start, tz)}</span>
-                  <span class="l2">{time(s.start)} · {s.ongoing ? 'bezig' : duration(s)}</span>
+                  <span class="l2">{time(s.start)} · {#if s.ongoing}<span class="now"><span class="dot" aria-hidden="true"></span>nu</span>{:else}{duration(s)}{/if}</span>
                 </span>
                 <span class="end">
                   <span class="l1 strong">{s.kwh === null ? '–' : `~${num1(s.kwh)} kWh`}</span>
-                  <span class="l2">{pct(s.socStart)} → {pct(s.socEnd)}%</span>
+                  <span class="l2">{socSpan(s.socStart, s.socEnd)}</span>
                 </span>
               </button>
               <span class="socbar" aria-hidden="true">
@@ -276,7 +275,7 @@
               {#if open}
                 <dl class="detail">
                   <dt>Begin</dt><dd>{time(s.start)}</dd>
-                  <dt>Einde</dt><dd>{s.ongoing ? 'bezig' : time(s.end)}</dd>
+                  <dt>Einde</dt><dd>{#if s.ongoing}<span class="now"><span class="dot" aria-hidden="true"></span>nu</span>{:else}{time(s.end)}{/if}</dd>
                   <dt>Gemiddeld</dt><dd>{s.avgKw === null ? '–' : `${kw(s.avgKw)} kW`}</dd>
                   <dt>Type</dt><dd>{s.type}</dd>
                 </dl>
@@ -370,8 +369,55 @@
   .sessions li:first-child {
     border-top: 0;
   }
-  .sessions li.live .srow {
-    box-shadow: inset 2px 0 0 var(--accent);
+  /* Ongoing session: "● nu" with a calm pulse, and a slow sheen on the charged part of the bar. */
+  .now {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text);
+  }
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
+    }
+    50% {
+      opacity: 0.55;
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 0%, transparent);
+    }
+  }
+  .sessions li.live .socbar .added {
+    background: linear-gradient(
+        100deg,
+        transparent 30%,
+        color-mix(in srgb, white 35%, transparent) 50%,
+        transparent 70%
+      )
+      0 0 / 200% 100% no-repeat,
+      var(--accent);
+    animation: sheen 2.8s linear infinite;
+  }
+  @keyframes sheen {
+    from {
+      background-position: 150% 0, 0 0;
+    }
+    to {
+      background-position: -50% 0, 0 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dot,
+    .sessions li.live .socbar .added {
+      animation: none;
+    }
   }
   /* Three fixed columns, two lines; nothing wraps. */
   .srow {

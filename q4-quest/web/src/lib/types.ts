@@ -115,7 +115,9 @@ export interface HistoryPeriod extends PeriodNav {
   dataFrom: string | null;
   dataTo: string | null;
   bucket: 'day' | 'month';
-  buckets: { key: string; km: number; beforeStart: boolean }[];
+  /** With "all", a first bar with `earlier: true` holds the km before the measurement started. */
+  buckets: { key: string; km: number; beforeStart: boolean; earlier?: boolean }[];
+  odometerKm: number | null;
   stats: {
     km: number;
     drivingDays: number;

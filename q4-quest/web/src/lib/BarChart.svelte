@@ -14,7 +14,8 @@
     notes,
     current = null,
   }: {
-    bars: ChartBar[];
+    /** `earlier`: a dimmed bar with the km before the measurement started (label "eerder"). */
+    bars: (ChartBar & { earlier?: boolean })[];
     bucket: 'day' | 'month';
     height?: number;
     notes?: Map<string, string>;
@@ -54,6 +55,15 @@
         ctx.fillRect(cx - barWidth / 2, y0 - ZERO_STUB_PX * devicePixelRatio, barWidth, ZERO_STUB_PX * devicePixelRatio);
         return;
       }
+      if (bar.earlier) {
+        // Km before the measurement started: dimmed, not part of the measured data.
+        const y = u.valToPos(bar.km, 'y', true);
+        ctx.fillStyle = css('--muted');
+        ctx.globalAlpha = selected === null || selected === i ? 0.45 : 0.25;
+        ctx.fillRect(cx - barWidth / 2, y, barWidth, y0 - y);
+        ctx.globalAlpha = 1;
+        return;
+      }
       if (bar.km <= 0) {
         ctx.fillStyle = css('--muted');
         ctx.fillRect(cx - barWidth / 2, y0 - ZERO_STUB_PX * devicePixelRatio, barWidth, ZERO_STUB_PX * devicePixelRatio);
@@ -75,11 +85,17 @@
 
   function drawLabels(u: uPlot) {
     const n = bars.length;
-    const longest = Math.max(1, ...bars.map((b) => bucketTick(b.key, bucket, n).length));
+    const tick = (i: number) => (bars[i].earlier ? 'eerder' : bucketTick(bars[i].key, bucket, n));
+    const longest = Math.max(1, ...bars.map((_, i) => tick(i).length));
     // As many labels as fit (about 7px per character plus room), at most 8.
     const fit = Math.floor(u.bbox.width / devicePixelRatio / (longest * 7 + 14));
-    const labels = tickIndexes(n, Math.max(1, Math.min(8, fit)));
-    drawXLabels(u, labels.map((i) => [i, bucketTick(bars[i].key, bucket, n)] as [number, string]), n, css('--muted'));
+    let labels = tickIndexes(n, Math.max(1, Math.min(8, fit)));
+    if (bars[0]?.earlier && labels[0] !== 0) {
+      // Always label the "earlier" bar; drop a label that would sit too close to it.
+      const step = labels.length > 1 ? labels[1] - labels[0] : n;
+      labels = [0, ...labels.filter((i) => i >= step)];
+    }
+    drawXLabels(u, labels.map((i) => [i, tick(i)] as [number, string]), n, css('--muted'));
   }
 
   function options(width: number): uPlot.Options {
@@ -168,7 +184,7 @@
   {#if shown}
     <span class="pixel">{shown.beforeStart ? '–' : km(shown.km)}<span class="unit">km</span></span>
     <span class="muted small">
-      {periodLabel(shown.key, true)}{shown.beforeStart ? ' · nog geen meting' : ''}{notes?.get(shown.key) ? ` · ${notes.get(shown.key)}` : ''}
+      {shown.earlier ? 'vóór de start van de meting' : periodLabel(shown.key, true)}{shown.beforeStart ? ' · nog geen meting' : ''}{notes?.get(shown.key) ? ` · ${notes.get(shown.key)}` : ''}
     </span>
   {/if}
 </div>

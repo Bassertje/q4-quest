@@ -52,6 +52,20 @@ describe('historyPeriodView', () => {
     expect(weekend.stats).toMatchObject({ km: 0, drivingDays: 0, avgPerDay: 0, maxDayKm: 0, busiestWeekday: null });
   });
 
+  it('shows the real total with "all": an "earlier" bar with the first odometer value and the current odometer', () => {
+    const odo = { odometerFirst: 12_000, odometerLatest: 13_550 };
+    const all = historyPeriodView({ ...input(), ...odo }, 'all', null);
+    expect(all.buckets[0]).toEqual({ key: 'earlier', km: 12_000, beforeStart: false, earlier: true });
+    expect(all.odometerKm).toBe(13_550);
+    // The measured statistics stay based on the measured days.
+    expect(all.stats?.days).toBe(31);
+    // No "earlier" bar without km before the start, and nothing extra for other periods.
+    expect(historyPeriodView({ ...input(), odometerFirst: 0, odometerLatest: 1550 }, 'all', null).buckets[0].key).toBe('2026-10');
+    const month = historyPeriodView({ ...input(), ...odo }, 'month', null);
+    expect(month.buckets.some((b) => b.earlier)).toBe(false);
+    expect(month.odometerKm).toBeNull();
+  });
+
   it('adds years to the range only across a year boundary', () => {
     expect(periodRangeLabel('2025-12-29', '2026-01-04')).toBe('29 dec 2025 – 4 jan 2026');
     expect(periodRangeLabel('2026-11-11', '2026-11-11')).toBe('11 nov');

@@ -148,6 +148,21 @@
     </div>
   </section>
 
+  <section class="tiles two">
+    <div class="panel tile">
+      <div class="label">Op rij gereden</div>
+      <div class="pixel mid">{c.streak}<span class="unit">{c.streak === 1 ? 'dag' : 'dagen'}</span></div>
+    </div>
+    {#if data.soc || data.range}
+      <div class="panel tile">
+        <div class="label">{data.soc && data.range ? 'Accu · bereik' : data.soc ? 'Accu' : 'Bereik'}</div>
+        <div class="pixel mid accu">
+          {#if data.soc}{Math.round(data.soc.value)}<span class="unit">%</span>{/if}{#if data.soc && data.range}<span class="sep">·</span>{/if}{#if data.range}{km(data.range.value)}<span class="unit">km</span>{/if}
+        </div>
+      </div>
+    {/if}
+  </section>
+
   {#if c.lastUnlocked || data.followed}
     <section class="panel badges-card" aria-label="Badges">
       <div class="label">Badges</div>
@@ -174,21 +189,6 @@
       </div>
     </section>
   {/if}
-
-  <section class="tiles two">
-    <div class="panel tile">
-      <div class="label">Op rij gereden</div>
-      <div class="pixel mid">{c.streak}<span class="unit">{c.streak === 1 ? 'dag' : 'dagen'}</span></div>
-    </div>
-    {#if data.soc || data.range}
-      <div class="panel tile">
-        <div class="label">{data.soc && data.range ? 'Accu · bereik' : data.soc ? 'Accu' : 'Bereik'}</div>
-        <div class="pixel mid accu">
-          {#if data.soc}{Math.round(data.soc.value)}<span class="unit">%</span>{/if}{#if data.soc && data.range}<span class="sep">·</span>{/if}{#if data.range}{km(data.range.value)}<span class="unit">km</span>{/if}
-        </div>
-      </div>
-    {/if}
-  </section>
 {/if}
 
 {#if showRanks && c}

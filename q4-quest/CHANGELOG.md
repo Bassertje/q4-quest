@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.4
+
+- **Accubereik** staat nu overal als "71% → 100%", met een procentteken bij beide getallen.
+- **Cockpit:** de tegels "Op rij gereden" en "Accu · bereik" staan nu vóór de Badges-kaart; die staat helemaal onderaan.
+- **Historie bij Alles:** de tegel Gereden toont je echte kilometerstand ("totaal"). In de grafiek staat links een grijze staaf "eerder" met de kilometers van vóór de start van de meting, zodat het totaal onder de grafiek gelijk is aan je kilometerstand. Rijdagen, Gem. per dag en Drukste dag blijven over de gemeten dagen gaan.
+- **Lopende laadsessie:** in plaats van "bezig" staat er "● nu" met een rustig knipperend rood bolletje, en de balk van die sessie heeft een zachte, bewegende glans. De rode streep links is weg. Heb je "minder beweging" aangezet op je toestel, dan staan de animaties stil.
+
 ## 1.6.3
 
 - **Opgelost: geen updates meer na een herstart van Home Assistant.** Als Home Assistant herstartte terwijl de add-on opnieuw probeerde te verbinden, kon die poging blijven hangen en kwamen er geen nieuwe gegevens meer binnen (zoals de kilometerstand). De add-on breekt zo'n poging nu na 30 seconden af en probeert het opnieuw, en controleert elke minuut of de verbinding nog leeft. Gemiste metingen worden daarna uit de geschiedenis van Home Assistant opgehaald.
