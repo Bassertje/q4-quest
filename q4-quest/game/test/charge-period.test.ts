@@ -38,7 +38,7 @@ function input(now = at('2026-11-10', 12)): ChargePeriodInput {
 describe('chargePeriodView', () => {
   it('shows all data per month by default with totals across all sessions', () => {
     const v = chargePeriodView(input(), 'all', null);
-    expect(v.label).toBe('Alles');
+    expect(v.label).toBe('All-time');
     expect(v.bucket).toBe('month');
     expect(v.buckets.map((b) => b.key)).toEqual(['2026-10', '2026-11']);
     expect(v.buckets[1]).toMatchObject({ ac: 20, dc: 40 });

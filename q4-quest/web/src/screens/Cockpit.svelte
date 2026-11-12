@@ -89,7 +89,7 @@
     <Bar fraction={c.level.fraction} label="Voortgang naar het volgende level" />
     <div class="ch-foot">
       <span class="nw">{km(c.level.xp)} XP</span>
-      <span class="nw">nog {km(c.level.nextLevelXp - c.level.xp)} tot level {c.level.level + 1}</span>
+      <span class="nw">nog {km(c.level.nextLevelXp - c.level.xp)} XP tot level {c.level.level + 1}</span>
     </div>
   </section>
 
@@ -199,10 +199,6 @@
   .odo {
     box-shadow: var(--glow);
   }
-  .center {
-    text-align: center;
-    margin: 8px 0 0;
-  }
   .row {
     display: flex;
     justify-content: space-between;
@@ -284,17 +280,6 @@
   .accent {
     color: var(--accent);
   }
-  .block {
-    display: block;
-  }
-  .challenge .count {
-    text-align: left;
-  }
-  .count {
-    margin-top: 6px;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
   .chev {
     color: var(--accent);
   }
@@ -360,21 +345,6 @@
   .year-banner span {
     display: flex;
     flex-direction: column;
-  }
-  .link {
-    color: inherit;
-    text-decoration: none;
-  }
-  .link:hover,
-  .link:focus-visible {
-    border-color: var(--accent);
-    outline: none;
-  }
-  .unlocked {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 4px 0 2px;
   }
   .badge-name {
     font-weight: 600;

@@ -5,7 +5,7 @@ import type { TripBlock } from './trips.ts';
 
 /** A driving day counts from this many km. */
 export const DRIVING_DAY_MIN_KM = 1;
-const WEEKDAYS = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
+const WEEKDAYS = ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag', 'Zondag'];
 
 /** Weekday of a day key, Monday = 0. */
 function weekdayIndex(day: string): number {

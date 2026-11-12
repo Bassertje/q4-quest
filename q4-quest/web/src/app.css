@@ -305,3 +305,57 @@ button:disabled {
   /* Fits "14 jul 2025 – 11 nov 2026" on one line at 375px. */
   font-size: min(0.8rem, 3.5cqi);
 }
+
+/* Expanded ⓘ explanation: its own tinted box (a little darker than the card in
+   light mode, a little lighter in dark mode), short lines or a list. */
+.explain {
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--text) 6%, var(--panel));
+  color: var(--muted);
+  font-size: 0.9em;
+  line-height: 1.45;
+}
+/* Between cards the page grid already gives 12px. */
+.explain.standalone {
+  margin: 0;
+}
+.explain ul {
+  margin: 0;
+  padding-left: 1.1em;
+}
+.explain li + li {
+  margin-top: 4px;
+}
+.explain p {
+  margin: 0;
+}
+.explain p + ul,
+.explain ul + p {
+  margin-top: 6px;
+}
+.explain strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Tiles inside a card (Groen): three columns, tinted instead of a panel border. */
+.stat-tiles.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.stat-tile.inset {
+  border-color: transparent;
+  box-shadow: none;
+  background: color-mix(in srgb, var(--text) 5%, var(--panel));
+  padding: 10px 8px;
+}
+.stat-tiles-wrap.three .st-value {
+  font-size: min(1.7rem, 8cqi);
+}
+.stat-tiles-wrap.three .st-label {
+  font-size: min(0.85rem, 3.9cqi);
+}
+.stat-tiles-wrap.three .st-sub {
+  font-size: min(0.8rem, 3.5cqi);
+}

@@ -43,9 +43,9 @@ export function viewPeriodDays(mode: ViewPeriodMode, key: string, firstDay: stri
   return { from: `${monthKey(firstDay)}-01`, to: `${shiftPeriod('month', monthKey(today), 1)}-01` };
 }
 
-/** Dutch label: "week 46, 2026", "november 2026", "2026" or "Alles". */
+/** Label: "week 46, 2026", "november 2026", "2026" or "All-time". */
 export function viewPeriodLabel(mode: ViewPeriodMode, key: string): string {
-  if (mode === 'all') return 'Alles';
+  if (mode === 'all') return 'All-time';
   if (mode === 'year') return key;
   return periodLabel(key, true);
 }

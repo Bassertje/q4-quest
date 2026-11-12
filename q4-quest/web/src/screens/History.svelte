@@ -146,7 +146,7 @@
     <div class="stat-tiles-wrap">
       <section class="stat-tiles">
         {#if p.odometerKm !== null}
-          <!-- "Alles": the real total, i.e. the current odometer value. -->
+          <!-- "All-time": the real total, i.e. the current odometer value. -->
           <StatTile label="Gereden" value={km(p.odometerKm)} unit="km" sub="totaal" />
         {:else}
           <StatTile label="Gereden" value={st ? km(st.km) : null} unit="km" sub={st ? periodRangeLabel(p.dataFrom, p.dataTo) : 'geen data'} />
@@ -175,7 +175,7 @@
         current={p.dataTo ? (p.bucket === 'day' ? p.dataTo : p.dataTo.slice(0, 7)) : null}
       />
       <p class="summary">
-        <!-- Total of all bars; with "Alles" including the km before the measurement. -->
+        <!-- Total of all bars; with "All-time" including the km before the measurement. -->
         <strong class="nw">{km(p.buckets.reduce((sum, b) => sum + b.km, 0))} km</strong>
         <span class="muted nw">{p.buckets[0]?.earlier ? `totaal t/m ${periodRangeLabel(p.dataTo, p.dataTo)}` : periodRangeLabel(p.dataFrom, p.dataTo)}</span>
       </p>
@@ -190,7 +190,7 @@
   {/if}
 
   <section class="panel">
-    <h3>Records<span class="muted per">· altijd</span></h3>
+    <h3>Records<span class="muted per">· all-time</span></h3>
     <ul class="rows">
       {#each recordRows as r (r.label)}
         <li>
