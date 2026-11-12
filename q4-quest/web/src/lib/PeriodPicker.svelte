@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { PeriodNav, ViewPeriodMode } from './types';
 
-  /** Shared period choice: Week · Maand · Jaar · Alles, with ‹ › paging for the first three. */
+  /** Shared period choice: Week · Maand · Jaar · All-time, with ‹ › paging for the first three. */
   let {
     mode,
     period,
@@ -19,7 +19,7 @@
     { id: 'week', label: 'Week' },
     { id: 'month', label: 'Maand' },
     { id: 'year', label: 'Jaar' },
-    { id: 'all', label: 'Alles' },
+    { id: 'all', label: 'All-time' },
   ];
 </script>
 

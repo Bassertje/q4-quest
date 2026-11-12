@@ -91,6 +91,20 @@
 
   const clamp = (v: number | null) => Math.max(0, Math.min(100, v ?? 0));
   let openSession = $state<number | null>(null);
+  /** Session list filter (not saved). */
+  type TypeFilter = 'all' | 'AC' | 'DC';
+  const TYPE_FILTERS: { id: TypeFilter; label: string }[] = [
+    { id: 'all', label: 'Alle' },
+    { id: 'AC', label: 'AC' },
+    { id: 'DC', label: 'DC' },
+  ];
+  let typeFilter = $state<TypeFilter>('all');
+  const filtered = $derived((data?.period?.sessions ?? []).filter((s) => typeFilter === 'all' || s.type === typeFilter));
+  function setTypeFilter(f: TypeFilter) {
+    typeFilter = f;
+    shown = STEP;
+    openSession = null;
+  }
   /** "AC X · DC Y" with the averages per type; a missing type is left out. */
   function powerSub(p: { acKw: number | null; dcKw: number | null }): string {
     const parts = [p.acKw !== null ? `AC ${kw(p.acKw)}` : '', p.dcKw !== null ? `DC ${kw(p.dcKw)}` : ''].filter(Boolean);
@@ -99,7 +113,7 @@
   /** Shown sessions grouped per month (newest first). */
   const groups = $derived.by(() => {
     const out: { title: string; items: ChargingSession[] }[] = [];
-    for (const s of data?.period?.sessions.slice(0, shown) ?? []) {
+    for (const s of filtered.slice(0, shown)) {
       const title = monthTitle(s.start, tz);
       const last = out.at(-1);
       if (last && last.title === title) last.items.push(s);
@@ -179,18 +193,25 @@
       </section>
     </div>
     {#if info.charged}
-      <p class="muted small note panel">
-        Geladen kWh is een schatting: de stijging van het accupercentage × {num1(data.batteryKwh)} kWh accucapaciteit,
-        of (zonder accusensor) het laadvermogen opgeteld over de tijd. Laadverliezen tellen niet mee.
-      </p>
+      <div class="explain standalone">
+        <p><strong>Geladen</strong> is een schatting:</p>
+        <ul>
+          <li>Accu-stijging × {num1(data.batteryKwh)} kWh accucapaciteit</li>
+          <li>Zonder accusensor: laadvermogen opgeteld over de tijd</li>
+          <li>Laadverliezen tellen niet mee</li>
+        </ul>
+      </div>
     {/if}
     {#if info.consumption}
-      <p class="muted small note panel">
-        Schatting over de gekozen periode: verbruikte energie gedeeld door de gereden km. Verbruikte energie =
-        geladen kWh + (accupercentage aan het begin − aan het eind) × {num1(data.batteryKwh)} kWh. De periode
-        begint nooit vóór de eerste meting van kilometerstand én accu. Getoond vanaf 100 km{#if c}
-          (nu {km(c.km)} km, {km(c.usedKwh)} kWh verbruikt){/if}.
-      </p>
+      <div class="explain standalone">
+        <p><strong>Verbruik</strong> over de gekozen periode:</p>
+        <ul>
+          <li>Verbruikt = geladen kWh + (accu begin − eind) × {num1(data.batteryKwh)} kWh</li>
+          <li>Verbruik = verbruikt ÷ gereden km × 100</li>
+          <li>Telt pas vanaf de eerste meting van kilometerstand én accu</li>
+          <li>Getoond vanaf 100 km{#if c}{' '}(nu {km(c.km)} km, {km(c.usedKwh)} kWh){/if}</li>
+        </ul>
+      </div>
     {/if}
 
     <section class="panel">
@@ -207,19 +228,21 @@
         <button class="info" aria-label="Uitleg Groen" aria-expanded={info.green} onclick={() => (info.green = !info.green)}>ⓘ</button>
       </h3>
       {#if info.green}
-        <p class="muted small note">
-          Schatting over de gekozen periode, vergeleken met een benzineauto: km × CO₂ per km min verbruikte kWh ×
-          CO₂ per kWh, en km × liters per 100 km. Verbruikte energie zoals bij Verbruik. Eén boom neemt ongeveer
-          20 kg CO₂ per jaar op. De factoren stel je in bij de add-on-opties.
-        </p>
+        <div class="explain">
+          <p>Schatting ten opzichte van een benzineauto:</p>
+          <ul>
+            <li><strong>CO₂:</strong> km × uitstoot benzineauto − verbruikte kWh × uitstoot stroom</li>
+            <li><strong>Benzine:</strong> km × liters per 100 km</li>
+            <li><strong>Bomen:</strong> één boom neemt ±20 kg CO₂ per jaar op</li>
+            <li>Factoren pas je aan in de app-configuratie in HA</li>
+          </ul>
+        </div>
       {/if}
-      <div class="green-grid">
-        <div><span class="label">CO₂ bespaard</span><span class="pixel">{km(g.co2Kg ?? 0)}<span class="unit">kg</span></span></div>
-        <div><span class="label">Benzine niet verbrand</span><span class="pixel">{km(g.liters)}<span class="unit">liter</span></span></div>
-        <div>
-          <span class="label">Gelijk aan</span>
-          <span class="pixel">{num1(g.trees ?? 0)}<span class="unit">bomen</span></span>
-          <span class="muted small">die een jaar lang CO₂ opnemen</span>
+      <div class="stat-tiles-wrap three">
+        <div class="stat-tiles three">
+          <StatTile inset label="CO₂" value={km(g.co2Kg ?? 0)} unit="kg" sub="bespaard" />
+          <StatTile inset label="Benzine" value={km(g.liters)} unit="liter" sub="niet verbrand" />
+          <StatTile inset label="Bomen" value={num1(g.trees ?? 0)} sub="jaar CO₂-opname" />
         </div>
       </div>
       {#if g.trees}
@@ -247,9 +270,18 @@
   {/if}
 
   <section class="panel">
-    <h3>Sessies{#if p}<span class="muted per">· {p.label}</span>{/if}</h3>
+    <div class="panel-head">
+      <h3>Sessies{#if p}<span class="muted per">· {p.label}</span>{/if}</h3>
+      <div class="segmented small-seg" role="group" aria-label="Filter sessies">
+        {#each TYPE_FILTERS as f (f.id)}
+          <button class:active={typeFilter === f.id} aria-pressed={typeFilter === f.id} onclick={() => setTypeFilter(f.id)}>{f.label}</button>
+        {/each}
+      </div>
+    </div>
     {#if !p || p.sessions.length === 0}
       <p class="muted small">Geen laadsessies in deze periode.</p>
+    {:else if filtered.length === 0}
+      <p class="muted small">Geen {typeFilter}-sessies in deze periode.</p>
     {:else}
       {#each groups as g (g.title)}
         <h4 class="month">{g.title}</h4>
@@ -284,7 +316,7 @@
           {/each}
         </ul>
       {/each}
-      {#if shown < p.sessions.length}
+      {#if shown < filtered.length}
         <button class="more" onclick={() => (shown += STEP)}>Meer tonen</button>
       {/if}
     {/if}
@@ -298,24 +330,6 @@
   h3 {
     font-size: 1rem;
     margin: 0 0 8px;
-  }
-  .label {
-    color: var(--muted);
-    font-size: 0.85rem;
-  }
-  .pixel {
-    font-family: var(--font-pixel);
-    font-size: 1.9rem;
-    line-height: 1.05;
-  }
-  .unit {
-    font-size: 0.55em;
-    color: var(--muted);
-    margin-left: 3px;
-  }
-  .pixel .unit {
-    font-size: 1rem;
-    margin-left: 4px;
   }
   .per {
     margin-left: 0.3em;
@@ -334,19 +348,6 @@
   .small-seg button {
     padding: 3px 8px;
     font-size: 0.8rem;
-  }
-  .note {
-    margin: 4px 2px 0;
-  }
-  .green-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-  }
-  .green-grid div {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
   }
   .month {
     margin: 14px 0 4px;
@@ -512,10 +513,6 @@
   }
   .info[aria-expanded='true'] {
     color: var(--accent);
-  }
-  .note.panel {
-    margin: 0;
-    padding: 12px;
   }
   .trees {
     display: flex;

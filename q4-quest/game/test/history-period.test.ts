@@ -29,7 +29,7 @@ describe('historyPeriodView', () => {
     expect(v.label).toBe('november 2026');
     expect(v.buckets).toHaveLength(30);
     // 1–11 Nov: Mon 2 and 9 (80 km), Tue–Fri 3–6 and 10–11 (30 km), Sun 1 / Sat–Sun 7–8: 0.
-    expect(v.stats).toEqual({ km: 340, drivingDays: 8, days: 11, avgPerDay: 30.9, maxDayKm: 80, busiestWeekday: { day: 'ma', km: 160 } });
+    expect(v.stats).toEqual({ km: 340, drivingDays: 8, days: 11, avgPerDay: 30.9, maxDayKm: 80, busiestWeekday: { day: 'Maandag', km: 160 } });
     expect(v.trips.map((t) => t.km)).toEqual([12, 40]);
     expect(v.tripCount).toBe(2);
   });

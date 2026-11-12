@@ -3,7 +3,7 @@
   import uPlot from 'uplot';
   import 'uplot/dist/uPlot.min.css';
   import type { ChartBar } from '../../../game/src/periods.ts';
-  import { bucketTick, drawXLabels, tickIndexes } from './chartAxis';
+  import { bucketTick, drawXLabels, pickLabels } from './chartAxis';
   import { km, periodLabel } from './format';
   import { THEME_EVENT } from './theme';
 
@@ -86,10 +86,8 @@
   function drawLabels(u: uPlot) {
     const n = bars.length;
     const tick = (i: number) => (bars[i].earlier ? 'eerder' : bucketTick(bars[i].key, bucket, n));
-    const longest = Math.max(1, ...bars.map((_, i) => tick(i).length));
-    // As many labels as fit (about 7px per character plus room), at most 8.
-    const fit = Math.floor(u.bbox.width / devicePixelRatio / (longest * 7 + 14));
-    let labels = tickIndexes(n, Math.max(1, Math.min(8, fit)));
+    // Every bar gets a label, unless they do not fit; then every k-th one.
+    let labels = pickLabels(u, bars.map((_, i) => tick(i)));
     if (bars[0]?.earlier && labels[0] !== 0) {
       // Always label the "earlier" bar; drop a label that would sit too close to it.
       const step = labels.length > 1 ? labels[1] - labels[0] : n;

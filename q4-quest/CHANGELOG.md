@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.6.5
+
+- **Uitleg achter ⓘ** staat nu in een eigen, licht getint kader, als kort lijstje in plaats van één lange alinea (Geladen, Verbruik en Groen).
+- **Groen:** CO₂, benzine en bomen staan nu als tegels, net als de andere tegels: "1.343 kg · bespaard", "719 liter · niet verbrand", "67,2 · jaar CO₂-opname".
+- **Grafieken:** elk label onder de x-as staat nu precies onder zijn eigen staaf, ook als er maar één of twee staven zijn. Alleen bij veel staven wordt een deel overgeslagen.
+- **Levelkaart:** "nog X XP tot level N".
+- **Drukste dag** wordt voluit geschreven ("Maandag"); past het niet, dan wordt de tekst iets kleiner.
+- **"Alles" heet nu "All-time"** in de periodekeuze en in de kopjes. Je bewaarde keuze blijft gewoon werken.
+- **Sessies filteren:** met de knopjes Alle · AC · DC in de kop van de sessielijst zie je alleen AC- of DC-sessies uit de gekozen periode.
+
 ## 1.6.4
 
 - **Accubereik** staat nu overal als "71% → 100%", met een procentteken bij beide getallen.

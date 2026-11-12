@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import uPlot from 'uplot';
   import 'uplot/dist/uPlot.min.css';
-  import { bucketTick, drawXLabels, tickIndexes } from './chartAxis';
+  import { bucketTick, drawXLabels, pickLabels } from './chartAxis';
   import { km, num1, periodLabel } from './format';
   import { THEME_EVENT } from './theme';
 
@@ -23,7 +23,8 @@
 
   function drawLabels(u: uPlot) {
     const n = weeks.length;
-    const labels = tickIndexes(n, 8).map((i) => [i, bucketTick(weeks[i].key, bucket, n)] as [number, string]);
+    const texts = weeks.map((w) => bucketTick(w.key, bucket, n));
+    const labels = pickLabels(u, texts).map((i) => [i, texts[i]] as [number, string]);
     drawXLabels(u, labels, n, css('--muted'));
   }
 
