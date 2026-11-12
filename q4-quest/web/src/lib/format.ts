@@ -46,3 +46,9 @@ export function agoShort(ts: number, now = Date.now()): string {
   if (hours < 24) return `${hours}U`;
   return `${Math.floor(hours / 24)}D`;
 }
+
+/** SoC range with both percent signs, e.g. "71% → 100%" (unknown values as "?"). */
+export function socRange(from: number | null, to: number | null): string {
+  const pct = (v: number | null) => (v === null ? '?' : `${Math.round(v)}%`);
+  return `${pct(from)} → ${pct(to)}`;
+}

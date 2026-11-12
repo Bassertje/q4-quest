@@ -46,7 +46,14 @@ export function historyResponse(state: GameState, mode: ViewPeriodMode, key: str
   if (!state.history) return { setupNeeded, timeZone, history: null, period: null, ...extra };
   const { trips, ...rest } = state.history;
   const view = historyPeriodView(
-    { daily: rest.daily, trips, tripDay: (t) => dayKey(t.start, timeZone), today: dayKey(state.now, timeZone) },
+    {
+      daily: rest.daily,
+      trips,
+      tripDay: (t) => dayKey(t.start, timeZone),
+      today: dayKey(state.now, timeZone),
+      odometerFirst: state.odometer[0]?.value ?? null,
+      odometerLatest: state.odometer.at(-1)?.value ?? null,
+    },
     mode,
     key,
     PERIOD_TRIPS,

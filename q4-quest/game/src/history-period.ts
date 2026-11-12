@@ -29,7 +29,13 @@ export interface HistoryPeriodStats {
 }
 
 export interface HistoryPeriodView extends Omit<PeriodWindow, 'buckets'> {
-  buckets: { key: string; km: number; beforeStart: boolean }[];
+  /**
+   * Chart bars. With "all", a first bar `{ key: 'earlier', earlier: true }` holds the
+   * km before the measurement started (the first known odometer value), when > 0.
+   */
+  buckets: { key: string; km: number; beforeStart: boolean; earlier?: boolean }[];
+  /** "all" only: the current odometer value (the real total); null otherwise. */
+  odometerKm: number | null;
   /** Null without any measured day in the period. */
   stats: HistoryPeriodStats | null;
   /** Trip blocks that started in the period, newest first (at most `maxTrips`). */
@@ -44,6 +50,9 @@ export interface HistoryPeriodInput {
   /** Start time of each trip as a day key. */
   tripDay: (t: TripBlock) => string;
   today: string;
+  /** First and latest known odometer values (for the real total with "all"). */
+  odometerFirst?: number | null;
+  odometerLatest?: number | null;
 }
 
 const r1 = (v: number) => Math.round(v * 10 + 1e-9) / 10 || 0;
@@ -60,7 +69,10 @@ export function historyPeriodView(input: HistoryPeriodInput, mode: ViewPeriodMod
     const k = w.bucket === 'day' ? day : monthKey(day);
     bucketKm.set(k, (bucketKm.get(k) ?? 0) + km);
   }
-  const buckets = w.buckets.map((b) => ({ ...b, km: r1(bucketKm.get(b.key) ?? 0) }));
+  const buckets: HistoryPeriodView['buckets'] = w.buckets.map((b) => ({ ...b, km: r1(bucketKm.get(b.key) ?? 0) }));
+  const all = mode === 'all';
+  const earlier = all ? r1(input.odometerFirst ?? 0) : 0;
+  if (earlier > 0) buckets.unshift({ key: 'earlier', km: earlier, beforeStart: false, earlier: true });
 
   let stats: HistoryPeriodStats | null = null;
   if (w.dataFrom && w.dataTo) {
@@ -93,7 +105,8 @@ export function historyPeriodView(input: HistoryPeriodInput, mode: ViewPeriodMod
     return d >= w.fromDay && d < w.toDay;
   });
   const { buckets: _ignored, ...rest } = w;
-  return { ...rest, buckets, stats, trips: inPeriod.slice(-maxTrips).reverse(), tripCount: inPeriod.length };
+  const odometerKm = all && input.odometerLatest != null ? r1(input.odometerLatest) : null;
+  return { ...rest, buckets, odometerKm, stats, trips: inPeriod.slice(-maxTrips).reverse(), tripCount: inPeriod.length };
 }
 
 /** Short date range of the measured part of a period: "12 okt – 11 nov", with years only across a year boundary. */

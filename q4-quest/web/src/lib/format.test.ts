@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { agoShort, dayNoYear, monthTitle } from './format.ts';
+import { agoShort, dayNoYear, monthTitle, socRange } from './format.ts';
+
+describe('socRange', () => {
+  it('shows both percent signs', () => {
+    expect(socRange(71, 100)).toBe('71% → 100%');
+    expect(socRange(70.6, null)).toBe('71% → ?');
+  });
+});
 
 describe('compact labels', () => {
   const now = Date.parse('2026-11-10T12:00:00Z');
