@@ -214,7 +214,7 @@ Beste dag, beste week, beste maand, langste streak, langste ritblok, snelste laa
 
 ### "Nieuw"-moment
 - Elke badge (inclusief Wereldreis-bestemmingen), level-up, nieuwe rang en elk nieuw record heeft een `seen`-vlag.
-- Bij het openen van de app verschijnt eerst een **reveal-scherm**: niet-geziene items één voor één (oudste eerst), met een korte retro-animatie (pixel-burst, geen geluid). Elk item wordt als gezien gemarkeerd zodra je verder gaat.
+- Bij het openen van de app verschijnt eerst een **reveal-scherm**: niet-geziene items één voor één (oudste eerst), met een korte retro-animatie (pixel-burst, geen geluid). Elk item wordt als gezien gemarkeerd zodra je verder gaat. Verder gaan kan met de knop "Verder", door naar links te vegen of met de pijltjestoets →; naar rechts vegen (of ←) gaat terug naar het vorige item. Tijdens het vegen volgt de kaart de vinger een stukje; een korte of vooral verticale beweging telt niet (verticaal scrollen blijft werken). Zolang er nog items volgen, staat bij de teller "· veeg voor de volgende".
 - Na 3 items verschijnt een knop **"Toon alles"**: de overige items staan dan in één lijst en worden met "Klaar" allemaal als gezien gemarkeerd. Zo wordt een grote inhaalslag (bijv. de eerste keer na de badge-update) geen reeks van 20 losse schermen.
 - Level-ups worden samengevoegd tot één item: het hoogste nieuwe level, met het aantal gestegen levels.
 - Een gehaalde weekuitdaging is een eigen item ("Uitdaging gehaald", +100 XP). De weekterugblik staat altijd vooraan.

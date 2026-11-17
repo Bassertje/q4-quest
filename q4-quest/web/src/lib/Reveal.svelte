@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { postJson } from './api';
   import PixelIcon from './PixelIcon.svelte';
   import type { RevealItem } from './types';
@@ -50,6 +51,55 @@
     else ondone();
   }
 
+  function prev() {
+    if (index > 0) index--;
+  }
+
+  // Swipe: left = next (like "Verder"), right = previous. The card follows the
+  // finger a little; vertical movement is left to scrolling.
+  const SWIPE_PX = 50;
+  let drag = $state<{ x: number; y: number; id: number } | null>(null);
+  let dx = $state(0);
+
+  function onDown(e: PointerEvent) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    drag = { x: e.clientX, y: e.clientY, id: e.pointerId };
+    dx = 0;
+  }
+
+  function onMove(e: PointerEvent) {
+    if (!drag || e.pointerId !== drag.id) return;
+    const mx = e.clientX - drag.x;
+    const my = e.clientY - drag.y;
+    if (Math.abs(mx) > Math.abs(my)) dx = mx;
+  }
+
+  function onUp(e: PointerEvent) {
+    if (!drag || e.pointerId !== drag.id) return;
+    const mx = e.clientX - drag.x;
+    const my = e.clientY - drag.y;
+    drag = null;
+    dx = 0;
+    if (Math.abs(mx) < SWIPE_PX || Math.abs(mx) < Math.abs(my) * 1.5) return;
+    if (mx < 0) void next();
+    else prev();
+  }
+
+  function onCancel() {
+    drag = null;
+    dx = 0;
+  }
+
+  onMount(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (showAll) return;
+      if (e.key === 'ArrowRight') void next();
+      else if (e.key === 'ArrowLeft') prev();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
   function openAll() {
     showAll = true;
   }
@@ -65,7 +115,17 @@
 <div class="overlay" role="dialog" aria-modal="true" aria-label="Nieuw ontgrendeld">
   {#if !showAll && current}
     <div class="stage">
-      <p class="count muted small">{index + 1} / {items.length}</p>
+      <p class="count muted small">{index + 1} / {items.length}{#if remaining > 0}{' '}· veeg voor de volgende{/if}</p>
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        class="swipe"
+        class:dragging={drag !== null}
+        style:transform="translateX({dx * 0.6}px) rotate({dx * 0.02}deg)"
+        onpointerdown={onDown}
+        onpointermove={onMove}
+        onpointerup={onUp}
+        onpointercancel={onCancel}
+      >
       {#key index}
         <div class="burst" aria-hidden="true">
           {#each burst as b, i (i)}
@@ -88,6 +148,7 @@
           {#if current.xp > 0}<p class="xp">+{current.xp.toLocaleString('nl-NL')} XP</p>{/if}
         </div>
       {/key}
+      </div>
       <div class="actions">
         {#if canShowAll}
           <button onclick={openAll}>Toon alles ({remaining})</button>
@@ -151,6 +212,18 @@
   }
   .count {
     margin: 0 0 8px;
+  }
+  /* Swipe area: horizontal drags are ours, vertical ones still scroll. */
+  .swipe {
+    position: relative;
+    width: 100%;
+    touch-action: pan-y;
+    user-select: none;
+    transition: transform 0.2s ease-out;
+  }
+  .swipe.dragging {
+    transition: none;
+    cursor: grabbing;
   }
   .card {
     position: relative;
