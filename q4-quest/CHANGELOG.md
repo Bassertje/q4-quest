@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.6
+
+- **Vegen door de meldingen bij het opstarten:** veeg naar links voor de volgende melding en naar rechts om terug te gaan. De knop "Verder" werkt nog steeds, en op een computer kun je ook de pijltjestoetsen gebruiken.
+
 ## 1.6.5
 
 - **Uitleg achter ⓘ** staat nu in een eigen, licht getint kader, als kort lijstje in plaats van één lange alinea (Geladen, Verbruik en Groen).
