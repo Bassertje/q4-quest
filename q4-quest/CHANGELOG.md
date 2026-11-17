@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.7.0
+
+- **Nieuw: evenementen, te beginnen met de Winterrit** (6 december t/m 1 januari, elk jaar).
+  - **Thema-uitdagingen (2026):** Lichtjesroute, Pakjesronde, Vol voor de feestdagen en Oliebollenweek vervangen in december de gewone weekuitdagingen, elk goed voor 150 XP.
+  - **Zeven evenement-badges** met jaartal, zoals Kerstrit 2026, Rendier-express 2026 en de verborgen Witte kerst 2026, in een nieuwe categorie **Evenementen**. Ze zijn alleen tijdens het evenement te halen; daarna zie je welke je hebt gehaald en welke niet.
+  - **Adventskalender** op de cockpit (6–31 december): open elke dag het deurtje van vandaag voor een weetje over je eigen ritten en 10 XP.
+  - **Versiering:** sneeuw in de lichte modus, knipperende lampjes rond de kilometerteller in de donkere modus, een kerstmutsje op het Cockpit-icoon en sneeuwvlokjes in de meldingen. Op 1 januari vuurwerk.
+  - **Jaaroverzicht:** een kaart "Winterrit 2026", en op 31 december de melding dat je jaaroverzicht klaar is.
+  - In **Instellingen** zet je de **Feestmodus** uit (geen versiering, de rest werkt gewoon) en bekijk je een **Voorbeeld Winterrit** zonder dat er iets wordt opgeslagen.
+
 ## 1.6.6
 
 - **Vegen door de meldingen bij het opstarten:** veeg naar links voor de volgende melding en naar rechts om terug te gaan. De knop "Verder" werkt nog steeds, en op een computer kun je ook de pijltjestoetsen gebruiken.

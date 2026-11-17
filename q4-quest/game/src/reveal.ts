@@ -5,7 +5,7 @@ import type { DrivingRecords } from './records.ts';
 import type { TimelineEvent } from './timeline.ts';
 import type { WeekReview } from './week-review.ts';
 
-export type RevealKind = 'week' | 'badge' | 'milestone' | 'challenge' | 'level' | 'rank' | 'record';
+export type RevealKind = 'week' | 'badge' | 'milestone' | 'challenge' | 'level' | 'rank' | 'record' | 'yearready' | 'newyear';
 
 export interface RevealItem {
   /** Seen-flag keys this item covers (a level item covers all levels gained). */
@@ -18,6 +18,8 @@ export interface RevealItem {
   xp: number;
   /** Extra figures (the weekly review card). */
   stats?: { label: string; value: string }[];
+  /** A button to another screen (e.g. the year review). */
+  link?: { href: string; label: string };
 }
 
 export interface RecordEntry {
@@ -63,7 +65,7 @@ export function revealItems(input: {
 }): RevealItem[] {
   const items: RevealItem[] = [];
   for (const b of input.badges) {
-    if (b.unlockedTs === null) continue;
+    if (b.unlockedTs === null || b.category === 'advent') continue; // doors are opened by the user
     const key = `badge:${b.id}`;
     if (input.seen.has(key)) continue;
     const kind: RevealKind = b.category === 'wereldreis' ? 'milestone' : b.category === 'weekuitdaging' ? 'challenge' : 'badge';
@@ -110,7 +112,7 @@ export function revealItems(input: {
     items.push({ keys: [r.key], kind: 'record', name: r.name, description: `${r.value} · ${r.label}`, icon: 'crown', ts: r.ts || input.now, xp: 0 });
   }
 
-  const order: Record<RevealKind, number> = { week: -1, milestone: 0, badge: 1, challenge: 2, record: 3, level: 4, rank: 5 };
+  const order: Record<RevealKind, number> = { newyear: -3, yearready: -2, week: -1, milestone: 0, badge: 1, challenge: 2, record: 3, level: 4, rank: 5 };
   items.sort((a, b) => a.ts - b.ts || order[a.kind] - order[b.kind]);
   // The weekly review always comes first.
   if (input.weekReview && !input.seen.has(`week:${input.weekReview.week}`)) {

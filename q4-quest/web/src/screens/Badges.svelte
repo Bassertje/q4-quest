@@ -81,6 +81,7 @@
             <button
               class="card"
               class:open
+              class:missed={b.missed}
               class:new={b.isNew}
               class:following={data.followedId === b.id}
               onclick={() => (selected = b)}
@@ -91,6 +92,8 @@
             {#if open}
               <span class="muted small">{date(b.unlockedTs!, data.timeZone)}</span>
               {#if b.xp > 0}<span class="xp">+{km(b.xp)} XP</span>{/if}
+            {:else if b.missed}
+              <span class="muted small hint">Niet gehaald</span>
             {:else}
               <span class="muted small hint">{b.hint}</span>
               {#if b.progress}
@@ -120,6 +123,10 @@
 {/if}
 
 <style>
+  /* An event badge that was not achieved before the event ended. */
+  .card.missed {
+    opacity: 0.5;
+  }
   .head {
     display: flex;
     justify-content: space-between;

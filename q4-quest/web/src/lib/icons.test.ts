@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BADGES, worldTripBadges } from '../../../game/src/badges.ts';
+import { eventInstance, WINTERRIT, winterritBadges } from '../../../game/src/events.ts';
 import { ICONS, pixelPath, pixelRuns } from './icons.ts';
 
 describe('pixel icons', () => {
@@ -11,7 +12,8 @@ describe('pixel icons', () => {
   });
 
   it('exist for every badge, milestone and reveal item', () => {
-    const needed = [...BADGES, ...worldTripBadges()].map((b) => b.icon).concat(['levelUp', 'crown']);
+    const winter = winterritBadges(eventInstance(WINTERRIT, 2026, 'UTC'));
+    const needed = [...BADGES, ...worldTripBadges(), ...winter].map((b) => b.icon).concat(['levelUp', 'crown', 'calendar7', 'star']);
     for (const icon of needed) expect(ICONS[icon], icon).toBeDefined();
   });
 

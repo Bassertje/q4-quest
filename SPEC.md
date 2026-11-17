@@ -224,7 +224,71 @@ Beste dag, beste week, beste maand, langste streak, langste ritblok, snelste laa
 
 ---
 
-## 4. Schermen
+## 4. Evenementen
+
+Evenementen zijn tijdelijke thema's met eigen weekuitdagingen, badges en versiering. Ze zijn **data**, geen losse code: een evenement heeft een id, naam, start, eind (inclusief, in de HA-tijdzone), thema-uitdagingen, badges en een UI-thema. Pure logica en datumgrenzen staan in `game/src/events.ts`.
+
+### Werking
+- Een evenement is automatisch actief binnen zijn periode en daarbuiten uit. Alle grenzen gelden in de tijdzone van HA (lokale middernacht), niet in UTC.
+- **Instellingen → Evenementen:**
+  - **Feestmodus** aan/uit (standaard aan, `setting.festive_mode`). Uit = geen versiering; uitdagingen, badges en de adventskalender werken gewoon.
+  - Knop **"Voorbeeld Winterrit"**: toont tijdelijk de versiering, de adventskalender en een voorbeeld-reveal (sneeuwvlokken, een voorbeeldbadge en het nieuwjaarsvuurwerk). Er wordt niets opgeslagen en er worden geen XP of badges toegekend; een balk bovenaan ("Voorbeeld Winterrit · er wordt niets opgeslagen") met **Stoppen** beëindigt het voorbeeld (herladen ook). Buiten december doet de kalender in het voorbeeld alsof het 13 december is.
+- **Evenement-badges** krijgen het jaartal in id en naam (bijv. `winterrit_2026_kerstrit`, "Kerstrit 2026") en staan in een eigen categorie **Evenementen** op het Badges-scherm. Ze verschijnen vanaf de start van het evenement (alleen voor edities die overlappen met de meting) en zijn alleen tijdens het evenement te halen. Daarna blijven ze zichtbaar: gehaald in kleur, gemist gedimd met "Niet gehaald" (niet meer te volgen). Ze tellen gewoon mee voor XP, worden nooit afgepakt en zijn met terugwerkende kracht berekend zoals andere badges.
+
+### Winterrit
+- Van **6 december 00:00 tot en met 1 januari 23:59**, elk jaar terugkerend; vanaf 2 januari 00:00 weer uit. De editie heet naar het jaar waarin hij begint ("Winterrit 2026" loopt tot 1 januari 2027).
+
+#### Weekuitdagingen tijdens de Winterrit
+Binnen het evenement vervangen vaste thema-uitdagingen de gewone weekuitdagingen; elke thema-uitdaging is **150 XP** waard. De cockpitkaart toont dan "WINTERRIT · WEEKUITDAGING".
+
+| Periode (2026) | ISO-week | Naam | Opdracht | Voorwaarde |
+|---|---|---|---|---|
+| 7–13 dec | 2026-W50 | Lichtjesroute | Rij 150 km na zonsondergang | km in ritblokken die starten tussen 16:30 en 23:59; gehaald zodra 150 km bereikt is |
+| 14–20 dec | 2026-W51 | Pakjesronde | Rij op 5 verschillende dagen | dagen met ≥ 1 km; gehaald op de vijfde dag |
+| 21–27 dec | 2026-W52 | Vol voor de feestdagen | Laad tot 100% vóór kerstavond | een laadsessie die eindigt op 100% tussen 21 dec 00:00 en 23 dec 23:59; daarna gemist. Alleen met laadsensoren én SoC-sensor, anders gewone uitdaging |
+| 28 dec–1 jan | 2026-W53 | Oliebollenweek | Rij deze week minder dan 150 km | beoordeeld op 1 jan 23:59 |
+
+- De weken lopen maandag–zondag; de laatste week is afgekapt op 1 januari (de resterende dagen van die ISO-week horen bij geen uitdaging). Zondag 6 december valt buiten de thema-weken en hoort bij de gewone week ervoor. Na het evenement gaan de gewone weekuitdagingen verder.
+- **Alleen 2026 is vastgelegd.** Hoe de thema-weken in latere jaren vallen (niet elk jaar passen er vier hele maandag-weken in 6 dec–1 jan) moet nog worden bepaald; tot die tijd lopen in andere jaren de gewone weekuitdagingen door. Het evenement zelf (badges zonder uitdaging, adventskalender, versiering) is er wel elk jaar.
+
+#### Badges
+| Badge | Voorwaarde | XP |
+|---|---|---|
+| Pakjesavondrit | ≥ 1 km gereden op 6 december | 50 |
+| Lichtjesjager | uitdaging Lichtjesroute gehaald | 100 |
+| Kerstrit | ≥ 1 km gereden op 25 of 26 december | 75 |
+| Witte kerst (verborgen) | een ritblok (≥ 2 metingen) op 24–26 december dat start bij < 0 °C; alleen met `temperature_entity` | 150 |
+| Rendier-express | ≥ 1.000 km gereden tijdens het evenement (met voortgang) | 200 |
+| Oudejaarsrit | een ritblok (≥ 2 metingen, zoals alle tijd-badges) op 31 december dat start vóór 18:00 | 50 |
+| Kerstster | alle vier de Winterrit-uitdagingen gehaald (met voortgang) | 250 |
+
+- Lichtjesjager en Kerstster bestaan alleen in jaren met vastgelegde thema-uitdagingen (nu alleen 2026).
+- Geen badges of uitdagingen rond de jaarwisseling of 's nachts op oudejaarsavond.
+- Elke badge heeft een eigen pixel-art icoon: cadeautje, lichtjesslinger, kerstboom, sneeuwkristal, rendier, klok en ster. Geen merken of bekende figuren.
+
+#### Adventskalender (cockpit)
+- Kaart **"Adventskalender"** direct onder de weekuitdaging, alleen zichtbaar van 6 tot en met 31 december: een horizontaal scrollbare rij van 26 pixel-deurtjes (6–31), waarbij vandaag in het midden in beeld staat. De pagina zelf scrolt nooit horizontaal.
+- Alleen het deurtje van vandaag gaat open bij een tik, en alleen op die dag. Het toont een kort weetje op basis van de eigen data of de Wereldreis-afstanden (bijv. "Deze maand reed je al net zo ver als van Amsterdam naar Rome"), deterministisch per dag, en levert **10 XP** op. Een geopend deurtje toont een cadeautje; een tik toont het weetje opnieuw. Gemiste dagen blijven dicht, zonder straf.
+- Opgeslagen in de database (tabel `advent_doors`: dag, moment, weetje; migratie 8). De XP telt mee voor het level, maar deurtjes verschijnen niet als badge, in het reveal-scherm of in de tijdlijn.
+- Bij Feestmodus uit blijft de kalender zichtbaar, maar zonder versiering (geen lint op de deurtjes, geen gloed).
+
+#### Versiering (alleen met Feestmodus aan, tijdens het evenement of in het voorbeeld)
+- **Lichte modus:** subtiele pixel-sneeuw (kleine witte en lichtgrijze pixels, laag aantal) achter de kop en de kilometerteller.
+- **Donkere modus:** kleine pixel-lampjes die langzaam knipperen langs de boven- en onderrand van het LCD-scherm, in rood, wit en warm goud `#F2B33D`.
+- Een pixel-kerstmutsje op het stuur-icoon van de Cockpit-tab.
+- **Reveal-scherm:** de pixel-burst wordt kleine pixel-sneeuwvlokjes. Op 1 januari verschijnt bij de eerste keer openen pixel-vuurwerk over het hele scherm met "Gelukkig 2027!" (jaartal dynamisch).
+- Alleen CSS-animaties (geen canvas-loops). Alle animaties staan uit bij `prefers-reduced-motion` en worden gepauzeerd zolang het tabblad niet zichtbaar is.
+
+#### Jaaroverzicht
+- Tijdens en na het evenement staat in het jaaroverzicht een kaart **"Winterrit 2026"**: de gehaalde evenement-badges (iconen), de km tijdens het evenement en het aantal geopende adventsdeurtjes ("X van de 26").
+- Op **31 december** verschijnt bij de eerste keer openen in het reveal-scherm de melding **"Je jaaroverzicht is klaar"** met een knop "Naar je jaaroverzicht" (los van de Feestmodus).
+
+### API
+- `GET /api/event` (met `?preview=1` voor het voorbeeld): actief evenement, Feestmodus, of er versierd wordt en de adventskalender met de deurtjes.
+- `POST /api/advent/open`: opent het deurtje van vandaag (400 buiten 6–31 december, 409 als het al open is).
+- `GET /api/reveal` geeft ook `theme: 'winter' | null`; `?preview=winterrit` geeft voorbeelditems zonder seen-keys.
+
+## 5. Schermen
 
 Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laadsensoren). Instellingen zitten achter een tandwiel. De navigatie-iconen zijn pixel-art (Cockpit: een stuur; Instellingen: een tandwiel met 8 tanden en een rond gat). De positie is instelbaar (Instellingen → Navigatie):
 - **Boven** (standaard): een sticky balk direct onder de kop "Q4 QUEST", met een achtergrond in de themakleur zodat content er niet doorheen schijnt, pixel-iconen met label en een rode onderstreping voor de actieve tab.
@@ -232,7 +296,7 @@ Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laads
 - **Automatisch**: onder als de user agent "Home Assistant/" bevat (de Companion-app), anders boven.
 - Onderaan is er altijd ca. 24px + `env(safe-area-inset-bottom)` marge; bij navigatie onder komt daar de hoogte van de balk bij.
 
-1. **Cockpit** (in deze volgorde: kilometerteller, level, weekuitdaging, vandaag/week/maand, de tegels "Op rij gereden" en "Accu · bereik", en als laatste de Badges-kaart)
+1. **Cockpit** (in deze volgorde: kilometerteller, level, weekuitdaging, van 6 t/m 31 december de adventskalender (zie Evenementen), vandaag/week/maand, de tegels "Op rij gereden" en "Accu · bereik", en als laatste de Badges-kaart)
    - Grote kilometerteller in LCD-cijfers die bij het openen kort "doortelt" naar de huidige stand. Er staat geen regel "Bijgewerkt … geleden" onder; de kaart is zo compact mogelijk.
    - Bijgewerkt-indicator rechtsonder binnen het LCD-scherm: een klein label in het pixel-font (ca. 55% van de hoogte van de "km"-eenheid) in het accentrood met ca. 50% opaciteit: "↻" + korte notatie van de laatste update van de kilometerstand (`NU` bij minder dan 2 minuten, anders `12M`, `3U` of `2D`). Is de update ouder dan 6 uur, dan wordt de opaciteit ca. 85%. Bij een tik of hover verschijnt de volledige tekst ("Bijgewerkt 3 uur geleden") als tooltip. Werkt in de lichte en de donkere LCD-variant.
    - Levelkaart: level, rangtitel en XP-balk. Onder de balk één regel in de gedempte tekstkleur, met dezelfde opbouw en tekstgrootte als de onderste regel van de weekuitdaging-kaart: links "X XP" (totaal), rechts "nog Y XP tot level N+1". Geen aparte kolom met XP-tekst naast het level. Een tik op de rang opent het **rangenoverzicht**: bovenaan een kleine samenvatting (totaal XP in het pixel-font, daaronder "X uit kilometers · Y bonus"), dan alle rangen met levelbereik, XP-drempel en een eigen pixel-art icoon; de huidige rang gemarkeerd, toekomstige rangen gedimd.
@@ -241,7 +305,7 @@ Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laads
    - **Streak** en **Accu** naast elkaar, in dezelfde opbouw als de kaarten Vandaag/Week/Maand: label bovenaan, waarde eronder, geen subtekst. Streak: label "Op rij gereden", waarde "9 dagen". Accu: label "Accu · bereik", waarde "87% · 335 km" (met maar één sensor alleen "Accu" of "Bereik" met die waarde); verschijnt alleen met een SoC- of actieradius-sensor.
    - Als laatste blok de kaart **Badges** met twee helften. Links de laatst ontgrendelde badge (icoon, naam, datum). Rechts de gevolgde badge (zie Badges → Gevolgde badge) met een cirkelvormige voortgangsring in pixel-stijl (blokjes in rood op de lijnkleur) om het icoon, met de naam en "nog X" eronder. Een tik op een helft opent die badge op het Badges-scherm (`#/badges/<id>`: scrollt ernaartoe en opent de detailweergave). Er is geen losse kaart voor de gevolgde badge, en geen aparte maanreis- of bestemmingskaart.
 2. **Badges**
-   - Raster per categorie (Rijden, Laden, Zuinigheid, Groen, Uitdagingen, Wereldreis, Legendarisch). Ontgrendeld: icoon in kleur met datum en bonus-XP. Vergrendeld: silhouet met hint. Verborgen badges tonen "???" (naam en hint blijven geheim tot ontgrendeling). Badges die van een niet-ingestelde sensor afhangen, verschijnen niet.
+   - Raster per categorie (Rijden, Laden, Zuinigheid, Groen, Uitdagingen, Wereldreis, Legendarisch, Evenementen). Evenementen verschijnt pas vanaf de start van het eerste evenement; gemiste evenement-badges zijn gedimd met "Niet gehaald". Ontgrendeld: icoon in kleur met datum en bonus-XP. Vergrendeld: silhouet met hint. Verborgen badges tonen "???" (naam en hint blijven geheim tot ontgrendeling). Badges die van een niet-ingestelde sensor afhangen, verschijnen niet.
    - Voortgang: vergrendelde telbare badges (Wereldreis, Maanreis, laadaantallen, streaks, maand-/week-km, megawattuur) tonen een dun voortgangsbalkje met "huidig / doel". Streaks tellen de huidige reeks, maand/week de lopende periode.
    - Kaarten: twee kolommen op schermen smaller dan 420px, anders drie (vier vanaf 560px). Namen worden nooit midden in een woord afgebroken.
    - Teller "x / y".
@@ -284,6 +348,7 @@ Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laads
    - Export van de eigen data als JSON (download, nooit naar de repo).
    - Weergave: Automatisch / Licht / Donker (standaard Automatisch, via `prefers-color-scheme`). De keuze wordt in de database opgeslagen.
    - Navigatie: Boven / Onder / Automatisch (standaard Boven). De keuze wordt in de database opgeslagen.
+   - Evenementen: Feestmodus aan/uit en de knop "Voorbeeld Winterrit" (zie Evenementen).
    - Knop "Voorbeeld jaaroverzicht": toont het jaaroverzicht van het lopende jaar met de data tot nu toe, ook vóór 1 december.
 6. **Jaaroverzicht** (volledig scherm, geen tab)
    - Swipebare kaarten (vegen, pijlen, toetsenbord of stippen): intro, totaal km (en aantal rijdagen), beste dag, beste week, langste streak, aantal laadsessies en geladen kWh, AC/DC-verhouding, Groen (CO₂, liters, bomen), nieuwe badges (met iconen en bonus-XP), level-groei (level aan het begin → nu/eind, met XP en rang), "Rondje aarde"-vergelijking (km ÷ 40.075) en een afsluiter. Kaarten zonder gegevens (bijv. laden zonder laadsensoren) vallen weg.
@@ -293,7 +358,7 @@ Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laads
 
 ---
 
-## 5. Vormgeving: "Night Drive Retro"
+## 6. Vormgeving: "Night Drive Retro"
 
 - **Thema's:** alle kleuren lopen via CSS-variabelen. De gebruiker kiest Automatisch, Licht of Donker (zie Instellingen).
   - **Donker:** achtergrond `#0A0A0C`, panelen `#141519`, lijnen `#24262C`, tekst `#E8E8EA`, gedempte tekst `#8A8D96`.
@@ -313,7 +378,7 @@ Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laads
 
 ---
 
-## 6. Fasen
+## 7. Fasen
 
 Werk ze op volgorde af. Elke fase eindigt met een werkende, installeerbare versie.
 
@@ -324,5 +389,5 @@ Werk ze op volgorde af. Elke fase eindigt met een werkende, installeerbare versi
 4. **Badges:** badge-engine met terugwerkende kracht, het Badges-scherm, het reveal-scherm en de seen-vlaggen. → `0.5.0`
 5. **Jaaroverzicht:** een swipebare reeks kaarten met de hoogtepunten van het jaar (zie Schermen → Jaaroverzicht), beschikbaar vanaf 1 december en daarna per jaar terug te kijken, met een voorbeeldknop in Instellingen. → `1.0.0`
 
-## 7. Niet in scope
+## 8. Niet in scope
 Locatie/GPS, meerdere gebruikers of bestuurders, pushmeldingen, iets terugschrijven naar HA, en externe diensten of analytics.

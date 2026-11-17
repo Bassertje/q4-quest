@@ -3,8 +3,19 @@ import { STREAK_MIN_KM } from './distance.ts';
 import { isoWeekStart, shiftPeriod } from './periods.ts';
 import { dayReachTimes, firstGroupCrossing, type DayProgress } from './progress.ts';
 import { addDays, dayKey, weekKey, zonedMidnight } from './time.ts';
+import {
+  EVENT_CHALLENGE_XP,
+  eventChallengeForWeek,
+  isEventChallengeType,
+  LIGHTS_FROM_MINUTES,
+  type EventChallengeDef,
+  type EventChallengeType,
+} from './events.ts';
+import type { TripBlock } from './trips.ts';
 
-export type ChallengeType = 'km' | 'days' | 'max_charges' | 'consumption';
+/** Normal types, plus the themed types of events (e.g. Winterrit). */
+export type ChallengeType = 'km' | 'days' | 'max_charges' | 'consumption' | EventChallengeType;
+export type NormalChallengeType = Exclude<ChallengeType, EventChallengeType>;
 
 export interface Challenge {
   week: string;
@@ -24,8 +35,10 @@ export interface ChallengeResult extends Challenge {
 
 /** Bonus XP for a completed challenge. */
 export const CHALLENGE_XP = 100;
+/** Bonus XP of a challenge: themed event challenges are worth more. */
+export const challengeXp = (type: ChallengeType) => (isEventChallengeType(type) ? EVENT_CHALLENGE_XP : CHALLENGE_XP);
 /** Fixed starting targets when there is not enough history. */
-export const START_TARGETS: Record<ChallengeType, number> = { km: 200, days: 4, max_charges: 3, consumption: 18 };
+export const START_TARGETS: Record<NormalChallengeType, number> = { km: 200, days: 4, max_charges: 3, consumption: 18 };
 /** Weeks of history used to derive a target. */
 export const HISTORY_WEEKS = 4;
 /** A consumption challenge needs at least this much driving in the week. */
@@ -78,7 +91,7 @@ const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
  * Target derived from the average of the last 4 complete weeks; `history` is
  * empty when there is not enough history (then the fixed start value is used).
  */
-export function challengeTarget(type: ChallengeType, history: WeekStats[]): number {
+export function challengeTarget(type: NormalChallengeType, history: WeekStats[]): number {
   if (history.length < HISTORY_WEEKS) return START_TARGETS[type];
   switch (type) {
     case 'km':
@@ -102,7 +115,7 @@ function hash(text: string): number {
 }
 
 /** Pick the type for a week, never the same type as the previous week. */
-export function chooseChallengeType(week: string, available: ChallengeType[], previous: ChallengeType | null): ChallengeType {
+export function chooseChallengeType(week: string, available: NormalChallengeType[], previous: ChallengeType | null): NormalChallengeType {
   const candidates = available.filter((t) => t !== previous);
   const pool = candidates.length ? candidates : available;
   return pool[hash(week) % pool.length];
@@ -131,6 +144,8 @@ export interface ChallengeContext {
   timeZone: string;
   now: number;
   weekConsumption?: (week: string) => number | null;
+  /** Trip blocks (needed for themed challenges such as Lichtjesroute). */
+  trips?: TripBlock[];
 }
 
 /** Start and end (exclusive) of an ISO week, in epoch ms in the given time zone. */
@@ -145,6 +160,8 @@ export function weekBounds(week: string, timeZone: string): { start: number; end
  * challenges are only decided when the week is over.
  */
 export function evaluateChallenge(ch: Challenge, ctx: ChallengeContext): ChallengeResult {
+  const themed = eventChallengeForWeek(ch.week);
+  if (themed && themed.type === ch.type) return evaluateEventChallenge(ch, themed, ctx);
   const { end } = weekBounds(ch.week, ctx.timeZone);
   const ended = ctx.now >= end;
   const stats = weekStats(ch.week, ctx.dailyTotals, ctx.sessions.filter((s) => !s.ongoing || ended), ctx.timeZone, ctx.weekConsumption);
@@ -169,16 +186,76 @@ export function evaluateChallenge(ch: Challenge, ctx: ChallengeContext): Challen
       current = stats.consumption;
       if (ended && stats.consumption !== null && stats.consumption <= ch.target) completedTs = end;
       break;
+    default:
+      current = null; // an event type outside its scheduled week: never completes
   }
   if (completedTs !== null && completedTs > ctx.now) completedTs = null;
   const status: ChallengeStatus = completedTs !== null ? 'done' : ended ? 'missed' : 'active';
   return { ...ch, status, current, completedTs };
 }
 
-/** Days left in the challenge week, including today. */
+/** Start and end (exclusive) of the days that count for a themed challenge. */
+export function eventChallengeWindow(def: EventChallengeDef, timeZone: string): { start: number; end: number } {
+  return { start: zonedMidnight(def.fromDay, timeZone), end: zonedMidnight(addDays(def.toDay, 1), timeZone) };
+}
+
+/**
+ * Themed challenges (Winterrit):
+ * - lights_km: km in trip blocks that start between 16:30 and 23:59, done when the target is reached;
+ * - event_days: days with ≥ 1 km, done on the n-th day;
+ * - full_charge: a session that ends at 100% within the window (21–23 Dec);
+ * - max_km: fewer km than the target in the window, decided when it ends (1 Jan 23:59).
+ */
+function evaluateEventChallenge(ch: Challenge, def: EventChallengeDef, ctx: ChallengeContext): ChallengeResult {
+  const { start, end } = eventChallengeWindow(def, ctx.timeZone);
+  const ended = ctx.now >= end;
+  const inWindow = (day: string) => day >= def.fromDay && day <= def.toDay;
+  let current: number | null = null;
+  let completedTs: number | null = null;
+  switch (def.type) {
+    case 'lights_km': {
+      let km = 0;
+      for (const t of ctx.trips ?? []) {
+        if (t.start < start || t.start >= end) continue;
+        const local = new Date(t.start).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: ctx.timeZone });
+        const [h, m] = local.split(':').map(Number);
+        if (h * 60 + m < LIGHTS_FROM_MINUTES) continue;
+        km += t.km;
+        if (completedTs === null && km >= ch.target) completedTs = t.end;
+      }
+      current = Math.round(km);
+      break;
+    }
+    case 'event_days': {
+      const reached = [...dayReachTimes(ctx.progress, STREAK_MIN_KM)].filter(([d]) => inWindow(d)).sort(([a], [b]) => (a < b ? -1 : 1));
+      current = reached.length;
+      completedTs = reached[ch.target - 1]?.[1] ?? null;
+      break;
+    }
+    case 'full_charge': {
+      const inRange = ctx.sessions.filter((s) => !s.ongoing && s.end >= start && s.end < end && s.socEnd !== null);
+      current = inRange.length ? Math.round(Math.max(...inRange.map((s) => s.socEnd!))) : null;
+      completedTs = inRange.find((s) => Math.round(s.socEnd!) >= ch.target)?.end ?? null;
+      break;
+    }
+    case 'max_km': {
+      const km = [...ctx.dailyTotals].filter(([d]) => inWindow(d)).reduce((s, [, v]) => s + v, 0);
+      current = Math.round(km);
+      // Judged at the end of the window: 1 January 23:59.
+      if (ended && km < ch.target) completedTs = end - 60_000;
+      break;
+    }
+  }
+  if (completedTs !== null && completedTs > ctx.now) completedTs = null;
+  const status: ChallengeStatus = completedTs !== null ? 'done' : ended ? 'missed' : 'active';
+  return { ...ch, status, current, completedTs };
+}
+
+/** Days left in the challenge week, including today (themed weeks end with their window). */
 export function daysLeft(week: string, now: number, timeZone: string): number {
   const today = dayKey(now, timeZone);
-  const sunday = addDays(isoWeekStart(week), 6);
+  const themed = eventChallengeForWeek(week);
+  const sunday = themed ? themed.toDay : addDays(isoWeekStart(week), 6);
   if (today > sunday) return 0;
   let n = 0;
   for (let d = today; d <= sunday; d = addDays(d, 1)) n++;
@@ -186,8 +263,13 @@ export function daysLeft(week: string, now: number, timeZone: string): number {
 }
 
 /** Dutch description of a challenge. */
-export function describeChallenge(type: ChallengeType, target: number): { title: string; goal: string; unit: string } {
+export function describeChallenge(type: ChallengeType, target: number, week?: string): { title: string; goal: string; unit: string } {
   const nf = new Intl.NumberFormat('nl-NL', { maximumFractionDigits: 1 });
+  if (isEventChallengeType(type)) {
+    const def = week ? eventChallengeForWeek(week) : null;
+    if (def && def.type === type) return { title: def.title, goal: def.goal, unit: def.unit };
+    return { title: 'Winterrit', goal: 'Thema-uitdaging', unit: '' };
+  }
   switch (type) {
     case 'km':
       return { title: 'Kilometerjager', goal: `Rij deze week ${nf.format(target)} km`, unit: 'km' };

@@ -324,10 +324,10 @@ describe('followed badge', () => {
 describe('/api/settings', () => {
   it('defaults to the automatic theme and stores a choice', async () => {
     const { app } = make({});
-    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'auto', navPosition: 'top', followedBadge: null, chargingPeriod: 'all', historyPeriod: 'all' });
+    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'auto', navPosition: 'top', followedBadge: null, chargingPeriod: 'all', historyPeriod: 'all', festiveMode: true });
     const put = await app.inject({ method: 'PUT', url: '/api/settings', payload: { theme: 'light' } });
-    expect(put.json()).toEqual({ theme: 'light', navPosition: 'top', followedBadge: null, chargingPeriod: 'all', historyPeriod: 'all' });
-    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'light', navPosition: 'top', followedBadge: null, chargingPeriod: 'all', historyPeriod: 'all' });
+    expect(put.json()).toEqual({ theme: 'light', navPosition: 'top', followedBadge: null, chargingPeriod: 'all', historyPeriod: 'all', festiveMode: true });
+    expect((await app.inject({ url: '/api/settings' })).json()).toEqual({ theme: 'light', navPosition: 'top', followedBadge: null, chargingPeriod: 'all', historyPeriod: 'all', festiveMode: true });
   });
 
   it('stores the navigation position (default top) and rejects unknown values', async () => {

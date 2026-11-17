@@ -44,6 +44,8 @@
   <p>{open ? badge.description : badge.hint}</p>
   {#if open}
     <p class="muted">Ontgrendeld op {date(badge.unlockedTs!, timeZone)}</p>
+  {:else if badge.missed}
+    <p class="muted">Niet gehaald: het evenement is voorbij.</p>
   {:else if badge.progress}
     <div class="bar"><span style:width="{(badge.progress.current / badge.progress.target) * 100}%"></span></div>
     <p class="muted count">

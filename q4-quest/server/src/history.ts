@@ -41,7 +41,7 @@ export function historyResponse(state: GameState, mode: ViewPeriodMode, key: str
     monthly: state.monthly,
     dailyTemps: [...state.dailyTemps],
     hasTemperature,
-    challenges: [...state.challenges].reverse().map((c) => ({ ...c, ...describeChallenge(c.type, c.target) })),
+    challenges: [...state.challenges].reverse().map((c) => ({ ...c, ...describeChallenge(c.type, c.target, c.week) })),
   };
   if (!state.history) return { setupNeeded, timeZone, history: null, period: null, ...extra };
   const { trips, ...rest } = state.history;

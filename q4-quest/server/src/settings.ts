@@ -21,9 +21,11 @@ export interface Settings {
   chargingPeriod: ChargePeriodMode;
   /** Period shown on the history screen. */
   historyPeriod: ChargePeriodMode;
+  /** Event decoration (snow, lights, hat); challenges and badges work either way. */
+  festiveMode: boolean;
 }
 
-const DEFAULTS: Settings = { theme: 'auto', navPosition: 'top', followedBadge: null, chargingPeriod: 'all', historyPeriod: 'all' };
+const DEFAULTS: Settings = { theme: 'auto', navPosition: 'top', followedBadge: null, chargingPeriod: 'all', historyPeriod: 'all', festiveMode: true };
 
 function getMeta(db: DatabaseSync, key: string): string | null {
   const row = db.prepare('SELECT value FROM meta WHERE key = ?').get(key) as { value: string } | undefined;
@@ -50,6 +52,7 @@ export function readSettings(db: DatabaseSync): Settings {
     followedBadge: getMeta(db, 'setting.followed_badge') || DEFAULTS.followedBadge,
     chargingPeriod: ((v) => (isChargePeriodMode(v) ? v : DEFAULTS.chargingPeriod))(getMeta(db, 'setting.charging_period')),
     historyPeriod: ((v) => (isChargePeriodMode(v) ? v : DEFAULTS.historyPeriod))(getMeta(db, 'setting.history_period')),
+    festiveMode: ((v) => (v === null ? DEFAULTS.festiveMode : v === '1'))(getMeta(db, 'setting.festive_mode')),
   };
 }
 
@@ -59,5 +62,6 @@ export function writeSettings(db: DatabaseSync, patch: Partial<Settings>): Setti
   if (patch.followedBadge !== undefined) setMeta(db, 'setting.followed_badge', patch.followedBadge ?? '');
   if (patch.chargingPeriod !== undefined) setMeta(db, 'setting.charging_period', patch.chargingPeriod);
   if (patch.historyPeriod !== undefined) setMeta(db, 'setting.history_period', patch.historyPeriod);
+  if (patch.festiveMode !== undefined) setMeta(db, 'setting.festive_mode', patch.festiveMode ? '1' : '0');
   return readSettings(db);
 }

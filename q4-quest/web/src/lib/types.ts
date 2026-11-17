@@ -33,7 +33,7 @@ export interface CockpitData {
   } | null;
   challenge: {
     week: string;
-    type: 'km' | 'days' | 'max_charges' | 'consumption';
+    type: 'km' | 'days' | 'max_charges' | 'consumption' | 'lights_km' | 'event_days' | 'full_charge' | 'max_km';
     title: string;
     goal: string;
     unit: string;
@@ -42,6 +42,8 @@ export interface CockpitData {
     status: 'active' | 'done' | 'missed';
     daysLeft: number;
     xp: number;
+    /** Event name for a themed challenge (e.g. "Winterrit"). */
+    event: string | null;
   } | null;
 }
 
@@ -216,6 +218,8 @@ export interface BadgeView {
   isNew: boolean;
   progress: { current: number; target: number; unit: string } | null;
   followable: boolean;
+  /** Event badge that was not achieved before the event ended. */
+  missed: boolean;
 }
 
 export interface BadgesData {
@@ -231,13 +235,35 @@ export interface BadgesData {
 
 export interface RevealItem {
   keys: string[];
-  kind: 'week' | 'badge' | 'milestone' | 'challenge' | 'level' | 'rank' | 'record';
+  kind: 'week' | 'badge' | 'milestone' | 'challenge' | 'level' | 'rank' | 'record' | 'yearready' | 'newyear';
   name: string;
   description: string;
   icon: string;
   ts: number;
   xp: number;
   stats?: { label: string; value: string }[];
+  link?: { href: string; label: string };
+}
+
+export interface RevealData {
+  items: RevealItem[];
+  /** Event decoration of the reveal screen (snowflakes instead of the pixel burst). */
+  theme: 'winter' | null;
+}
+
+export interface AdventDoor {
+  day: string;
+  opened: boolean;
+  fact: string | null;
+}
+
+export interface EventData {
+  festive: boolean;
+  preview: boolean;
+  event: { id: string; name: string; year: number; startDay: string; endDay: string; theme: 'winter' } | null;
+  decorate: boolean;
+  today: string;
+  advent: { year: number; today: string; doors: AdventDoor[]; previewFact: string | null } | null;
 }
 
 export interface YearsData {
@@ -249,6 +275,14 @@ export interface YearsData {
 }
 
 export interface YearReview {
+  /** Winterrit card (during and after the event of this year). */
+  winterrit?: {
+    name: string;
+    km: number;
+    badges: { id: string; name: string; icon: string; xp: number }[];
+    doorsOpened: number;
+    doorsTotal: number;
+  } | null;
   year: number;
   from: string;
   to: string;

@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { ICONS, pixelPath } from './icons';
+  import { eventState } from './event.svelte';
+  import { ICONS, pixelPath, pixelRuns } from './icons';
+
+  /** A small pixel Santa hat for the cockpit icon (festive mode only): # = red, + = white rim. */
+  const HAT = pixelRuns(['.....+..', '....##..', '...###..', '..####..', '.#####..', '++++++..']);
 
   let {
     route,
@@ -41,7 +45,14 @@
 <nav aria-label="Hoofdmenu" class={position}>
   {#each items as item (item.id)}
     <a href={item.href} class:active={route === item.id} aria-current={route === item.id ? 'page' : undefined}>
-      <svg viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d={item.icon} /></svg>
+      <span class="ico">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d={item.icon} /></svg>
+        {#if item.id === 'cockpit' && eventState.data?.decorate}
+          <svg class="hat" viewBox="0 0 8 6" aria-hidden="true">
+            {#each HAT as r, i (i)}<rect x={r.x} y={r.y} width={r.w} height="1" class={r.tone === '#' ? 'red' : 'rim'} />{/each}
+          </svg>
+        {/if}
+      </span>
       <span>{item.label}</span>
     </a>
   {/each}
@@ -72,6 +83,28 @@
   svg {
     fill: currentColor;
     shape-rendering: crispEdges;
+  }
+  .ico {
+    position: relative;
+    display: inline-flex;
+  }
+  /* Pixel Santa hat on the steering wheel, tilted onto its top-right edge. */
+  svg.hat {
+    position: absolute;
+    top: -5px;
+    right: -6px;
+    width: 12px !important;
+    height: 9px !important;
+    filter: none !important;
+    transform: rotate(18deg);
+  }
+  svg.hat .red {
+    fill: #e30613;
+  }
+  svg.hat .rim {
+    fill: #ffffff;
+    stroke: rgba(0, 0, 0, 0.15);
+    stroke-width: 0.15;
   }
 
   /* Top: a sticky bar right under the header, with a solid background so

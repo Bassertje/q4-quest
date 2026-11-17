@@ -28,6 +28,7 @@ import {
   type History,
   type Requirement,
   type TimedValue,
+  ADVENT_XP,
 } from '../../game/src/index.ts';
 import { challengeBonusBadges, syncChallenges } from './challenges.ts';
 import { chargingAvailable, loadSessions } from './charging.ts';
@@ -58,6 +59,36 @@ export interface GameState {
   weekReview: WeekReview | null;
   /** Inputs for energy-based consumption estimates. */
   energy: EnergyInput;
+  /** Opened advent calendar doors, oldest first. */
+  adventDoors: AdventDoor[];
+}
+
+export interface AdventDoor {
+  day: string;
+  openedTs: number;
+  fact: string;
+}
+
+export function readAdventDoors(db: DatabaseSync): AdventDoor[] {
+  return (db.prepare('SELECT day, opened_ts, fact FROM advent_doors ORDER BY day').all() as { day: string; opened_ts: number; fact: string }[]).map(
+    (r) => ({ day: r.day, openedTs: r.opened_ts, fact: r.fact }),
+  );
+}
+
+/** Opened advent doors as internal "badges", so their 10 XP counts for the level. */
+export function adventBonusBadges(doors: AdventDoor[]): BadgeResult[] {
+  return doors.map((d) => ({
+    id: `advent_${d.day}`,
+    name: `Adventskalender ${Number(d.day.slice(8))} december`,
+    description: d.fact,
+    hint: d.fact,
+    category: 'advent',
+    xp: ADVENT_XP,
+    hidden: true,
+    icon: 'gift',
+    unlockedTs: d.openedTs,
+    progress: null,
+  }));
 }
 
 /**
@@ -125,9 +156,16 @@ export function computeGameState(
     return periodEnergy(energy, start, Math.min(end, now + 1))?.kwhPer100km ?? null;
   };
 
+  // The parking brake only helps when it is configured.
+  const trips = setupNeeded
+    ? []
+    : tripBlocks(odometer, options.entities.parking_brake ? store.states('parking_brake') : []);
+
   const challenges = setupNeeded
     ? []
     : syncChallenges(db, {
+        trips,
+        hasSoc: options.entities.soc !== null,
         progress,
         dailyTotals: totals,
         sessions,
@@ -138,10 +176,7 @@ export function computeGameState(
         weekConsumption,
       });
 
-  // The parking brake only helps when it is configured.
-  const trips = setupNeeded
-    ? []
-    : tripBlocks(odometer, options.entities.parking_brake ? store.states('parking_brake') : []);
+  const adventDoors = readAdventDoors(db);
   const badges = setupNeeded
     ? []
     : [
@@ -163,6 +198,7 @@ export function computeGameState(
           available: availableRequirements(options),
         })),
         ...challengeBonusBadges(challenges),
+        ...adventBonusBadges(adventDoors),
       ];
   // The timeline includes badges, and their bonus XP dates the level-ups.
   const history = setupNeeded ? null : buildHistory({ odometer, trips, now, timeZone, badges });
@@ -204,6 +240,7 @@ export function computeGameState(
     green: setupNeeded ? null : greenTotals(totalKm, charging ? (periodEnergy(energy, 0, now + 1)?.usedKwh ?? totalKwh) : null, factors),
     energy,
     weekReview,
+    adventDoors,
   };
 }
 
@@ -221,6 +258,11 @@ export class GameStateCache {
     this.store = store;
     this.options = options;
     this.db = db;
+  }
+
+  /** Forget the cached state (after a change stored outside the readings, e.g. an opened advent door). */
+  invalidate(): void {
+    this.state = null;
   }
 
   get(timeZone: string, now = Date.now()): GameState {
