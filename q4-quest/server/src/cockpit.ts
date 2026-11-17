@@ -1,5 +1,6 @@
 import {
-  CHALLENGE_XP,
+  challengeXp,
+  eventChallengeForWeek,
   dayKey,
   daysLeft,
   describeChallenge,
@@ -41,6 +42,8 @@ export interface CockpitResponse {
     status: 'active' | 'done' | 'missed';
     daysLeft: number;
     xp: number;
+    /** Name of the event for a themed challenge (e.g. "Winterrit"). */
+    event: string | null;
   } | null;
 }
 
@@ -65,12 +68,13 @@ export function cockpitResponse(
       ? {
           week: ch.week,
           type: ch.type,
-          ...describeChallenge(ch.type, ch.target),
+          ...describeChallenge(ch.type, ch.target, ch.week),
           target: ch.target,
           current: ch.current,
           status: ch.status,
           daysLeft: daysLeft(ch.week, state.now, state.timeZone),
-          xp: CHALLENGE_XP,
+          xp: challengeXp(ch.type),
+          event: eventChallengeForWeek(ch.week) ? 'Winterrit' : null,
         }
       : null,
     followed: f

@@ -9,6 +9,7 @@ import { isoWeekStart, shiftPeriod } from './periods.ts';
 import { dayProgress, dayReachTimes, firstGroupCrossing, type DayProgress } from './progress.ts';
 import { addDays, dayKey, isWeekend, localHour, monthKey, weekKey, zonedMidnight } from './time.ts';
 import { MIN_READINGS_FOR_TIME_BADGES, type TripBlock } from './trips.ts';
+import { eventBadges } from './events.ts';
 
 export type BadgeCategory =
   | 'rijden'
@@ -18,8 +19,12 @@ export type BadgeCategory =
   | 'uitdagingen'
   | 'wereldreis'
   | 'legendarisch'
-  /** Internal: a completed weekly challenge (100 XP), not shown in the badge grid. */
-  | 'weekuitdaging';
+  /** Badges of events such as Winterrit, with the year in their id and name. */
+  | 'evenementen'
+  /** Internal: a completed weekly challenge (100 or 150 XP), not shown in the badge grid. */
+  | 'weekuitdaging'
+  /** Internal: an opened advent calendar door (10 XP), not shown in the badge grid. */
+  | 'advent';
 
 /** A sensor key, or 'charging' for "charging power or charging state". */
 export type Requirement = 'odometer' | 'soc' | 'charging' | 'temperature';
@@ -60,6 +65,9 @@ export interface BadgeDef {
   check: (ctx: BadgeContext) => number | null;
   /** For countable badges: how far along you are right now. */
   progress?: (ctx: BadgeContext) => BadgeProgress;
+  /** Event badges: they can only be achieved from `availableFrom` until `availableUntil` (exclusive). */
+  availableFrom?: number;
+  availableUntil?: number;
 }
 
 export interface BadgeProgress {
@@ -321,6 +329,8 @@ export interface BadgeResult {
   unlockedTs: number | null;
   /** Progress towards a countable badge (null for other badges). */
   progress: BadgeProgress | null;
+  /** Event badges: end of the period in which the badge could be achieved (exclusive); null otherwise. */
+  availableUntil?: number | null;
 }
 
 export interface BadgeInput extends Omit<BadgeContext, 'progress'> {
@@ -331,7 +341,7 @@ export interface BadgeInput extends Omit<BadgeContext, 'progress'> {
 /** Evaluate all badges whose required sensors are configured. */
 export function evaluateBadges(input: BadgeInput): BadgeResult[] {
   const ctx: BadgeContext = { ...input, progress: dayProgress(input.odometer, input.timeZone) };
-  return [...BADGES, ...worldTripBadges()]
+  return [...BADGES, ...worldTripBadges(), ...eventBadges(input.now, input.odometer[0]?.ts ?? null, input.timeZone)]
     .filter((b) => b.requires.every((r) => input.available.has(r)))
     .map((b) => {
       const ts = b.check(ctx);
@@ -346,6 +356,7 @@ export function evaluateBadges(input: BadgeInput): BadgeResult[] {
         icon: b.icon,
         unlockedTs: ts !== null && ts <= input.now ? ts : null,
         progress: b.progress ? b.progress(ctx) : null,
+        availableUntil: b.availableUntil ?? null,
       };
     });
 }

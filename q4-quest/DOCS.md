@@ -106,6 +106,19 @@ bomen dat dezelfde hoeveelheid CO₂ in een jaar opneemt (20 kg per boom). Deze 
 bovenaan kiest (week, maand, jaar of alles) en gebruiken dezelfde verbruikte energie als het verbruik.
 De balk naar de volgende Groen-badge toont altijd je totaal.
 
+## Evenementen: de Winterrit
+
+Van 6 december tot en met 1 januari loopt elk jaar de **Winterrit**:
+
+- In december 2026 vervangen vier thema-uitdagingen de gewone weekuitdagingen (150 XP per stuk).
+- Zeven evenement-badges met het jaartal erin, alleen tijdens de Winterrit te halen, in de categorie
+  **Evenementen**.
+- Een **adventskalender** op de cockpit: open elke dag (6–31 december) het deurtje van vandaag voor een
+  weetje en 10 XP. Gemiste dagen blijven dicht.
+- Versiering (sneeuw, lampjes, een kerstmutsje en vuurwerk op 1 januari). Zet die uit met
+  **Instellingen → Evenementen → Feestmodus**; uitdagingen en badges werken dan gewoon door.
+- Met **Voorbeeld Winterrit** zie je het alvast, zonder dat er iets wordt opgeslagen.
+
 ## Jaaroverzicht
 
 Vanaf 1 december staat je jaaroverzicht klaar: een reeks kaarten die je kunt doorvegen met de

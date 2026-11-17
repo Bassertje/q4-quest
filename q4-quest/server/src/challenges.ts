@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import {
-  CHALLENGE_XP,
+  challengeXp,
+  eventChallengeForWeek,
   challengeTarget,
   chooseChallengeType,
   dayKey,
@@ -14,6 +15,7 @@ import {
   type ChallengeContext,
   type ChallengeResult,
   type ChallengeType,
+  type NormalChallengeType,
 } from '../../game/src/index.ts';
 
 interface Row {
@@ -39,7 +41,7 @@ export function listChallenges(db: DatabaseSync): ChallengeResult[] {
 }
 
 /** Which challenge types are possible with the configured sensors. */
-export function availableTypes(charging: boolean): ChallengeType[] {
+export function availableTypes(charging: boolean): NormalChallengeType[] {
   return charging ? ['km', 'days', 'max_charges', 'consumption'] : ['km', 'days'];
 }
 
@@ -50,7 +52,7 @@ export function availableTypes(charging: boolean): ChallengeType[] {
  */
 export function syncChallenges(
   db: DatabaseSync,
-  ctx: ChallengeContext & { firstTs: number | null; charging: boolean },
+  ctx: ChallengeContext & { firstTs: number | null; charging: boolean; hasSoc?: boolean },
 ): ChallengeResult[] {
   if (ctx.firstTs === null) return listChallenges(db);
   const week = weekKey(dayKey(ctx.now, ctx.timeZone));
@@ -62,8 +64,19 @@ export function syncChallenges(
     const previous = db.prepare('SELECT type FROM challenges WHERE week = ?').get(shiftPeriod('week', week, -1)) as
       | { type: ChallengeType }
       | undefined;
-    const type = chooseChallengeType(week, availableTypes(ctx.charging), previous?.type ?? null);
-    const target = challengeTarget(type, historyWeeks(week, firstDay, ctx.dailyTotals, before, ctx.timeZone));
+    // During an event a themed challenge replaces the normal one (when the sensors allow it).
+    const themed = eventChallengeForWeek(week);
+    const themedPossible = themed !== null && (themed.type !== 'full_charge' || (ctx.charging && ctx.hasSoc === true));
+    let type: ChallengeType;
+    let target: number;
+    if (themed && themedPossible) {
+      type = themed.type;
+      target = themed.target;
+    } else {
+      const normal = chooseChallengeType(week, availableTypes(ctx.charging), previous?.type ?? null);
+      type = normal;
+      target = challengeTarget(normal, historyWeeks(week, firstDay, ctx.dailyTotals, before, ctx.timeZone));
+    }
     db.prepare(
       'INSERT INTO challenges (week, type, target, status, current, completed_ts, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
     ).run(week, type, target, 'active', null, null, new Date(ctx.now).toISOString());
@@ -83,14 +96,14 @@ export function challengeBonusBadges(challenges: ChallengeResult[]): BadgeResult
   return challenges
     .filter((c) => c.status === 'done' && c.completedTs !== null)
     .map((c) => {
-      const d = describeChallenge(c.type, c.target);
+      const d = describeChallenge(c.type, c.target, c.week);
       return {
         id: `challenge_${c.week}`,
         name: `Weekuitdaging: ${d.title}`,
         description: d.goal,
         hint: d.goal,
         category: 'weekuitdaging',
-        xp: CHALLENGE_XP,
+        xp: challengeXp(c.type),
         hidden: true,
         icon: 'target',
         unlockedTs: c.completedTs,

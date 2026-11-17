@@ -359,3 +359,81 @@ button:disabled {
 .stat-tiles-wrap.three .st-sub {
   font-size: min(0.8rem, 3.5cqi);
 }
+
+/* ---------- Event decoration (Winterrit), only with html.festive ---------- */
+.festive-snow,
+.festive-lights {
+  display: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* Dark mode: lamps around the LCD. */
+:root.festive .festive-lights {
+  display: block;
+}
+/* Light mode: pixel snow behind the header and the odometer. */
+:root.festive[data-theme='light'] .festive-snow {
+  display: block;
+}
+:root.festive[data-theme='light'] .festive-lights {
+  display: none;
+}
+@media (prefers-color-scheme: light) {
+  :root.festive:not([data-theme='dark']) .festive-snow {
+    display: block;
+  }
+  :root.festive:not([data-theme='dark']) .festive-lights {
+    display: none;
+  }
+}
+.festive-snow i {
+  position: absolute;
+  top: -6px;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+  animation: festive-fall linear infinite;
+}
+.festive-snow i.grey {
+  background: #c9ccd1;
+  box-shadow: none;
+}
+@keyframes festive-fall {
+  from {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(6px, 60px);
+  }
+  to {
+    transform: translate(0, 130px);
+    opacity: 0;
+  }
+}
+.festive-lights i {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  box-shadow: 0 0 6px currentColor;
+  animation: festive-blink 3.2s steps(2, jump-none) infinite;
+}
+.festive-lights i.top {
+  top: 4px;
+}
+.festive-lights i.bottom {
+  bottom: 4px;
+}
+@keyframes festive-blink {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.25;
+  }
+}
+/* No animations while the tab is hidden (and none at all with reduced motion, see above). */
+:root.anim-paused * {
+  animation-play-state: paused !important;
+}

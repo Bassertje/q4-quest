@@ -107,6 +107,18 @@ export const MIGRATIONS: { version: number; name: string; sql: string }[] = [
       WHERE item_key LIKE 'badge:%' AND item_key NOT LIKE 'badge:challenge!_%' ESCAPE '!';
     `,
   },
+  {
+    // Advent calendar (Winterrit): one row per opened door, with the fact shown.
+    version: 8,
+    name: 'advent_doors',
+    sql: `
+      CREATE TABLE advent_doors (
+        day       TEXT PRIMARY KEY,
+        opened_ts INTEGER NOT NULL,
+        fact      TEXT NOT NULL
+      );
+    `,
+  },
 ];
 
 export function openDatabase(path: string): DatabaseSync {

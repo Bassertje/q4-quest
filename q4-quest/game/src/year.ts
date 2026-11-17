@@ -117,7 +117,7 @@ export function buildYearReview(input: YearInput): YearReview | null {
     (b) => b.category === 'weekuitdaging' && b.unlockedTs !== null && inYear(b.unlockedTs),
   ).length;
   const newBadges = input.badges
-    .filter((b) => b.category !== 'weekuitdaging' && b.unlockedTs !== null && inYear(b.unlockedTs) && b.unlockedTs !== first.ts)
+    .filter((b) => b.category !== 'weekuitdaging' && b.category !== 'advent' && b.unlockedTs !== null && inYear(b.unlockedTs) && b.unlockedTs !== first.ts)
     .sort((a, b) => a.unlockedTs! - b.unlockedTs!)
     .map((b) => ({ id: b.id, name: b.name, icon: b.icon, category: b.category, xp: b.xp, ts: b.unlockedTs! }));
 

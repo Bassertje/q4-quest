@@ -2,7 +2,9 @@
   import { onMount } from 'svelte';
   import { getJson, onLiveUpdate } from './lib/api';
   import Reveal from './lib/Reveal.svelte';
-  import type { RevealItem, StatusData } from './lib/types';
+  import Snow from './lib/Snow.svelte';
+  import { eventState, loadEvent, setPreview, watchVisibility } from './lib/event.svelte';
+  import type { RevealData, RevealItem, StatusData } from './lib/types';
   import { ICONS, pixelPath } from './lib/icons';
   import Nav from './lib/Nav.svelte';
   import { cachedNav, isNavChoice, NAV_EVENT, resolveNav, type NavChoice } from './lib/navPref';
@@ -44,18 +46,43 @@
   let navChoice = $state<NavChoice>(cachedNav());
   const navPosition = $derived(resolveNav(navChoice, navigator.userAgent));
   let reveal = $state<RevealItem[]>([]);
+  let revealTheme = $state<RevealData['theme']>(null);
   let timeZone = $state<string | undefined>(undefined);
 
   /** On opening the app: first show what is new (badges, destinations, levels, records). */
   async function checkReveal() {
     if (reveal.length) return;
     try {
-      const res = await getJson<{ items: RevealItem[] }>('reveal');
+      const res = await getJson<RevealData>(eventState.preview ? 'reveal?preview=winterrit' : 'reveal');
       reveal = res.items;
+      revealTheme = res.theme;
     } catch {
       // No reveal when the server cannot be reached; the screens show the error.
     }
   }
+
+  // "Voorbeeld Winterrit" from the settings: decoration, advent calendar and a sample reveal.
+  let previewing = $state(false);
+  $effect(() => {
+    if (eventState.preview && !previewing) {
+      previewing = true;
+      reveal = [];
+      void checkReveal();
+    } else if (!eventState.preview && previewing) {
+      previewing = false;
+    }
+  });
+
+  async function stopPreview() {
+    await setPreview(false);
+    refresh++;
+  }
+
+  // Reload the event state with every refresh (new day, settings changed, …).
+  $effect(() => {
+    void refresh;
+    void loadEvent();
+  });
 
   function revealDone() {
     reveal = [];
@@ -91,6 +118,7 @@
       if (isNavChoice(choice)) navChoice = choice;
     };
     window.addEventListener(NAV_EVENT, onNav);
+    const stopVisibility = watchVisibility();
     // Re-opening the app (back from the background) counts as opening it.
     const onVisible = () => {
       if (document.visibilityState === 'visible') checkReveal();
@@ -100,13 +128,21 @@
       window.removeEventListener('hashchange', onHash);
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener(NAV_EVENT, onNav);
+      stopVisibility();
       stop();
     };
   });
 </script>
 
 <div class="app nav-{navPosition}">
+  {#if eventState.preview}
+    <div class="preview-bar" role="status">
+      <span>Voorbeeld Winterrit · er wordt niets opgeslagen</span>
+      <button onclick={stopPreview}>Stoppen</button>
+    </div>
+  {/if}
   <header>
+    <Snow count={10} />
     <a class="logo" href="#/">Q4 QUEST</a>
     {#if route === 'instellingen'}
       <a class="icon" href="#/" aria-label="Terug naar de cockpit">
@@ -141,7 +177,7 @@
     <YearReview year={yearView.year} preview={yearView.preview} onclose={closeYear} />
   {/key}
 {:else if reveal.length}
-  <Reveal items={reveal} {timeZone} ondone={revealDone} />
+  <Reveal items={reveal} {timeZone} theme={revealTheme} ondone={revealDone} />
 {/if}
 
 <style>
@@ -155,7 +191,23 @@
   .app.nav-bottom {
     padding-bottom: calc(72px + 24px + env(safe-area-inset-bottom));
   }
+  .preview-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 6px 6px 6px 12px;
+    border: 1px dashed var(--accent);
+    border-radius: 10px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .preview-bar button {
+    padding: 4px 10px;
+  }
   header {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -163,6 +215,7 @@
     margin-bottom: 12px;
   }
   .logo {
+    position: relative;
     font-family: var(--font-pixel);
     font-size: 2.2rem;
     letter-spacing: 0.08em;
@@ -171,6 +224,7 @@
     text-shadow: var(--accent-text-glow);
   }
   .icon {
+    position: relative;
     display: grid;
     place-items: center;
     width: 40px;

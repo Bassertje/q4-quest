@@ -50,7 +50,7 @@ export function buildWeekReview(input: {
 
   const ch = input.challenge;
   if (ch && ch.week === week && ch.status !== 'active') {
-    const d = describeChallenge(ch.type, ch.target);
+    const d = describeChallenge(ch.type, ch.target, ch.week);
     const fact =
       ch.status === 'done'
         ? `Weekuitdaging gehaald: ${d.goal.charAt(0).toLowerCase()}${d.goal.slice(1)}`

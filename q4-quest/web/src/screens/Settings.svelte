@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { getJson, post } from '../lib/api';
+  import { getJson, post, putJson } from '../lib/api';
+  import { loadEvent, setPreview } from '../lib/event.svelte';
   import { km } from '../lib/format';
   import { cachedTheme, saveTheme, type ThemeChoice } from '../lib/theme';
   import { cachedNav, saveNav, type NavChoice } from '../lib/navPref';
@@ -77,16 +78,29 @@
   $effect(() => {
     void refresh;
     load();
-    getJson<{ theme: ThemeChoice; navPosition: NavChoice }>('settings')
+    getJson<{ theme: ThemeChoice; navPosition: NavChoice; festiveMode: boolean }>('settings')
       .then((s) => {
         theme = s.theme;
         nav = s.navPosition;
+        festive = s.festiveMode;
       })
       .catch(() => {});
     return () => {
       if (pollTimer) clearTimeout(pollTimer);
     };
   });
+
+  let festive = $state(true);
+  async function chooseFestive(on: boolean) {
+    festive = on;
+    await putJson('settings', { festiveMode: on }).catch(() => {});
+    await loadEvent();
+  }
+
+  async function startPreview() {
+    await setPreview(true);
+    location.hash = '#/';
+  }
 
   async function startBackfill() {
     starting = true;
@@ -128,6 +142,21 @@
       {/each}
     </div>
     <p class="muted small hint">Automatisch: onderaan in de Home Assistant-app, anders bovenaan.</p>
+  </section>
+
+  <section class="panel">
+    <h3>Evenementen</h3>
+    <h4>Feestmodus</h4>
+    <div class="segmented" role="group" aria-label="Feestmodus">
+      <button class:active={festive} aria-pressed={festive} onclick={() => chooseFestive(true)}>Aan</button>
+      <button class:active={!festive} aria-pressed={!festive} onclick={() => chooseFestive(false)}>Uit</button>
+    </div>
+    <p class="muted small hint">
+      Versiering tijdens evenementen zoals de Winterrit (6 december t/m 1 januari). Uit: geen versiering, maar
+      uitdagingen, badges en de adventskalender werken gewoon.
+    </p>
+    <button onclick={startPreview}>Voorbeeld Winterrit</button>
+    <p class="muted small hint">Toont de versiering, de adventskalender en het reveal-scherm. Er wordt niets opgeslagen en je krijgt geen XP of badges.</p>
   </section>
 
   <section class="panel">

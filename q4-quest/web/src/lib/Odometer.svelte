@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LcdLights from './LcdLights.svelte';
   import { onMount, untrack } from 'svelte';
 
   import { ago, agoShort } from './format';
@@ -90,6 +91,7 @@
     <span class="digits">{#each digits.split('') as d, i}<span class:dim={i < leading}>{d}</span>{/each}</span>
   </span>
   <span class="unit" aria-hidden="true">km</span>
+  <LcdLights />
   {#if updatedTs !== null}
     <button
       class="updated"

@@ -7,6 +7,9 @@
   import BadgeRing from '../lib/BadgeRing.svelte';
   import RankOverview from '../lib/RankOverview.svelte';
   import Setup from '../lib/Setup.svelte';
+  import AdventCalendar from '../lib/AdventCalendar.svelte';
+  import Snow from '../lib/Snow.svelte';
+  import { eventState, loadEvent } from '../lib/event.svelte';
   import type { CockpitData, YearsData } from '../lib/types';
 
   let { refresh }: { refresh: number } = $props();
@@ -74,6 +77,7 @@
   {/if}
 
   <section class="panel odo">
+    <Snow count={14} />
     <Odometer value={c.odometer} updatedTs={c.odometerTs} />
   </section>
 
@@ -99,7 +103,7 @@
     {@const cur = ch.current ?? 0}
     <section class="panel challenge" class:done={ch.status === 'done'}>
       <div class="ch-top">
-        <span class="kicker">Weekuitdaging</span>
+        <span class="kicker">{ch.event ? `${ch.event} · weekuitdaging` : 'Weekuitdaging'}</span>
         <span class="xp-badge">+{ch.xp} XP</span>
       </div>
       <div class="ch-body">
@@ -109,8 +113,10 @@
           <div class="ch-goal">{ch.goal}</div>
         </div>
       </div>
-      {#if ch.type === 'max_charges'}
-        <Bar fraction={Math.min(1, cur / ch.target)} label="Laadsessies deze week" />
+      {#if ch.type === 'max_charges' || ch.type === 'max_km'}
+        <Bar fraction={Math.min(1, cur / ch.target)} label={ch.type === 'max_km' ? 'Kilometers deze week' : 'Laadsessies deze week'} />
+      {:else if ch.type === 'full_charge'}
+        <Bar fraction={ch.status === 'done' ? 1 : Math.min(1, cur / 100)} label="Hoogste laadniveau" />
       {:else if ch.type === 'consumption'}
         <Bar fraction={ch.current === null ? 0 : Math.min(1, ch.target / Math.max(ch.current, 0.1))} label="Verbruik deze week" />
       {:else}
@@ -122,6 +128,10 @@
             {ch.current === null ? 'nog te weinig data' : `${num1(ch.current)} / ≤ ${num1(ch.target)} ${ch.unit}`}
           {:else if ch.type === 'max_charges'}
             {cur} / max. {ch.target} {ch.unit}
+          {:else if ch.type === 'max_km'}
+            {km(cur)} km · minder dan {km(ch.target)} km
+          {:else if ch.type === 'full_charge'}
+            {ch.status === 'done' ? 'Vol geladen' : ch.current === null ? 'nog niet geladen' : `hoogste ${ch.current}%`}
           {:else}
             {km(cur)} / {km(ch.target)} {ch.unit}
           {/if}
@@ -131,6 +141,18 @@
         </span>
       </div>
     </section>
+  {/if}
+
+  {#if eventState.data?.advent}
+    <AdventCalendar
+      advent={eventState.data.advent}
+      preview={eventState.preview}
+      decorate={eventState.data.decorate}
+      onopened={() => {
+        void loadEvent();
+        void load();
+      }}
+    />
   {/if}
 
   <section class="tiles">
@@ -197,6 +219,8 @@
 
 <style>
   .odo {
+    position: relative;
+    overflow: hidden;
     box-shadow: var(--glow);
   }
   .row {

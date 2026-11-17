@@ -16,7 +16,7 @@
   let index = $state(0);
   let track: HTMLDivElement | undefined = $state();
 
-  type Card = 'intro' | 'km' | 'bestDay' | 'bestWeek' | 'streak' | 'charging' | 'acdc' | 'green' | 'badges' | 'level' | 'earth' | 'outro' | 'share';
+  type Card = 'intro' | 'km' | 'bestDay' | 'bestWeek' | 'streak' | 'charging' | 'acdc' | 'green' | 'badges' | 'winterrit' | 'level' | 'earth' | 'outro' | 'share';
 
   /** Only cards that have something to show. */
   function cardsFor(r: YearReview): Card[] {
@@ -26,7 +26,9 @@
     if (r.longestStreak) cards.push('streak');
     if (r.charging && r.charging.sessions > 0) cards.push('charging', 'acdc');
     if (r.green) cards.push('green');
-    cards.push('badges', 'level', 'earth', 'outro', 'share');
+    cards.push('badges');
+    if (r.winterrit) cards.push('winterrit');
+    cards.push('level', 'earth', 'outro', 'share');
     return cards;
   }
 
@@ -207,6 +209,23 @@
               {:else}
                 <p class="muted">Dit jaar nog geen nieuwe badges.</p>
               {/if}
+            {:else if card === 'winterrit' && r.winterrit}
+              {@const w = r.winterrit}
+              <PixelIcon icon="snowflakeBig" size={80} />
+              <p class="kicker">{w.name}</p>
+              <p class="huge lcd">{km(w.km)}<span class="unit">km</span></p>
+              <p>gereden tijdens de Winterrit</p>
+              {#if w.badges.length}
+                <ul class="badge-grid">
+                  {#each w.badges as b (b.id)}
+                    <li title={b.name}><PixelIcon icon={b.icon} size={40} label={b.name} /></li>
+                  {/each}
+                </ul>
+                <p class="muted small">{w.badges.length} {w.badges.length === 1 ? 'evenement-badge' : 'evenement-badges'} gehaald</p>
+              {:else}
+                <p class="muted small">Nog geen evenement-badges gehaald.</p>
+              {/if}
+              <p class="muted">{w.doorsOpened} van de {w.doorsTotal} adventsdeurtjes geopend</p>
             {:else if card === 'level'}
               <PixelIcon icon="levelUp" size={80} />
               <p class="kicker">Level-groei</p>

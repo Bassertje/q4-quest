@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import {
+  activeEvent,
   dayShort,
   isFollowable,
   pickFollowedBadge,
@@ -12,6 +13,7 @@ import {
   type RevealItem,
 } from '../../game/src/index.ts';
 import type { GameState } from './game-state.ts';
+import { eventRevealItems, previewRevealItems } from './events.ts';
 
 const CATEGORIES: { id: BadgeCategory; name: string }[] = [
   { id: 'rijden', name: 'Rijden' },
@@ -21,6 +23,7 @@ const CATEGORIES: { id: BadgeCategory; name: string }[] = [
   { id: 'uitdagingen', name: 'Uitdagingen' },
   { id: 'wereldreis', name: 'Wereldreis' },
   { id: 'legendarisch', name: 'Legendarisch' },
+  { id: 'evenementen', name: 'Evenementen' },
 ];
 
 export function seenKeys(db: DatabaseSync): Set<string> {
@@ -56,6 +59,8 @@ export interface BadgeView {
   isNew: boolean;
   progress: { current: number; target: number; unit: string } | null;
   followable: boolean;
+  /** Event badge whose event is over without it being achieved ("Niet gehaald"). */
+  missed: boolean;
 }
 
 export function badgesResponse(state: GameState, seen: Set<string>, chosenId: string | null = null) {
@@ -80,6 +85,7 @@ export function badgesResponse(state: GameState, seen: Set<string>, chosenId: st
         .filter((b) => b.category === c.id)
         .map((b): BadgeView => {
           const secret = b.hidden && b.unlockedTs === null;
+          const missed = b.unlockedTs === null && b.availableUntil != null && state.now >= b.availableUntil;
           return {
             id: b.id,
             name: secret ? null : b.name,
@@ -91,7 +97,8 @@ export function badgesResponse(state: GameState, seen: Set<string>, chosenId: st
             unlockedTs: b.unlockedTs,
             isNew: b.unlockedTs !== null && !seen.has(`badge:${b.id}`),
             progress: b.progress,
-            followable: isFollowable(b) && b.unlockedTs === null,
+            followable: isFollowable(b) && b.unlockedTs === null && !missed,
+            missed,
           };
         }),
     })).filter((c) => c.badges.length > 0),
@@ -116,16 +123,24 @@ export function currentRecords(state: GameState): RecordEntry[] {
  * Items for the reveal screen: everything reached but not yet seen, including
  * records that already existed before the first reveal.
  */
-export function revealResponse(state: GameState, db: DatabaseSync): { items: RevealItem[] } {
-  if (state.setupNeeded) return { items: [] };
+export function revealResponse(
+  state: GameState,
+  db: DatabaseSync,
+  opts: { festive: boolean; preview: boolean; yearReviewReady: (year: number) => boolean } = { festive: true, preview: false, yearReviewReady: () => false },
+): { items: RevealItem[]; theme: 'winter' | null } {
+  const running = activeEvent(state.now, state.timeZone);
+  const theme = (running && opts.festive) || opts.preview ? 'winter' : null;
+  if (opts.preview) return { items: previewRevealItems(state), theme };
+  if (state.setupNeeded) return { items: [], theme: null };
   const records = currentRecords(state);
+  const seen = seenKeys(db);
   const items = revealItems({
     badges: state.badges,
     timeline: state.history?.timeline ?? { initial: [], events: [] },
     records,
-    seen: seenKeys(db),
+    seen,
     now: state.now,
     weekReview: state.weekReview,
   });
-  return { items };
+  return { items: [...eventRevealItems(state, opts.festive, seen, opts.yearReviewReady), ...items], theme };
 }

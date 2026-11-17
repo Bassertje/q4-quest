@@ -4,7 +4,27 @@
   import PixelIcon from './PixelIcon.svelte';
   import type { RevealItem } from './types';
 
-  let { items, timeZone, ondone }: { items: RevealItem[]; timeZone?: string; ondone: () => void } = $props();
+  let {
+    items,
+    timeZone,
+    theme = null,
+    ondone,
+  }: { items: RevealItem[]; timeZone?: string; theme?: 'winter' | null; ondone: () => void } = $props();
+
+  // Fireworks on 1 January: three bursts at different places, in red, gold and white.
+  const FIREWORK_COLORS = ['#E30613', '#F2B33D', '#FFFFFF'];
+  const fireworks = [
+    { x: 22, y: 22, delay: 0 },
+    { x: 76, y: 16, delay: 0.5 },
+    { x: 50, y: 34, delay: 1 },
+  ].map((f, n) => ({
+    ...f,
+    sparks: Array.from({ length: 12 }, (_, i) => {
+      const angle = (i / 12) * Math.PI * 2;
+      const dist = 46 + (i % 2) * 14;
+      return { dx: Math.round(Math.cos(angle) * dist), dy: Math.round(Math.sin(angle) * dist), color: FIREWORK_COLORS[(i + n) % 3] };
+    }),
+  }));
 
   /** After this many items one by one, a "show all" button appears. */
   const ONE_BY_ONE = 3;
@@ -21,6 +41,8 @@
     level: 'Level omhoog',
     rank: 'Nieuwe rang',
     record: 'Nieuw record',
+    yearready: 'Jaaroverzicht',
+    newyear: 'Nieuwjaar',
   };
 
   const current = $derived(items[index]);
@@ -100,6 +122,13 @@
     return () => window.removeEventListener('keydown', onKey);
   });
 
+  /** Go to another screen (e.g. the year review) after marking this item as seen. */
+  async function follow(href: string) {
+    await markSeen([current]);
+    ondone();
+    location.hash = href;
+  }
+
   function openAll() {
     showAll = true;
   }
@@ -113,6 +142,20 @@
 </script>
 
 <div class="overlay" role="dialog" aria-modal="true" aria-label="Nieuw ontgrendeld">
+  {#if !showAll && current?.kind === 'newyear'}
+    {#key index}
+      <!-- Fireworks over the whole screen (outside the swipe area, which is transformed). -->
+      <div class="fireworks" aria-hidden="true">
+        {#each fireworks as f, n (n)}
+          <div class="firework" style:left="{f.x}%" style:top="{f.y}%" style:--delay="{f.delay}s">
+            {#each f.sparks as sp, i (i)}
+              <span style:--dx="{sp.dx}px" style:--dy="{sp.dy}px" style:background={sp.color}></span>
+            {/each}
+          </div>
+        {/each}
+      </div>
+    {/key}
+  {/if}
   {#if !showAll && current}
     <div class="stage">
       <p class="count muted small">{index + 1} / {items.length}{#if remaining > 0}{' '}· veeg voor de volgende{/if}</p>
@@ -127,7 +170,7 @@
         onpointercancel={onCancel}
       >
       {#key index}
-        <div class="burst" aria-hidden="true">
+        <div class="burst" class:snow={theme === 'winter'} aria-hidden="true">
           {#each burst as b, i (i)}
             <span style:--dx="{b.dx}px" style:--dy="{b.dy}px" style:--s="{b.size}px"></span>
           {/each}
@@ -150,6 +193,9 @@
       {/key}
       </div>
       <div class="actions">
+        {#if current.link}
+          <button onclick={() => follow(current.link!.href)} disabled={busy}>{current.link.label}</button>
+        {/if}
         {#if canShowAll}
           <button onclick={openAll}>Toon alles ({remaining})</button>
         {/if}
@@ -303,6 +349,40 @@
   }
   .burst span:nth-child(3n) {
     background: var(--text);
+  }
+  /* Winterrit: the pixel burst becomes small pixel snowflakes (a plus of five pixels). */
+  .burst.snow span,
+  .burst.snow span:nth-child(3n) {
+    --snow: color-mix(in srgb, var(--text) 30%, #cfe0f2);
+    width: 2px;
+    height: 2px;
+    margin: -1px 0 0 -1px;
+    background: var(--snow);
+    box-shadow:
+      2px 0 0 var(--snow),
+      -2px 0 0 var(--snow),
+      0 2px 0 var(--snow),
+      0 -2px 0 var(--snow);
+    animation-duration: 1.1s;
+  }
+  .fireworks {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .firework {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+  .firework span {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    margin: -2px 0 0 -2px;
+    opacity: 0;
+    animation: fly 1.2s steps(8, end) var(--delay) 3 both;
   }
   @keyframes fly {
     0% {

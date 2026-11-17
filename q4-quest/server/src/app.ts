@@ -4,6 +4,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { chargingAvailable, chargingResponse, isSocRange, socResponse } from './charging.ts';
+import { eventResponse, openAdventDoor } from './events.ts';
 import { cockpitResponse } from './cockpit.ts';
 import type { BackfillStatus } from './collector/collector.ts';
 import { schemaVersion } from './db.ts';
@@ -99,7 +100,27 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     return reply.code(result.status).send(result.body);
   });
 
-  app.get('/api/reveal', async () => revealResponse(state(), deps.db));
+  app.get('/api/reveal', async (req) => {
+    const preview = (req.query as { preview?: string }).preview === 'winterrit';
+    const st = state();
+    return revealResponse(st, deps.db, {
+      festive: readSettings(deps.db).festiveMode,
+      preview,
+      yearReviewReady: (year) => yearsResponse(st).years.some((y) => y.year === year && y.available),
+    });
+  });
+
+  // Events (Winterrit): status for the decoration and the advent calendar.
+  app.get('/api/event', async (req) => {
+    const preview = (req.query as { preview?: string }).preview === '1';
+    return eventResponse(state(), readSettings(deps.db).festiveMode, preview);
+  });
+
+  app.post('/api/advent/open', async (_req, reply) => {
+    const result = openAdventDoor(deps.db, state());
+    if (result.status === 200) cache.invalidate(); // the door's 10 XP count from now on
+    return reply.code(result.status).send(result.body);
+  });
 
   app.post('/api/seen', async (req, reply) => {
     const keys = (req.body as { keys?: unknown } | null)?.keys;
@@ -119,6 +140,9 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     if (body.navPosition !== undefined && !isNavPosition(body.navPosition)) {
       return reply.code(400).send({ error: 'navPosition must be top, bottom or auto' });
     }
+    if (body.festiveMode !== undefined && typeof body.festiveMode !== 'boolean') {
+      return reply.code(400).send({ error: 'festiveMode must be true or false' });
+    }
     for (const field of ['chargingPeriod', 'historyPeriod'] as const) {
       if (body[field] !== undefined && !isChargePeriodMode(body[field])) {
         return reply.code(400).send({ error: `${field} must be week, month, year or all` });
@@ -136,6 +160,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       followedBadge: followed as string | null | undefined,
       chargingPeriod: body.chargingPeriod as 'week' | 'month' | 'year' | 'all' | undefined,
       historyPeriod: body.historyPeriod as 'week' | 'month' | 'year' | 'all' | undefined,
+      festiveMode: body.festiveMode as boolean | undefined,
     });
   });
 
