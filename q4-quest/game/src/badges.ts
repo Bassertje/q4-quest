@@ -10,6 +10,7 @@ import { dayProgress, dayReachTimes, firstGroupCrossing, type DayProgress } from
 import { addDays, dayKey, isWeekend, localHour, monthKey, weekKey, zonedMidnight } from './time.ts';
 import { MIN_READINGS_FOR_TIME_BADGES, type TripBlock } from './trips.ts';
 import { eventBadges } from './events.ts';
+import { BINGO_LINES, BINGO_NUMBERS, BINGO_SIZE, bingoNumber, buildBingo, DOUBLES, lineFill, type BingoState } from './bingo.ts';
 
 export type BadgeCategory =
   | 'rijden'
@@ -24,7 +25,9 @@ export type BadgeCategory =
   /** Internal: a completed weekly challenge (100 or 150 XP), not shown in the badge grid. */
   | 'weekuitdaging'
   /** Internal: an opened advent calendar door (10 XP), not shown in the badge grid. */
-  | 'advent';
+  | 'advent'
+  /** Internal: a Laadbingo line (150 XP) or full card (1,000 XP), not shown in the badge grid. */
+  | 'bingo';
 
 /** A sensor key, or 'charging' for "charging power or charging state". */
 export type Requirement = 'odometer' | 'soc' | 'charging' | 'temperature';
@@ -240,6 +243,36 @@ function litersNow(ctx: BadgeContext): number {
   return last ? Math.floor(litersSaved(last.km, ctx.green)) : 0;
 }
 
+// ---------- Laadbingo ----------
+
+/** The bingo state of a context, computed once per sessions list. */
+const bingoCache = new WeakMap<ChargingSession[], BingoState>();
+function bingoOf(ctx: BadgeContext): BingoState {
+  let st = bingoCache.get(ctx.sessions);
+  if (!st) {
+    st = buildBingo(ctx.sessions);
+    bingoCache.set(ctx.sessions, st);
+  }
+  return st;
+}
+const currentCard = (ctx: BadgeContext) => bingoOf(ctx).cards.at(-1)!;
+const firstOf = (ts: (number | null | undefined)[]) => {
+  const t = ts.filter((x): x is number => x != null);
+  return t.length ? Math.min(...t) : null;
+};
+/** Moment all double numbers (11, 22, … 99) have been started at least once. */
+function doublesDone(ctx: BadgeContext): number | null {
+  const first = new Map<number, number>();
+  for (const s of [...ctx.sessions].sort((a, b) => a.start - b.start)) {
+    const n = bingoNumber(s);
+    if (n !== null && !first.has(n)) first.set(n, s.start);
+  }
+  return DOUBLES.every((d) => first.has(d)) ? Math.max(...DOUBLES.map((d) => first.get(d)!)) : null;
+}
+/** First moment a card had at least `n` stamps (★ not counted). */
+const cardWithStamps = (n: number) => (ctx: BadgeContext) => firstOf(bingoOf(ctx).cards.map((c) => c.stamps[n - 1]?.ts));
+const maxCount = (ctx: BadgeContext) => Math.max(0, ...bingoOf(ctx).counts);
+
 const nthChallenge = (n: number) => (ctx: BadgeContext) =>
   [...ctx.challenges].sort((a, b) => a.completedTs - b.completedTs)[n - 1]?.completedTs ?? null;
 
@@ -279,6 +312,16 @@ export const BADGES: BadgeDef[] = [
   { id: 'running_on_fumes', name: 'Op de valreep', description: 'Een accupercentage van 10% of lager gemeten.', hint: 'Rij de accu bijna leeg.', category: 'laden', xp: 75, requires: ['soc'], icon: 'batteryLow', check: (c) => c.soc.find((r) => r.value <= 10)?.ts ?? null },
   { id: 'dc_150', name: 'Volle bak', description: `Gemiddeld ${DC_FULL_AVG_KW} kW of meer in één laadsessie.`, hint: 'Laad met een hoog gemiddeld vermogen.', category: 'laden', xp: 100, requires: ['charging'], icon: 'bolts', check: (c) => firstSession(c, (s) => (s.avgKw ?? 0) >= DC_FULL_AVG_KW) },
   { id: 'mwh_1', name: 'Eerste megawattuur', description: 'In totaal 1.000 kWh geladen.', hint: 'Laad in totaal 1.000 kWh.', category: 'laden', xp: 250, requires: ['charging'], icon: 'medal', check: (c) => cumulativeKwh(c, 1000), progress: (c) => progressOf(Math.round(c.sessions.reduce((sum, s) => sum + (s.kwh ?? 0), 0)), 1000, 'kWh') },
+
+  // Laadbingo (needs the start percentage, so a SoC sensor)
+  { id: 'bingo_first', name: 'Eerste bingo', description: 'Je eerste volle lijn op de Laadbingo-kaart (rij, kolom of diagonaal).', hint: 'Maak een rij, kolom of diagonaal vol op de Laadbingo-kaart.', category: 'laden', xp: 100, requires: ['charging', 'soc'], icon: 'bingoLine', check: (c) => firstOf(bingoOf(c).cards.map((k) => k.lines[0]?.ts)), progress: (c) => progressOf(Math.max(...BINGO_LINES.map((l) => lineFill(currentCard(c), l))), BINGO_SIZE, 'vakjes') },
+  { id: 'bingo_full', name: 'Volle kaart', description: 'Een Laadbingo-kaart helemaal afgestempeld.', hint: 'Stempel alle 99 vakjes van een Laadbingo-kaart af.', category: 'laden', xp: 500, requires: ['charging', 'soc'], icon: 'bingoFull', check: (c) => firstOf(bingoOf(c).cards.map((k) => k.completedTs)), progress: (c) => progressOf(currentCard(c).stamps.length, BINGO_NUMBERS, 'vakjes') },
+  { id: 'bingo_regular', name: 'Vaste prik', description: '10 laadsessies gestart op hetzelfde percentage.', hint: 'Start 10 keer met laden op hetzelfde percentage.', category: 'laden', xp: 75, requires: ['charging', 'soc'], icon: 'pushpin', check: (c) => bingoOf(c).countReached[10], progress: (c) => progressOf(maxCount(c), 10, 'sessies') },
+  { id: 'bingo_habitue', name: 'Stamgast', description: '25 laadsessies gestart op hetzelfde percentage.', hint: 'Start 25 keer met laden op hetzelfde percentage.', category: 'laden', xp: 200, requires: ['charging', 'soc'], icon: 'mug', check: (c) => bingoOf(c).countReached[25], progress: (c) => progressOf(maxCount(c), 25, 'sessies') },
+  { id: 'bingo_half', name: 'Halve kaart', description: 'Minstens 50 vakjes afgestempeld op één Laadbingo-kaart.', hint: 'Stempel 50 vakjes af op één kaart.', category: 'laden', xp: 150, requires: ['charging', 'soc'], icon: 'bingoHalf', check: cardWithStamps(50), progress: (c) => progressOf(currentCard(c).stamps.length, 50, 'vakjes') },
+  { id: 'bingo_diagonal', name: 'Schuin gaan', description: 'Een diagonaal vol op de Laadbingo-kaart.', hint: 'Maak een diagonaal vol op de Laadbingo-kaart.', category: 'laden', xp: 150, requires: ['charging', 'soc'], icon: 'bingoDiagonal', check: (c) => firstOf(bingoOf(c).cards.map((k) => k.lines.find((l) => l.kind === 'diagonal')?.ts)) },
+  { id: 'bingo_doubles', name: 'Dubbelgangers', description: 'Gestart op 11, 22, 33, 44, 55, 66, 77, 88 én 99%.', hint: 'Start een keer op elk dubbel getal: 11, 22, … 99%.', category: 'laden', xp: 200, requires: ['charging', 'soc'], icon: 'twins', check: doublesDone, progress: (c) => progressOf(DOUBLES.filter((d) => bingoOf(c).counts[d] > 0).length, DOUBLES.length, 'getallen') },
+  { id: 'bingo_cross', name: 'Kruisbingo', description: 'Eén laadsessie maakte in één keer twee lijnen of meer vol.', hint: '???', category: 'laden', xp: 250, requires: ['charging', 'soc'], hidden: true, icon: 'bingoCross', check: (c) => bingoOf(c).crossTs[0] ?? null },
 
   // Groen
   { id: 'green_start', name: 'Groene start', description: '100 kg CO₂ bespaard ten opzichte van een benzineauto.', hint: 'Bespaar 100 kg CO₂.', category: 'groen', xp: 50, requires: ['odometer', 'charging'], icon: 'seedling', check: co2Crossing(100), progress: (c) => progressOf(co2Now(c), 100, 'kg') },

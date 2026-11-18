@@ -1,4 +1,5 @@
 <script lang="ts">
+  import BingoMini from '../lib/BingoMini.svelte';
   import { onMount } from 'svelte';
   import { getJson } from '../lib/api';
   import { dayShort, km, num1, periodLabel } from '../lib/format';
@@ -16,7 +17,7 @@
   let index = $state(0);
   let track: HTMLDivElement | undefined = $state();
 
-  type Card = 'intro' | 'km' | 'bestDay' | 'bestWeek' | 'streak' | 'charging' | 'acdc' | 'green' | 'badges' | 'winterrit' | 'level' | 'earth' | 'outro' | 'share';
+  type Card = 'intro' | 'km' | 'bestDay' | 'bestWeek' | 'streak' | 'charging' | 'acdc' | 'bingo' | 'green' | 'badges' | 'winterrit' | 'level' | 'earth' | 'outro' | 'share';
 
   /** Only cards that have something to show. */
   function cardsFor(r: YearReview): Card[] {
@@ -25,6 +26,7 @@
     if (r.bestWeek) cards.push('bestWeek');
     if (r.longestStreak) cards.push('streak');
     if (r.charging && r.charging.sessions > 0) cards.push('charging', 'acdc');
+    if (r.bingo) cards.push('bingo');
     if (r.green) cards.push('green');
     cards.push('badges');
     if (r.winterrit) cards.push('winterrit');
@@ -208,6 +210,15 @@
                 <p class="muted small">+{km(r.newBadges.reduce((s, b) => s + b.xp, 0))} bonus-XP</p>
               {:else}
                 <p class="muted">Dit jaar nog geen nieuwe badges.</p>
+              {/if}
+            {:else if card === 'bingo' && r.bingo}
+              {@const bg = r.bingo}
+              <p class="kicker">Laadbingo</p>
+              <BingoMini stamped={bg.card.stamped} hot={bg.mostFrequent?.n ?? null} size={150} />
+              <p class="huge lcd">{bg.stamps}<span class="unit">vakjes</span></p>
+              <p>afgestempeld dit jaar · {bg.bingos} {bg.bingos === 1 ? 'bingo' : "bingo's"}</p>
+              {#if bg.mostFrequent}
+                <p class="muted">Meest geladen vanaf <strong>{bg.mostFrequent.n}%</strong> ({bg.mostFrequent.count}×)</p>
               {/if}
             {:else if card === 'winterrit' && r.winterrit}
               {@const w = r.winterrit}

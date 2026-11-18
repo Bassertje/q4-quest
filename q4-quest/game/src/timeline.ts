@@ -26,7 +26,7 @@ export function timeline(
   // World-trip badges already appear as milestone events; other badges as badge events.
   for (const b of unlocked) {
     // Opened advent doors only add XP; they are not timeline events.
-    if (b.category === 'wereldreis' || b.category === 'advent') continue;
+    if (b.category === 'wereldreis' || b.category === 'advent' || b.category === 'bingo') continue;
     all.push({ type: 'badge', ts: b.unlockedTs!, id: b.id, name: b.name, xp: b.xp, icon: b.icon });
   }
 

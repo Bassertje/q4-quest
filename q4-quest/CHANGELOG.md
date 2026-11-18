@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.0
+
+- **Nieuw: Laadbingo.** Elke laadsessie stempelt het accupercentage waarop hij begon af op een bingokaart van 1 tot 99 (met een gratis ★). Ook je laadsessies van vóór de update tellen mee.
+  - Een volle rij, kolom of diagonaal levert 150 XP op, een volle kaart 1.000 XP. Daarna begint automatisch een nieuwe kaart; oude kaarten blijven terug te kijken.
+  - Op de Laden-pagina staat een tegel met je kaart in het klein, hoeveel vakjes je hebt en welke lijn bijna vol is. Tik erop voor de hele kaart, met per vakje hoe vaak je daar begon en wanneer voor het eerst.
+  - Acht nieuwe badges in de categorie Laden, zoals Eerste bingo, Vaste prik, Dubbelgangers en een verborgen badge.
+  - Nieuwe vakjes en bingo's verschijnen in de meldingen bij het opstarten, en de Laadbingo staat ook in het jaaroverzicht en op de deelkaart.
+
 ## 1.7.0
 
 - **Nieuw: evenementen, te beginnen met de Winterrit** (6 december t/m 1 januari, elk jaar).

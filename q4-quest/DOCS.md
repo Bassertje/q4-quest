@@ -131,6 +131,13 @@ De laatste kaart is een **deelkaart**: een afbeelding met je jaarcijfers en badg
 kilometerstand van de auto en zonder datums of tijden. Met **Delen** open je het deelmenu van je
 telefoon; anders wordt de afbeelding gedownload.
 
+## Laadbingo
+
+Met een accupercentage-sensor speel je **Laadbingo**: elke laadsessie stempelt het (afgeronde) percentage
+waarop hij begon af op een kaart van 1 tot 99, met een gratis ★ op het laatste vakje. Een volle rij,
+kolom of diagonaal is 150 XP, een volle kaart 1.000 XP; daarna begint een nieuwe kaart. De kaart staat
+op de Laden-pagina (tik op de tegel voor de hele kaart). Ook eerdere laadsessies tellen mee.
+
 ## Laden
 
 Het scherm **Laden** verschijnt als je een sensor voor het laadvermogen of de laadstatus hebt ingesteld.

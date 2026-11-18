@@ -2,6 +2,7 @@ import { buildYearReview, dayKey, yearsWithReview, type YearAvailability, type Y
 import { chargingAvailable } from './charging.ts';
 import type { GameState } from './game-state.ts';
 import { winterritSummary } from './events.ts';
+import { bingoYearSummary } from './bingo.ts';
 import type { Options } from './options.ts';
 
 export interface YearsResponse {
@@ -25,7 +26,7 @@ export function yearsResponse(state: GameState): YearsResponse {
 }
 
 export type YearResult =
-  | { status: 200; body: { timeZone: string; preview: boolean; review: YearReview & { winterrit: ReturnType<typeof winterritSummary> } } }
+  | { status: 200; body: { timeZone: string; preview: boolean; review: YearReview & { winterrit: ReturnType<typeof winterritSummary>; bingo: ReturnType<typeof bingoYearSummary> } } }
   | { status: 403 | 404; body: { error: string } };
 
 /**
@@ -54,6 +55,6 @@ export function yearResponse(state: GameState, options: Options, year: number, p
   if (!review) return { status: 404, body: { error: 'no data for this year' } };
   return {
     status: 200,
-    body: { timeZone: state.timeZone, preview: !availability.available, review: { ...review, winterrit: winterritSummary(state, year) } },
+    body: { timeZone: state.timeZone, preview: !availability.available, review: { ...review, winterrit: winterritSummary(state, year), bingo: bingoYearSummary(state, year) } },
   };
 }
