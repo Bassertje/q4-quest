@@ -9,6 +9,7 @@
   import Nav from './lib/Nav.svelte';
   import { cachedNav, isNavChoice, NAV_EVENT, resolveNav, type NavChoice } from './lib/navPref';
   import Badges from './screens/Badges.svelte';
+  import Bingo from './screens/Bingo.svelte';
   import Charging from './screens/Charging.svelte';
   import Cockpit from './screens/Cockpit.svelte';
   import History from './screens/History.svelte';
@@ -16,8 +17,9 @@
   import Settings from './screens/Settings.svelte';
 
   // Hash-based routing keeps every URL relative (Ingress-proof).
-  type Route = 'cockpit' | 'badges' | 'historie' | 'laden' | 'instellingen';
+  type Route = 'cockpit' | 'badges' | 'historie' | 'laden' | 'bingo' | 'instellingen';
   const parse = (): Route => {
+    if (/^#\/laden\/bingo(\/\d+)?$/.test(location.hash)) return 'bingo';
     if (location.hash === '#/badges' || location.hash.startsWith('#/badges/')) return 'badges';
     if (location.hash === '#/instellingen') return 'instellingen';
     if (location.hash === '#/historie') return 'historie';
@@ -29,6 +31,9 @@
   /** Badge to open on the badges screen (#/badges/<id>). */
   const parseBadge = () => decodeURIComponent(location.hash.match(/^#\/badges\/([^/]+)$/)?.[1] ?? '') || null;
   let openBadge = $state<string | null>(parseBadge());
+  /** Laadbingo card to show (#/laden/bingo/2), or the current one. */
+  const parseBingoCard = () => Number(location.hash.match(/^#\/laden\/bingo\/(\d+)$/)?.[1] ?? 0) || null;
+  let bingoCard = $state<number | null>(parseBingoCard());
 
   /** Year overview: #/jaar/2026 or #/jaar/2026/voorbeeld (preview before 1 December). */
   const parseYear = () => {
@@ -97,6 +102,7 @@
       if (nextYear) return; // the overview is an overlay; keep the page underneath
       route = parse();
       openBadge = parseBadge();
+      bingoCard = parseBingoCard();
       if (!openBadge) window.scrollTo(0, 0);
     };
     window.addEventListener('hashchange', onHash);
@@ -155,7 +161,7 @@
     {/if}
   </header>
 
-  <Nav {route} {charging} position={navPosition} />
+  <Nav route={route === 'bingo' ? 'laden' : route} {charging} position={navPosition} />
 
   <main>
     {#if route === 'instellingen'}
@@ -166,6 +172,8 @@
       <History {refresh} />
     {:else if route === 'laden'}
       <Charging {refresh} />
+    {:else if route === 'bingo'}
+      <Bingo {refresh} cardIndex={bingoCard} />
     {:else}
       <Cockpit {refresh} />
     {/if}

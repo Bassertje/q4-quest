@@ -14,6 +14,7 @@ import {
 } from '../../game/src/index.ts';
 import type { GameState } from './game-state.ts';
 import { eventRevealItems, previewRevealItems } from './events.ts';
+import { stampRevealItems } from './bingo.ts';
 
 const CATEGORIES: { id: BadgeCategory; name: string }[] = [
   { id: 'rijden', name: 'Rijden' },
@@ -141,6 +142,7 @@ export function revealResponse(
     seen,
     now: state.now,
     weekReview: state.weekReview,
+    extra: stampRevealItems(state.bingo, seen),
   });
   return { items: [...eventRevealItems(state, opts.festive, seen, opts.yearReviewReady), ...items], theme };
 }

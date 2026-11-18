@@ -382,3 +382,42 @@ describe('versions', () => {
     expect(yaml).toMatch(new RegExp(`^version: "${pkg.version.replace(/\./g, '\\.')}"$`, 'm'));
   });
 });
+
+describe('Laadbingo API', () => {
+  it('derives the card from the mock sessions, with XP for lines and a combined reveal item', async () => {
+    const { app } = make(MOCK_OPTIONS_RAW, true);
+    const b = (await app.inject({ url: '/api/bingo' })).json();
+    expect(b.available).toBe(true);
+    expect(b.cards[0].index).toBe(1);
+    expect(b.cards[0].stamps.length).toBeGreaterThan(5);
+    expect(b.counts).toHaveLength(100);
+    // Every stamped square has been started at least once.
+    expect(b.cards[0].stamps.every((s: { n: number }) => b.counts[s.n] >= 1)).toBe(true);
+    expect(b.lines).toHaveLength(22);
+    expect(b.closest.open).toBeGreaterThan(0);
+    expect(b.mostFrequent.count).toBeGreaterThanOrEqual(1);
+    const reveal = (await app.inject({ url: '/api/reveal' })).json().items;
+    const stamps = reveal.filter((i: { kind: string }) => i.kind === 'stamp');
+    expect(stamps).toHaveLength(1); // many new stamps at once: one combined item
+    expect(stamps[0].name).toMatch(/^Laadbingo: \d+ vakjes afgestempeld!$/);
+    expect(stamps[0].keys.length).toBe(b.cards[0].stamps.length);
+    await app.inject({ method: 'POST', url: '/api/seen', payload: { keys: stamps[0].keys } });
+    expect((await app.inject({ url: '/api/reveal' })).json().items.some((i: { kind: string }) => i.kind === 'stamp')).toBe(false);
+  });
+
+  it('is unavailable without a SoC sensor', async () => {
+    const { soc_entity: _soc, ...noSoc } = MOCK_OPTIONS_RAW as Record<string, unknown>;
+    const b = (await make(noSoc, true).app.inject({ url: '/api/bingo' })).json();
+    expect(b).toMatchObject({ available: false, cards: [] });
+  });
+
+  it('adds a Laadbingo card to the year review', async () => {
+    const { app } = make(MOCK_OPTIONS_RAW, true);
+    // The year of the latest stamp (so the test also works in early January).
+    const stamps = (await app.inject({ url: '/api/bingo' })).json().cards[0].stamps;
+    const year = new Date(stamps.at(-1).ts).getUTCFullYear();
+    const review = (await app.inject({ url: `/api/year/${year}?preview=1` })).json().review;
+    expect(review.bingo.stamps).toBeGreaterThan(0);
+    expect(review.bingo.card.stamped.length).toBeGreaterThan(0);
+  });
+});

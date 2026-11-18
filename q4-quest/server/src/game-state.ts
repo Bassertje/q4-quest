@@ -29,7 +29,9 @@ import {
   type Requirement,
   type TimedValue,
   ADVENT_XP,
+  type BingoState,
 } from '../../game/src/index.ts';
+import { bingoBonusBadges, bingoState } from './bingo.ts';
 import { challengeBonusBadges, syncChallenges } from './challenges.ts';
 import { chargingAvailable, loadSessions } from './charging.ts';
 import type { Options } from './options.ts';
@@ -61,6 +63,8 @@ export interface GameState {
   energy: EnergyInput;
   /** Opened advent calendar doors, oldest first. */
   adventDoors: AdventDoor[];
+  /** Laadbingo (null without charging and SoC sensors). */
+  bingo: BingoState | null;
 }
 
 export interface AdventDoor {
@@ -177,6 +181,7 @@ export function computeGameState(
       });
 
   const adventDoors = readAdventDoors(db);
+  const bingo = setupNeeded ? null : bingoState(finished, options);
   const badges = setupNeeded
     ? []
     : [
@@ -199,6 +204,7 @@ export function computeGameState(
         })),
         ...challengeBonusBadges(challenges),
         ...adventBonusBadges(adventDoors),
+        ...bingoBonusBadges(bingo),
       ];
   // The timeline includes badges, and their bonus XP dates the level-ups.
   const history = setupNeeded ? null : buildHistory({ odometer, trips, now, timeZone, badges });
@@ -241,6 +247,7 @@ export function computeGameState(
     energy,
     weekReview,
     adventDoors,
+    bingo,
   };
 }
 

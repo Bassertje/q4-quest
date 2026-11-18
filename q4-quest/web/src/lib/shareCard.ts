@@ -52,6 +52,8 @@ export function shareContent(r: YearReview) {
     badges: r.newBadges.slice(0, MAX_BADGES).map((b) => b.icon),
     moreBadges: Math.max(0, r.newBadges.length - MAX_BADGES),
     badgeCount: r.newBadges.length,
+    /** Laadbingo: the card at the end of the year (no dates, just squares). */
+    bingo: r.bingo ? { stamped: r.bingo.card.stamped, stamps: r.bingo.stamps, bingos: r.bingo.bingos } : null,
   };
 }
 
@@ -240,6 +242,43 @@ export async function renderShareCard(review: YearReview): Promise<Blob> {
     afterGrid += gh + gap;
   }
 
+  // Laadbingo: mini card with the stamped squares.
+  if (content.bingo) {
+    const bh = 120;
+    roundRect(ctx, M, afterGrid, W, bh, 24);
+    ctx.fillStyle = v.panel;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = v.line;
+    ctx.stroke();
+    const cell = 8;
+    const step = 10;
+    const gx = M + 24;
+    const gy = afterGrid + (bh - 10 * step + 2) / 2;
+    const stamped = new Set(content.bingo.stamped);
+    for (let n = 1; n <= 100; n++) {
+      ctx.fillStyle = n === 100 ? '#F2B33D' : stamped.has(n) ? v.accent : v.line;
+      ctx.fillRect(gx + ((n - 1) % 10) * step, gy + Math.floor((n - 1) / 10) * step, cell, cell);
+    }
+    const tx = gx + 10 * step + 32;
+    ctx.fillStyle = v.muted;
+    ctx.font = `400 30px ${SANS}`;
+    ctx.fillText('Laadbingo', tx, afterGrid + 42);
+    ctx.fillStyle = v.text;
+    ctx.font = `70px ${PIXEL}`;
+    ctx.fillText(String(content.bingo.stamped.length), tx, afterGrid + 100);
+    const w = ctx.measureText(String(content.bingo.stamped.length)).width;
+    ctx.fillStyle = v.muted;
+    ctx.font = `35px ${PIXEL}`;
+    ctx.fillText('/ 99', tx + w + 12, afterGrid + 100);
+    // The number of bingos on the right, so the row stays as low as the green one.
+    ctx.font = `400 30px ${SANS}`;
+    ctx.textAlign = 'right';
+    ctx.fillText(content.bingo.bingos === 1 ? '1 bingo' : `${content.bingo.bingos} bingo's`, M + W - 24, afterGrid + 42);
+    ctx.textAlign = 'left';
+    afterGrid += bh + gap;
+  }
+
   // Badges earned this year.
   const badgesY = afterGrid + 40;
   ctx.fillStyle = v.text;
@@ -249,8 +288,11 @@ export async function renderShareCard(review: YearReview): Promise<Blob> {
     M,
     badgesY,
   );
-  const iconSize = 72;
+  // Icons shrink when space is short (e.g. with the Laadbingo row), so they never reach the footer.
   const perRow = 10;
+  const rows = Math.max(1, Math.ceil(content.badges.length / perRow));
+  const room = CARD_HEIGHT - 150 - (badgesY + 32);
+  const iconSize = Math.max(40, Math.min(72, Math.floor((room - (rows - 1) * 24) / rows)));
   const iconGap = (W - perRow * iconSize) / (perRow - 1);
   content.badges.forEach((icon, i) => {
     const x = M + (i % perRow) * (iconSize + iconGap);

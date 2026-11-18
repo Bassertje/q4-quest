@@ -52,3 +52,6 @@ export function socRange(from: number | null, to: number | null): string {
   const pct = (v: number | null) => (v === null ? '?' : `${Math.round(v)}%`);
   return `${pct(from)} → ${pct(to)}`;
 }
+
+/** First letter in upper case ("rij 61–70" → "Rij 61–70"). */
+export const capitaliseFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

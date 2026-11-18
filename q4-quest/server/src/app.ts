@@ -5,6 +5,7 @@ import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { chargingAvailable, chargingResponse, isSocRange, socResponse } from './charging.ts';
 import { eventResponse, openAdventDoor } from './events.ts';
+import { bingoResponse } from './bingo.ts';
 import { cockpitResponse } from './cockpit.ts';
 import type { BackfillStatus } from './collector/collector.ts';
 import { schemaVersion } from './db.ts';
@@ -81,6 +82,8 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     const key = typeof q.key === 'string' && q.key.length <= 10 ? q.key : null;
     return chargingResponse(state(), deps.options, mode, key);
   });
+
+  app.get('/api/bingo', async () => bingoResponse(state(), deps.options));
 
   app.get('/api/charging/soc', async (req, reply) => {
     const range = (req.query as { range?: string }).range ?? '7d';

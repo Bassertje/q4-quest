@@ -43,6 +43,8 @@
     record: 'Nieuw record',
     yearready: 'Jaaroverzicht',
     newyear: 'Nieuwjaar',
+    stamp: 'Laadbingo',
+    bingo: 'Laadbingo',
   };
 
   const current = $derived(items[index]);
@@ -170,14 +172,21 @@
         onpointercancel={onCancel}
       >
       {#key index}
+        {#if current.kind !== 'stamp'}
         <div class="burst" class:snow={theme === 'winter'} aria-hidden="true">
           {#each burst as b, i (i)}
             <span style:--dx="{b.dx}px" style:--dy="{b.dy}px" style:--s="{b.size}px"></span>
           {/each}
         </div>
+        {/if}
         <div class="card">
           <p class="kind">{TITLES[current.kind]}</p>
-          <div class="icon"><PixelIcon icon={current.icon} size={112} label={current.name} /></div>
+          {#if current.kind === 'stamp' && current.stamp !== undefined}
+            <!-- Laadbingo: the percentage is stamped onto a square. -->
+            <div class="icon"><span class="stamp-cell" aria-hidden="true"><span class="stamp-num">{current.stamp}</span></span></div>
+          {:else}
+            <div class="icon"><PixelIcon icon={current.icon} size={112} label={current.name} /></div>
+          {/if}
           <h2>{current.name}</h2>
           {#if current.stats}
             <div class="stats">
@@ -364,6 +373,45 @@
       0 2px 0 var(--snow),
       0 -2px 0 var(--snow);
     animation-duration: 1.1s;
+  }
+  .stamp-cell {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 112px;
+    height: 112px;
+    border: 2px solid var(--line);
+    border-radius: 8px;
+  }
+  .stamp-cell::before {
+    content: '';
+    position: absolute;
+    inset: 12%;
+    background: var(--accent);
+    clip-path: polygon(30% 0, 70% 0, 70% 10%, 90% 10%, 90% 30%, 100% 30%, 100% 70%, 90% 70%, 90% 90%, 70% 90%, 70% 100%, 30% 100%, 30% 90%, 10% 90%, 10% 70%, 0 70%, 0 30%, 10% 30%, 10% 10%, 30% 10%);
+    animation: stamp-down 0.5s steps(5, end) both;
+  }
+  .stamp-num {
+    position: relative;
+    font-family: var(--font-pixel);
+    font-size: 3rem;
+    line-height: 1;
+    color: #ffffff;
+    animation: stamp-down 0.5s steps(5, end) both;
+  }
+  @keyframes stamp-down {
+    0% {
+      transform: scale(1.8);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(0.92);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
   .fireworks {
     position: fixed;

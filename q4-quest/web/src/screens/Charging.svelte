@@ -1,12 +1,13 @@
 <script lang="ts">
   import { getJson, putJson } from '../lib/api';
+  import BingoTile from '../lib/BingoTile.svelte';
   import ChargeKwhChart from '../lib/ChargeKwhChart.svelte';
   import { dayNoYear, km, kw, monthTitle, num1, socRange as socSpan } from '../lib/format';
   import PeriodPicker from '../lib/PeriodPicker.svelte';
   import PixelIcon from '../lib/PixelIcon.svelte';
   import StatTile from '../lib/StatTile.svelte';
   import SocChart from '../lib/SocChart.svelte';
-  import type { ChargePeriodMode, ChargingData, ChargingSession, SocData, SocRange } from '../lib/types';
+  import type { BingoData, ChargePeriodMode, ChargingData, ChargingSession, SocData, SocRange } from '../lib/types';
 
   let { refresh }: { refresh: number } = $props();
 
@@ -42,6 +43,15 @@
     }
   }
 
+  let bingo = $state<BingoData | null>(null);
+  async function loadBingo() {
+    try {
+      bingo = await getJson<BingoData>('bingo');
+    } catch {
+      bingo = null;
+    }
+  }
+
   async function loadSoc() {
     try {
       soc = await getJson<SocData>(`charging/soc?range=${socRange}`);
@@ -54,6 +64,7 @@
     void refresh;
     load();
     loadSoc();
+    loadBingo();
   });
 
   function setMode(m: ChargePeriodMode) {
@@ -159,6 +170,10 @@
         <p class="muted small">Nog te weinig accumetingen in dit bereik.</p>
       {/if}
     </section>
+  {/if}
+
+  {#if bingo?.available}
+    <BingoTile {bingo} />
   {/if}
 
   <PeriodPicker {mode} period={p} onmode={setMode} ongo={go} />

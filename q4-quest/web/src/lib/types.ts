@@ -235,7 +235,7 @@ export interface BadgesData {
 
 export interface RevealItem {
   keys: string[];
-  kind: 'week' | 'badge' | 'milestone' | 'challenge' | 'level' | 'rank' | 'record' | 'yearready' | 'newyear';
+  kind: 'week' | 'badge' | 'milestone' | 'challenge' | 'level' | 'rank' | 'record' | 'yearready' | 'newyear' | 'stamp' | 'bingo';
   name: string;
   description: string;
   icon: string;
@@ -243,6 +243,33 @@ export interface RevealItem {
   xp: number;
   stats?: { label: string; value: string }[];
   link?: { href: string; label: string };
+  /** Laadbingo: the stamped percentage. */
+  stamp?: number;
+}
+
+export interface BingoCard {
+  index: number;
+  startTs: number | null;
+  completedTs: number | null;
+  stamps: { n: number; ts: number }[];
+  lines: { lineId: string; kind: 'row' | 'column' | 'diagonal'; label: string; ts: number }[];
+}
+
+export interface BingoData {
+  available: boolean;
+  timeZone: string;
+  cards: BingoCard[];
+  counts: number[];
+  mostFrequent: { n: number; count: number } | null;
+  closest: { lineId: string; label: string; open: number } | null;
+  lines: { id: string; kind: string; label: string; cells: number[] }[];
+}
+
+export interface BingoYear {
+  stamps: number;
+  bingos: number;
+  mostFrequent: { n: number; count: number } | null;
+  card: { index: number; stamped: number[] };
 }
 
 export interface RevealData {
@@ -275,6 +302,8 @@ export interface YearsData {
 }
 
 export interface YearReview {
+  /** Laadbingo card (null without charging and SoC sensors). */
+  bingo?: BingoYear | null;
   /** Winterrit card (during and after the event of this year). */
   winterrit?: {
     name: string;

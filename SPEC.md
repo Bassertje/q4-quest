@@ -288,7 +288,64 @@ Binnen het evenement vervangen vaste thema-uitdagingen de gewone weekuitdagingen
 - `POST /api/advent/open`: opent het deurtje van vandaag (400 buiten 6–31 december, 409 als het al open is).
 - `GET /api/reveal` geeft ook `theme: 'winter' | null`; `?preview=winterrit` geeft voorbeelditems zonder seen-keys.
 
-## 5. Schermen
+## 5. Laadbingo
+
+Een bingospel op het startpercentage van je laadsessies. Pure logica in `game/src/bingo.ts`; alles wordt afgeleid uit de laadsessies en dus met terugwerkende kracht (opnieuw) berekend. Alleen beschikbaar met laadsensoren én een accupercentage-sensor (zonder SoC is het startpercentage onbekend).
+
+### Kaart
+- Een kaart van 10×10 met de getallen 1–99 per tiental: rij 1 = 1–10, rij 2 = 11–20, … rij 10 = 91–99. Op de 100e positie staat een gratis vakje **★** dat altijd afgestreept is.
+- Een vakje wordt afgestreept als een **geldige** laadsessie start op exact dat afgeronde SoC-percentage (`Math.round`, dus 62,5 → 63). Geldig = zoals de sessielijst ze toont, dus na het filter op vals-positieven. Alleen **afgeronde** sessies tellen (een lopende sessie kan nog afvallen); 0% en 100% staan niet op de kaart.
+- Per vakje wordt de datum van de eerste stempel op die kaart bijgehouden (de start van de sessie).
+- **Teller:** per percentage (1–99) wordt all-time bijgehouden hoe vaak een geldige sessie daarop startte, over alle kaarten heen.
+
+### Bingo's en kaartwissel
+- Lijnen: 10 rijen, 10 kolommen en 2 diagonalen (↘ 1–12–…–89–★ en ↙ 10–19–…–91). Een lijn met ★ heeft maar 9 getallen nodig.
+- Elke volle lijn levert per kaart eenmalig **150 XP** op; een volle kaart **1.000 XP**. Deze XP tellen mee voor het level (intern, niet als badge in het raster en niet in de tijdlijn).
+- Na een volle kaart begint automatisch **Kaart 2**: een lege kaart met alleen sessies die na de sessie die de kaart vol maakte zijn gestart. De all-time tellers lopen door. Oude kaarten blijven terug te kijken.
+- **Kruisbingo:** één sessie maakt in één keer twee of meer lijnen vol.
+- **Dichtstbij:** de nog niet volle lijn met de minste open vakjes; bij een gelijkstand gaat een rij vóór een kolom vóór een diagonaal (daarna de eerste op de kaart). Namen: "rij 71–80" (rij 10: "rij 91–99"), "kolom …3" (de kolom met getallen op 3; kolom 10: "kolom …0"), "diagonaal ↘" / "diagonaal ↙".
+
+### Badges (categorie Laden, met terugwerkende kracht)
+| Badge | Voorwaarde | XP | Voortgang |
+|---|---|---|---|
+| Eerste bingo | eerste volle lijn (rij, kolom of diagonaal) | 100 | vakjes in de best gevulde lijn / 10 |
+| Volle kaart | eerste volledig afgestempelde kaart | 500 | afgestreept / 99 |
+| Vaste prik | ≥ 10 sessies gestart op hetzelfde percentage | 75 | hoogste teller / 10 |
+| Stamgast | ≥ 25 sessies gestart op hetzelfde percentage | 200 | hoogste teller / 25 |
+| Halve kaart | ≥ 50 vakjes afgestempeld op één kaart (★ telt niet) | 150 | afgestreept / 50 |
+| Schuin gaan | eerste diagonaal-bingo | 150 | – |
+| Dubbelgangers | 11, 22, 33, 44, 55, 66, 77, 88 en 99 allemaal minstens één keer gestart (all-time) | 200 | gehaald / 9 |
+| Kruisbingo (verborgen) | één sessie maakt in één keer twee of meer lijnen vol | 250 | – |
+
+Badges met voortgang zijn te volgen. Elke badge heeft een eigen pixel-icoon (mini-kaart met lijn, volle kaart, halve kaart, diagonaal, kruis, punaise, koffiemok, tweeling).
+
+### Tegel op de Laden-pagina
+- Direct onder de Accu-kaart en vóór de periodekeuze.
+- Links een mini-weergave van de huidige kaart als 10×10-pixelraster: afgestreept in accentrood, open in de gedimde lijnkleur, ★ in goud `#F2B33D` en het vakje met de hoogste all-time teller in een fellere tint accentrood.
+- Rechts het label "Laadbingo" (vanaf kaart 2: "Laadbingo · kaart 2"), de waarde "X / 99" in het LCD-font en de subtekst "Dichtstbij: rij 71–80, nog 2". Alles op één regel.
+- De hele tegel is klikbaar en opent de volledige kaart.
+
+### Volledige kaart
+- Eigen scherm op `#/laden/bingo` (eerdere kaarten: `#/laden/bingo/2`), met een terugknop "‹ Laden"; de browser-terugknop werkt. In de navigatie blijft Laden actief.
+- Het 10×10-raster vult de breedte; de getallen blijven leesbaar op 375px (pixel-font met `clamp()`).
+- Afgestreepte vakjes krijgen een pixel-stempel (blokkige schijf) in accentrood met het getal in wit; ★ in goud. De meest recente stempel licht kort op (uit bij `prefers-reduced-motion`).
+- Rechtsonder in elk vakje een klein, gedimd "×N" vanaf N ≥ 2 (all-time teller), zonder het hoofdgetal te verstoren.
+- Een tik op een vakje toont "63% · 4× gestart · eerste keer ma 9 nov" (of "nog niet op deze kaart").
+- Behaalde lijnen worden met een rode lijn over het raster gemarkeerd.
+- Onderaan: het aantal bingo's op deze kaart, het meest gestarte percentage (met aantal), en "Kaart 1" met een kiezer voor eerdere kaarten (zodra er meer dan één kaart is).
+
+### Reveal-scherm
+- Een nieuw vakje: "Laadbingo: 63% afgestempeld!" met een stempelanimatie (het getal wordt op een vakje gestempeld). Zijn er meer dan 3 nieuwe vakjes tegelijk (bijv. de eerste keer na de update), dan één item "Laadbingo: 30 vakjes afgestempeld!" met een knop naar de kaart.
+- Een bingo: "BINGO! Rij 61–70" (of "Kolom …3" / "Diagonaal ↘") met een pixel-burst en +150 XP; een volle kaart: "Kaart 1 vol!" (+1.000 XP).
+
+### Jaaroverzicht en deelkaart
+- Kaart "Laadbingo" in het jaaroverzicht: het aantal vakjes dat dat jaar is afgestempeld, het aantal bingo's dat jaar, het meest geladen startpercentage van dat jaar en de mini-kaart (de kaart zoals hij aan het eind van het jaar, of nu, was).
+- De mini-kaart staat ook op de deelkaart: een rij met het raster, "X / 99" en het aantal bingo's. De badge-iconen eronder worden zo nodig kleiner, zodat ze nooit de voettekst raken.
+
+### API
+- `GET /api/bingo`: beschikbaarheid, alle kaarten (stempels met datum, voltooide lijnen), de all-time tellers, het meest gestarte percentage, de lijn die het dichtst bij een bingo is en de lijndefinities.
+
+## 6. Schermen
 
 Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laadsensoren). Instellingen zitten achter een tandwiel. De navigatie-iconen zijn pixel-art (Cockpit: een stuur; Instellingen: een tandwiel met 8 tanden en een rond gat). De positie is instelbaar (Instellingen → Navigatie):
 - **Boven** (standaard): een sticky balk direct onder de kop "Q4 QUEST", met een achtergrond in de themakleur zodat content er niet doorheen schijnt, pixel-iconen met label en een rode onderstreping voor de actieve tab.
@@ -324,7 +381,7 @@ Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laads
    - Jaaroverzichten en de geschiedenis van de weekuitdagingen (regel 2: titel van de uitdaging · voortgang / doel).
    - Tijdlijn van gebeurtenissen (badges, Wereldreis-bestemmingen, level-ups).
 4. **Laden**
-   - Volgorde van boven naar beneden: Accu, periodekeuze, tegels (Sessies, Geladen, Verbruik, Gem. laadvermogen), de grafiek Geladen, Groen en Sessies. Er is geen scheidingskop; de titels van Geladen, Groen en Sessies tonen de gekozen periode erachter ("Geladen · november 2026"), zodat duidelijk is welke onderdelen de periode volgen.
+   - Volgorde van boven naar beneden: Accu, de Laadbingo-tegel (zie Laadbingo), periodekeuze, tegels (Sessies, Geladen, Verbruik, Gem. laadvermogen), de grafiek Geladen, Groen en Sessies. Er is geen scheidingskop; de titels van Geladen, Groen en Sessies tonen de gekozen periode erachter ("Geladen · november 2026"), zodat duidelijk is welke onderdelen de periode volgen.
    - **Accu** bovenaan (lijngrafiek van de SoC met laadsessies als gearceerde vlakken), los van de periodekeuze, met een eigen kleine segmentknop 24 uur · 7 dagen · 30 dagen (standaard 7 dagen). Laadvlakken in het accentrood `#E30613`: AC met ca. 18% en DC met ca. 35% dekking, in de lichte en de donkere modus; de legenda gebruikt exact dezelfde kleur en dekking. Alleen met een SoC-sensor.
    - **Periodekeuze** (gedeeld onderdeel, zie hieronder; eigen bewaarde keuze `setting.charging_period`, standaard All-time). De keuze geldt voor de tegels, de grafiek Geladen, Groen en de sessielijst.
    - **Vier tegels** in een raster van 2×2 (zie Statistiektegels): Sessies "9" / "8 AC · 1 DC". Geladen ⓘ "208 kWh" / "AC X · DC Y". Verbruik ⓘ "25,2 kWh" / "per 100 km" (zie Verbruiksschatting; minder dan 100 km: "–" / "te weinig data"). Gem. laadvermogen "11,2 kW" / "AC X · DC Y": het gemiddelde over de afgeronde sessies in de periode van kWh ÷ duur per sessie, met de gemiddelden per type (ontbreekt een type, dan valt dat deel weg; zonder sessies "–" / "geen sessies"). De ⓘ bij Geladen legt uit dat de kWh een schatting is; de ⓘ bij Verbruik bevat de uitleg van de methode.
@@ -358,7 +415,7 @@ Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laads
 
 ---
 
-## 6. Vormgeving: "Night Drive Retro"
+## 7. Vormgeving: "Night Drive Retro"
 
 - **Thema's:** alle kleuren lopen via CSS-variabelen. De gebruiker kiest Automatisch, Licht of Donker (zie Instellingen).
   - **Donker:** achtergrond `#0A0A0C`, panelen `#141519`, lijnen `#24262C`, tekst `#E8E8EA`, gedempte tekst `#8A8D96`.
@@ -378,7 +435,7 @@ Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laads
 
 ---
 
-## 7. Fasen
+## 8. Fasen
 
 Werk ze op volgorde af. Elke fase eindigt met een werkende, installeerbare versie.
 
@@ -389,5 +446,5 @@ Werk ze op volgorde af. Elke fase eindigt met een werkende, installeerbare versi
 4. **Badges:** badge-engine met terugwerkende kracht, het Badges-scherm, het reveal-scherm en de seen-vlaggen. → `0.5.0`
 5. **Jaaroverzicht:** een swipebare reeks kaarten met de hoogtepunten van het jaar (zie Schermen → Jaaroverzicht), beschikbaar vanaf 1 december en daarna per jaar terug te kijken, met een voorbeeldknop in Instellingen. → `1.0.0`
 
-## 8. Niet in scope
+## 9. Niet in scope
 Locatie/GPS, meerdere gebruikers of bestuurders, pushmeldingen, iets terugschrijven naar HA, en externe diensten of analytics.

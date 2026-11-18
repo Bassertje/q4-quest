@@ -5,7 +5,7 @@ import type { DrivingRecords } from './records.ts';
 import type { TimelineEvent } from './timeline.ts';
 import type { WeekReview } from './week-review.ts';
 
-export type RevealKind = 'week' | 'badge' | 'milestone' | 'challenge' | 'level' | 'rank' | 'record' | 'yearready' | 'newyear';
+export type RevealKind = 'week' | 'badge' | 'milestone' | 'challenge' | 'level' | 'rank' | 'record' | 'yearready' | 'newyear' | 'stamp' | 'bingo';
 
 export interface RevealItem {
   /** Seen-flag keys this item covers (a level item covers all levels gained). */
@@ -20,6 +20,8 @@ export interface RevealItem {
   stats?: { label: string; value: string }[];
   /** A button to another screen (e.g. the year review). */
   link?: { href: string; label: string };
+  /** Laadbingo: the stamped percentage (for the stamp animation). */
+  stamp?: number;
 }
 
 export interface RecordEntry {
@@ -62,13 +64,15 @@ export function revealItems(input: {
   now: number;
   /** "Last week" card, shown first on the first opening in a new week. */
   weekReview?: WeekReview | null;
+  /** Extra items sorted in with the rest (e.g. Laadbingo stamps). */
+  extra?: RevealItem[];
 }): RevealItem[] {
-  const items: RevealItem[] = [];
+  const items: RevealItem[] = [...(input.extra ?? [])];
   for (const b of input.badges) {
     if (b.unlockedTs === null || b.category === 'advent') continue; // doors are opened by the user
     const key = `badge:${b.id}`;
     if (input.seen.has(key)) continue;
-    const kind: RevealKind = b.category === 'wereldreis' ? 'milestone' : b.category === 'weekuitdaging' ? 'challenge' : 'badge';
+    const kind: RevealKind = b.category === 'wereldreis' ? 'milestone' : b.category === 'weekuitdaging' ? 'challenge' : b.category === 'bingo' ? 'bingo' : 'badge';
     items.push({ keys: [key], kind, name: b.name, description: b.description, icon: b.icon, ts: b.unlockedTs, xp: b.xp });
   }
 
@@ -112,7 +116,7 @@ export function revealItems(input: {
     items.push({ keys: [r.key], kind: 'record', name: r.name, description: `${r.value} · ${r.label}`, icon: 'crown', ts: r.ts || input.now, xp: 0 });
   }
 
-  const order: Record<RevealKind, number> = { newyear: -3, yearready: -2, week: -1, milestone: 0, badge: 1, challenge: 2, record: 3, level: 4, rank: 5 };
+  const order: Record<RevealKind, number> = { newyear: -3, yearready: -2, week: -1, milestone: 0, stamp: 0.5, bingo: 0.6, badge: 1, challenge: 2, record: 3, level: 4, rank: 5 };
   items.sort((a, b) => a.ts - b.ts || order[a.kind] - order[b.kind]);
   // The weekly review always comes first.
   if (input.weekReview && !input.seen.has(`week:${input.weekReview.week}`)) {
