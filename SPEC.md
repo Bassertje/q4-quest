@@ -458,7 +458,7 @@ Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laads
   - Een SoC-bereik wordt overal geschreven met beide procenttekens: "71% → 100%" (nooit afgebroken, `white-space: nowrap`).
   - Geen merklogo's.
   - Respecteer `prefers-reduced-motion`.
-  - Goed leesbaar op een telefoon, zonder horizontaal scrollen.
+  - Goed leesbaar op een telefoon, zonder horizontaal scrollen. De pagina wordt nooit breder dan het scherm, ook niet met een grotere tekstgrootte op het toestel: de kolom met kaarten is `minmax(0, 1fr)` en kaarten krimpen mee (`min-width: 0`). Tekst die niet past, kapt af met "…" of loopt door naar een volgende regel, maar duwt de kaart nooit breder. Getest met 16, 19 en 21px basistekst.
   - Lijsten (ritblokken, laadsessies, records, weekuitdagingen) gebruiken één vaste rij van twee regels: regel 1 de hoofdtekst links (bijv. datum) en de waarde rechts (vet, nooit afgebroken); regel 2 klein en gedempt (bijv. tijdvak of "rond HH:MM", en indien beschikbaar " · temperatuur"). De tijdlijn toont titel en daaronder de datum.
   - Fonts lokaal meeleveren, niet via een CDN (de add-on moet offline werken).
 

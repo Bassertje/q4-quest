@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.1
+
+- **Opgelost: de pagina werd breder dan het scherm.** Met een grotere tekstgrootte op je telefoon (bijv. in de Home Assistant-app) konden de kop van de Accu-kaart en het bijschrift van de grafiek *Bereik vs. temperatuur* breder worden dan het scherm. Vooral na een tik op een lading rekte daardoor de hele pagina uit, met grafieken en tegels. De kaarten blijven nu altijd binnen de schermbreedte, en te lange regels worden netjes afgekort.
+
 ## 1.9.0
 
 - **Nieuw: Op één lading.** In de Sessies-kaart op de Laden-pagina kies je nu tussen *Laadsessies* en *Op één lading*: een lijst van alles wat je tussen twee keer laden reed, met de gereden km, van hoeveel naar hoeveel procent, hoe lang en hoeveel ritten, en de gemiddelde buitentemperatuur. Tik op een rij voor het geschatte bereik op een volle accu, het verbruik en meer.
