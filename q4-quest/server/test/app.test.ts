@@ -441,3 +441,15 @@ describe('Op één lading API', () => {
     expect(h.cycleRecords.bestRange.rangeKm).toBeGreaterThan(0);
   });
 });
+
+describe('cycle record on the charging screen', () => {
+  it('reports the all-time record of km on one charge, independent of the period', async () => {
+    const { app } = make(MOCK_OPTIONS_RAW, true);
+    const all = (await app.inject({ url: '/api/charging' })).json();
+    const week = (await app.inject({ url: '/api/charging?period=week' })).json();
+    expect(all.cycleRecord.km).toBeGreaterThan(0);
+    expect(week.cycleRecord).toEqual(all.cycleRecord);
+    const finished = all.period.cycles.filter((c: { ongoing: boolean }) => !c.ongoing);
+    expect(all.cycleRecord.km).toBe(Math.max(...finished.map((c: { km: number }) => c.km)));
+  });
+});

@@ -189,6 +189,7 @@ export interface ChargingData {
   period: ChargePeriod | null;
   hasSoc: boolean;
   hasTemperature: boolean;
+  cycleRecord: { start: number; end: number; km: number } | null;
   records: ChargingRecords | null;
   greenProgress: {
     totalKg: number;

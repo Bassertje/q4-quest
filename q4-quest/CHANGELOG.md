@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.2
+
+- **Op één lading:** je record (de meeste km op één lading) staat nu subtiel bovenaan, met een kroontje. De recordlading heeft ook een klein kroontje in de lijst, en rijd je er met je huidige lading overheen, dan kleurt dat kroontje rood.
+- Het bijschrift onder de grafiek *Bereik vs. temperatuur* wordt niet meer afgekapt, maar loopt zo nodig over twee regels.
+
 ## 1.9.1
 
 - **Opgelost: de pagina werd breder dan het scherm.** Met een grotere tekstgrootte op je telefoon (bijv. in de Home Assistant-app) konden de kop van de Accu-kaart en het bijschrift van de grafiek *Bereik vs. temperatuur* breder worden dan het scherm. Vooral na een tik op een lading rekte daardoor de hele pagina uit, met grafieken en tegels. De kaarten blijven nu altijd binnen de schermbreedte, en te lange regels worden netjes afgekort.
