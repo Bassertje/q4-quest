@@ -261,6 +261,12 @@
   }
   main {
     display: grid;
+    /* One column that never grows wider than the screen: without minmax(0, …)
+       a wide child (e.g. with larger text) stretches every card and chart. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 12px;
+  }
+  main > :global(*) {
+    min-width: 0;
   }
 </style>

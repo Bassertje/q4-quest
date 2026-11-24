@@ -419,6 +419,7 @@
   }
   .panel-head {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
@@ -536,7 +537,8 @@
     align-items: flex-end;
     text-align: right;
   }
-  .mid .l1 {
+  .mid .l1,
+  .mid .l2 {
     overflow: hidden;
     text-overflow: ellipsis;
   }
