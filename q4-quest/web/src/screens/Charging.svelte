@@ -313,6 +313,13 @@
     {/if}
     {#if view === 'cycles'}
       {@const cycles = p?.cycles ?? []}
+      {@const rec = data.cycleRecord}
+      {#if rec}
+        <p class="cycle-record">
+          <PixelIcon icon="crown" size={14} />
+          <span>Record: <strong>{km(rec.km)} km</strong> · {dayRange(rec.start, rec.end, tz)}</span>
+        </p>
+      {/if}
       {#if data.hasTemperature}
         <h4 class="sub-h">Bereik vs. temperatuur</h4>
         <RangeTempChart {cycles} />
@@ -331,7 +338,11 @@
                   <span class="l2">{#if c.ongoing}<span class="now"><span class="dot" aria-hidden="true"></span>nu</span>{' · '}{/if}{durationLabel(c.end - c.start)} · {c.trips} {c.trips === 1 ? 'rit' : 'ritten'}</span>
                 </span>
                 <span class="end">
-                  <span class="l1 strong">{km(c.km)} km</span>
+                  <span class="l1 strong">
+                    {#if rec && (c.start === rec.start || (c.ongoing && c.km > rec.km))}
+                      <span class="crown" class:beat={c.ongoing} title={c.ongoing ? 'Boven je record' : 'Record'}><PixelIcon icon="crown" size={12} /></span>
+                    {/if}{km(c.km)} km
+                  </span>
                   <span class="l2">{socSpan(c.socStart, c.socEnd)}</span>
                 </span>
               </button>
@@ -655,6 +666,29 @@
     border: 1px solid var(--line);
     border-radius: 4px;
     color: var(--muted);
+  }
+  /* Subtle all-time record above the cycles. */
+  .cycle-record {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 10px;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  .cycle-record strong {
+    color: var(--text);
+  }
+  .crown {
+    display: inline-flex;
+    vertical-align: -1px;
+    margin-right: 4px;
+    opacity: 0.55;
+    filter: grayscale(1);
+  }
+  .crown.beat {
+    opacity: 1;
+    filter: none;
   }
   .view-seg {
     display: flex;

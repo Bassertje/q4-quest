@@ -6,6 +6,7 @@ import {
   type ChargePeriodMode,
   type ChargePeriodView,
   chargePeriodView,
+  cycleRecords,
   dayKey,
 } from '../../game/src/index.ts';
 import type { GameState } from './game-state.ts';
@@ -41,6 +42,8 @@ export interface ChargingResponse {
   hasSoc: boolean;
   /** A temperature sensor is configured (for the range-vs-temperature chart). */
   hasTemperature: boolean;
+  /** All-time record: the most km actually driven on one charge (finished cycles only). */
+  cycleRecord: { start: number; end: number; km: number } | null;
   records: ChargingRecords | null;
   /** All-time CO₂ saved and the next CO₂ badge of the Groen category (null: all reached). */
   greenProgress: {
@@ -57,6 +60,7 @@ export function chargingResponse(state: GameState, options: Options, mode: Charg
   const empty: ChargingResponse = {
     available, timeZone, batteryKwh: options.batteryKwh, period: null, hasSoc: options.entities.soc !== null,
     hasTemperature: options.entities.temperature !== null,
+    cycleRecord: null,
     records: null, greenProgress: null,
   };
   if (!available) return empty;
@@ -83,6 +87,7 @@ export function chargingResponse(state: GameState, options: Options, mode: Charg
       key,
     ),
     records: state.chargingRecords,
+    cycleRecord: ((l) => (l ? { start: l.start, end: l.end, km: l.km } : null))(cycleRecords(state.cycles).longest),
     greenProgress: greenProgress(state),
   };
 }
