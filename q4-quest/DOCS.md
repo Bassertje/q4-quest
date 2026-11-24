@@ -131,6 +131,15 @@ De laatste kaart is een **deelkaart**: een afbeelding met je jaarcijfers en badg
 kilometerstand van de auto en zonder datums of tijden. Met **Delen** open je het deelmenu van je
 telefoon; anders wordt de afbeelding gedownload.
 
+## Op één lading
+
+Op de Laden-pagina kies je in de Sessies-kaart **Op één lading**: alles wat je reed tussen twee keer laden.
+Per lading zie je de gereden km, het accupercentage van/naar, de duur en de gemiddelde buitentemperatuur.
+Het **geschatte bereik op een volle accu** (km ÷ gebruikte procenten × 100) maakt ladingen vergelijkbaar,
+ook als je niet van 100 naar 0 rijdt; het wordt berekend vanaf 10% accugebruik. Met een temperatuursensor
+laat de grafiek *Bereik vs. temperatuur* zien hoeveel bereik je bij kou inlevert. De bijbehorende badges en
+weekuitdagingen belonen ver en zuinig rijden, niet het leegrijden van de accu.
+
 ## Laadbingo
 
 Met een accupercentage-sensor speel je **Laadbingo**: elke laadsessie stempelt het (afgeronde) percentage

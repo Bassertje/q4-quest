@@ -10,6 +10,7 @@ import { dayProgress, dayReachTimes, firstGroupCrossing, type DayProgress } from
 import { addDays, dayKey, isWeekend, localHour, monthKey, weekKey, zonedMidnight } from './time.ts';
 import { MIN_READINGS_FOR_TIME_BADGES, type TripBlock } from './trips.ts';
 import { eventBadges } from './events.ts';
+import { kmReachedAt, type DriveCycle } from './cycles.ts';
 import { BINGO_LINES, BINGO_NUMBERS, BINGO_SIZE, bingoNumber, buildBingo, DOUBLES, lineFill, type BingoState } from './bingo.ts';
 
 export type BadgeCategory =
@@ -49,6 +50,8 @@ export interface BadgeContext {
   hasSoc: boolean;
   /** Completed weekly challenges. */
   challenges: { week: string; completedTs: number }[];
+  /** Cycles between charging sessions ("op één lading"), oldest first; empty when not computed. */
+  cycles?: DriveCycle[];
   timeZone: string;
   now: number;
 }
@@ -273,6 +276,64 @@ function doublesDone(ctx: BadgeContext): number | null {
 const cardWithStamps = (n: number) => (ctx: BadgeContext) => firstOf(bingoOf(ctx).cards.map((c) => c.stamps[n - 1]?.ts));
 const maxCount = (ctx: BadgeContext) => Math.max(0, ...bingoOf(ctx).counts);
 
+// ---------- Op één lading ----------
+
+const DAY_MS = 86_400_000;
+const cyclesOf = (ctx: BadgeContext) => ctx.cycles ?? [];
+/** First moment a single cycle reached `km`. */
+const cycleKm = (km: number) => (ctx: BadgeContext) =>
+  firstOf(cyclesOf(ctx).map((c) => kmReachedAt(ctx.odometer, c.start, c.end, km)));
+const bestCycleKm = (ctx: BadgeContext) => Math.floor(Math.max(0, ...cyclesOf(ctx).map((c) => c.km)));
+
+/** A finished cycle of ≥ 250 km at an average below 5 °C. */
+function winterKing(ctx: BadgeContext): number | null {
+  return cyclesOf(ctx).find((c) => !c.ongoing && c.km >= WINTER_KING_KM && c.avgTemp !== null && c.avgTemp < WINTER_KING_MAX_TEMP)?.end ?? null;
+}
+
+/** A cycle (≥ 30% used) whose estimated range beats the average of the earlier usable cycles (at least 3) by 15%. */
+function ecoCycle(ctx: BadgeContext): number | null {
+  const earlier: number[] = [];
+  for (const c of cyclesOf(ctx)) {
+    if (c.ongoing || c.rangeKm === null) continue;
+    if (earlier.length >= 3 && c.usedPct! >= ECO_CYCLE_MIN_USED) {
+      const mean = earlier.reduce((a, b) => a + b, 0) / earlier.length;
+      if (c.rangeKm >= mean * ECO_CYCLE_FACTOR) return c.end;
+    }
+    earlier.push(c.rangeKm);
+  }
+  return null;
+}
+
+/** 7 days or more without charging while driving at least 150 km. */
+function weekWithoutCharging(ctx: BadgeContext): number | null {
+  return firstOf(
+    cyclesOf(ctx).map((c) => {
+      if (c.end - c.start < 7 * DAY_MS) return null;
+      const reached = kmReachedAt(ctx.odometer, c.start, c.end, WEEK_CYCLE_MIN_KM);
+      return reached === null ? null : Math.max(c.start + 7 * DAY_MS, reached);
+    }),
+  );
+}
+
+/** 10 finished cycles in a row that never went below 20%. */
+function wiseCharger(ctx: BadgeContext): number | null {
+  let run = 0;
+  for (const c of cyclesOf(ctx)) {
+    if (c.ongoing) continue;
+    run = c.minSoc !== null && c.minSoc >= WISE_MIN_SOC ? run + 1 : 0;
+    if (run >= WISE_CYCLES) return c.end;
+  }
+  return null;
+}
+
+export const WINTER_KING_KM = 250;
+export const WINTER_KING_MAX_TEMP = 5;
+export const ECO_CYCLE_MIN_USED = 30;
+export const ECO_CYCLE_FACTOR = 1.15;
+export const WEEK_CYCLE_MIN_KM = 150;
+export const WISE_MIN_SOC = 20;
+export const WISE_CYCLES = 10;
+
 const nthChallenge = (n: number) => (ctx: BadgeContext) =>
   [...ctx.challenges].sort((a, b) => a.completedTs - b.completedTs)[n - 1]?.completedTs ?? null;
 
@@ -312,6 +373,14 @@ export const BADGES: BadgeDef[] = [
   { id: 'running_on_fumes', name: 'Op de valreep', description: 'Een accupercentage van 10% of lager gemeten.', hint: 'Rij de accu bijna leeg.', category: 'laden', xp: 75, requires: ['soc'], icon: 'batteryLow', check: (c) => c.soc.find((r) => r.value <= 10)?.ts ?? null },
   { id: 'dc_150', name: 'Volle bak', description: `Gemiddeld ${DC_FULL_AVG_KW} kW of meer in één laadsessie.`, hint: 'Laad met een hoog gemiddeld vermogen.', category: 'laden', xp: 100, requires: ['charging'], icon: 'bolts', check: (c) => firstSession(c, (s) => (s.avgKw ?? 0) >= DC_FULL_AVG_KW) },
   { id: 'mwh_1', name: 'Eerste megawattuur', description: 'In totaal 1.000 kWh geladen.', hint: 'Laad in totaal 1.000 kWh.', category: 'laden', xp: 250, requires: ['charging'], icon: 'medal', check: (c) => cumulativeKwh(c, 1000), progress: (c) => progressOf(Math.round(c.sessions.reduce((sum, s) => sum + (s.kwh ?? 0), 0)), 1000, 'kWh') },
+
+  // Op één lading (between two charging sessions; needs the SoC)
+  { id: 'cycle_300', name: 'Lange adem', description: '300 km gereden op één lading.', hint: 'Rij 300 km zonder tussendoor te laden.', category: 'rijden', xp: 100, requires: ['odometer', 'charging', 'soc'], icon: 'longBreath', check: cycleKm(300), progress: (c) => progressOf(bestCycleKm(c), 300, 'km') },
+  { id: 'cycle_500', name: 'Marathonlading', description: '500 km gereden op één lading.', hint: 'Rij 500 km zonder tussendoor te laden.', category: 'rijden', xp: 250, requires: ['odometer', 'charging', 'soc'], icon: 'marathon', check: cycleKm(500), progress: (c) => progressOf(bestCycleKm(c), 500, 'km') },
+  { id: 'winter_king', name: 'Winterkoning', description: `Minstens ${WINTER_KING_KM} km op één lading bij gemiddeld minder dan ${WINTER_KING_MAX_TEMP} °C.`, hint: 'Rij ver op één lading als het koud is.', category: 'rijden', xp: 150, requires: ['odometer', 'charging', 'soc', 'temperature'], icon: 'winterKing', check: winterKing },
+  { id: 'eco_cycle', name: 'Zuinige lading', description: 'Een lading (minstens 30% gebruikt) met een geschat bereik 15% boven je eigen gemiddelde.', hint: 'Rij een lading extra zuinig.', category: 'zuinigheid', xp: 100, requires: ['odometer', 'charging', 'soc'], icon: 'ecoBattery', check: ecoCycle },
+  { id: 'week_cycle', name: 'Eén keer per week', description: `7 dagen gereden zonder te laden (minstens ${WEEK_CYCLE_MIN_KM} km).`, hint: 'Rij een hele week op één lading.', category: 'laden', xp: 75, requires: ['odometer', 'charging', 'soc'], icon: 'weekPlug', check: weekWithoutCharging },
+  { id: 'wise_charger', name: 'Wijze lader', description: `${WISE_CYCLES} ladingen op rij nooit onder de ${WISE_MIN_SOC}% gekomen.`, hint: '???', category: 'laden', xp: 150, requires: ['charging', 'soc'], hidden: true, icon: 'wiseBattery', check: wiseCharger },
 
   // Laadbingo (needs the start percentage, so a SoC sensor)
   { id: 'bingo_first', name: 'Eerste bingo', description: 'Je eerste volle lijn op de Laadbingo-kaart (rij, kolom of diagonaal).', hint: 'Maak een rij, kolom of diagonaal vol op de Laadbingo-kaart.', category: 'laden', xp: 100, requires: ['charging', 'soc'], icon: 'bingoLine', check: (c) => firstOf(bingoOf(c).cards.map((k) => k.lines[0]?.ts)), progress: (c) => progressOf(Math.max(...BINGO_LINES.map((l) => lineFill(currentCard(c), l))), BINGO_SIZE, 'vakjes') },

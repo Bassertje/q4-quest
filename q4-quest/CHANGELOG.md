@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.0
+
+- **Nieuw: Op één lading.** In de Sessies-kaart op de Laden-pagina kies je nu tussen *Laadsessies* en *Op één lading*: een lijst van alles wat je tussen twee keer laden reed, met de gereden km, van hoeveel naar hoeveel procent, hoe lang en hoeveel ritten, en de gemiddelde buitentemperatuur. Tik op een rij voor het geschatte bereik op een volle accu, het verbruik en meer.
+- **Grafiek Bereik vs. temperatuur:** elke lading als stip, met een trendlijn die laat zien hoeveel bereik je bij kou inlevert.
+- **Records** in Historie: Langste op één lading, Beste bereik en Verste lading bij vorst.
+- **Zes nieuwe badges:** Lange adem (300 km op één lading), Marathonlading (500 km), Winterkoning, Zuinige lading, Eén keer per week en een verborgen badge die juist beloont dat je de accu niet ver leegrijdt.
+- **Twee nieuwe weekuitdagingen:** *Op één lading* (zoveel km zonder tussendoor te laden) en *Bereikjager* (een lading met een hoog geschat bereik; het doel gaat mee met het seizoen).
+
 ## 1.8.0
 
 - **Nieuw: Laadbingo.** Elke laadsessie stempelt het accupercentage waarop hij begon af op een bingokaart van 1 tot 99 (met een gratis ★). Ook je laadsessies van vóór de update tellen mee.

@@ -30,6 +30,8 @@ import {
   type TimedValue,
   ADVENT_XP,
   type BingoState,
+  driveCycles,
+  type DriveCycle,
 } from '../../game/src/index.ts';
 import { bingoBonusBadges, bingoState } from './bingo.ts';
 import { challengeBonusBadges, syncChallenges } from './challenges.ts';
@@ -65,6 +67,8 @@ export interface GameState {
   adventDoors: AdventDoor[];
   /** Laadbingo (null without charging and SoC sensors). */
   bingo: BingoState | null;
+  /** Cycles between charging sessions ("op één lading"), oldest first (empty without charging and SoC sensors). */
+  cycles: DriveCycle[];
 }
 
 export interface AdventDoor {
@@ -165,10 +169,17 @@ export function computeGameState(
     ? []
     : tripBlocks(odometer, options.entities.parking_brake ? store.states('parking_brake') : []);
 
+  // "Op één lading": cycles between charging sessions (needs charging and SoC sensors).
+  const cycles: DriveCycle[] =
+    setupNeeded || !charging || options.entities.soc === null
+      ? []
+      : driveCycles({ sessions, odometer, soc, temperature, trips, batteryKwh: options.batteryKwh, now });
+
   const challenges = setupNeeded
     ? []
     : syncChallenges(db, {
         trips,
+        cycleData: { cycles, odometer },
         hasSoc: options.entities.soc !== null,
         progress,
         dailyTotals: totals,
@@ -195,6 +206,7 @@ export function computeGameState(
           green: factors,
           batteryKwh: options.batteryKwh,
           hasSoc: options.entities.soc !== null,
+          cycles,
           challenges: challenges
             .filter((c) => c.status === 'done' && c.completedTs !== null)
             .map((c) => ({ week: c.week, completedTs: c.completedTs! })),
@@ -248,6 +260,7 @@ export function computeGameState(
     weekReview,
     adventDoors,
     bingo,
+    cycles,
   };
 }
 

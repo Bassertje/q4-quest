@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { agoShort, dayNoYear, monthTitle, socRange } from './format.ts';
+import { agoShort, dayNoYear, dayRange, durationLabel, monthTitle, socRange, tempShort } from './format.ts';
 
 describe('socRange', () => {
   it('shows both percent signs', () => {
@@ -21,5 +21,19 @@ describe('compact labels', () => {
   it('formats short dates without year and month headings', () => {
     expect(dayNoYear(Date.parse('2026-11-09T10:00:00Z'), 'UTC')).toBe('ma 9 nov');
     expect(monthTitle(Date.parse('2026-11-09T10:00:00Z'), 'UTC')).toBe('November 2026');
+  });
+});
+
+describe('cycle labels', () => {
+  const tz = 'Europe/Amsterdam';
+  const at = (iso: string) => Date.parse(iso);
+  it('formats day ranges, durations and temperatures', () => {
+    expect(dayRange(at('2026-11-09T08:00:00+01:00'), at('2026-11-12T18:00:00+01:00'), tz)).toBe('ma 9 – do 12 nov');
+    expect(dayRange(at('2026-11-30T08:00:00+01:00'), at('2026-12-02T18:00:00+01:00'), tz)).toBe('ma 30 nov – wo 2 dec');
+    expect(dayRange(at('2026-11-09T08:00:00+01:00'), at('2026-11-09T18:00:00+01:00'), tz)).toBe('ma 9 nov');
+    expect(durationLabel(14 * 3_600_000)).toBe('14 uur');
+    expect(durationLabel(3 * 86_400_000)).toBe('3 dagen');
+    expect(tempShort(-2.4)).toBe('−2°');
+    expect(tempShort(null)).toBe('–');
   });
 });

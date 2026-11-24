@@ -3,7 +3,7 @@
   import { periodRangeLabel } from '../../../game/src/history-period.ts';
   import BarChart from '../lib/BarChart.svelte';
   import ConsumptionChart from '../lib/ConsumptionChart.svelte';
-  import { date, dayShort, km, kw, num1, periodLabel } from '../lib/format';
+  import { date, dayRange, dayShort, km, kw, num1, periodLabel, tempC } from '../lib/format';
   import PeriodPicker from '../lib/PeriodPicker.svelte';
   import Setup from '../lib/Setup.svelte';
   import StatTile from '../lib/StatTile.svelte';
@@ -117,6 +117,19 @@
       rows.push({ label: 'Snelste laadsessie', note: '(gem.)', value: `${kw(cr.fastest.avgKw ?? 0)} kW`, sub: date(cr.fastest.start, tz) });
     if (cr?.busiestMonth)
       rows.push({ label: 'Meeste laadsessies', value: `${cr.busiestMonth.sessions} sessies`, sub: periodLabel(cr.busiestMonth.key, true) });
+    // Op één lading: driven between two charging sessions.
+    const cy = data?.cycleRecords;
+    const span = (c: { start: number; end: number }) => dayRange(c.start, c.end, tz);
+    if (cy?.longest) rows.push({ label: 'Langste op één lading', value: `${km(cy.longest.km)} km`, sub: span(cy.longest) });
+    if (cy?.bestRange)
+      rows.push({
+        label: 'Beste bereik',
+        note: '(geschat)',
+        value: `${km(cy.bestRange.rangeKm ?? 0)} km`,
+        sub: `${span(cy.bestRange)}${cy.bestRange.avgTemp !== null ? ` · gem. ${tempC(cy.bestRange.avgTemp)}` : ''}`,
+      });
+    if (cy?.frostLongest)
+      rows.push({ label: 'Verste lading bij vorst', value: `${km(cy.frostLongest.km)} km`, sub: `${span(cy.frostLongest)} · gem. ${tempC(cy.frostLongest.avgTemp ?? 0)}` });
     return rows;
   });
 

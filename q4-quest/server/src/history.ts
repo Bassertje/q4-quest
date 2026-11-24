@@ -1,6 +1,8 @@
 import {
+  cycleRecords,
   dayKey,
   describeChallenge,
+  type CycleRecords,
   historyPeriodView,
   type HistoryPeriodView,
   type ViewPeriodMode,
@@ -29,6 +31,8 @@ export interface HistoryResponse {
   /** Daily average temperature (only with a temperature sensor). */
   dailyTemps: [string, number][];
   hasTemperature: boolean;
+  /** Records of the cycles between charging sessions ("op één lading"). */
+  cycleRecords: CycleRecords | null;
   /** All weekly challenges, newest first. */
   challenges: (ChallengeResult & { title: string; goal: string; unit: string })[];
 }
@@ -38,6 +42,7 @@ export function historyResponse(state: GameState, mode: ViewPeriodMode, key: str
   const hasTemperature = state.temperature.length > 0;
   const extra = {
     chargingRecords,
+    cycleRecords: state.cycles.length ? cycleRecords(state.cycles) : null,
     monthly: state.monthly,
     dailyTemps: [...state.dailyTemps],
     hasTemperature,
