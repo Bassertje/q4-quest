@@ -14,8 +14,8 @@ import { dayProgress } from '../src/progress.ts';
 import { buildWeekReview } from '../src/week-review.ts';
 
 const at = (iso: string) => Date.parse(iso);
-const ws = (km: number, days: number, sessions: number, consumption: number | null): WeekStats => ({
-  week: 'x', km, days, sessions, kwh: 0, consumption,
+const ws = (km: number, days: number, sessions: number, consumption: number | null, cycleKm = 0, cycleRange: number | null = null): WeekStats => ({
+  week: 'x', km, days, sessions, kwh: 0, consumption, cycleKm, cycleRange,
 });
 
 describe('challenge targets', () => {

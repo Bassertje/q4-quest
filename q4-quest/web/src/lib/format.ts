@@ -55,3 +55,39 @@ export function socRange(from: number | null, to: number | null): string {
 
 /** First letter in upper case ("rij 61–70" → "Rij 61–70"). */
 export const capitaliseFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** Short day range: "ma 9 – do 12 nov", "ma 30 nov – wo 2 dec" or, within one day, "ma 9 nov". */
+export function dayRange(from: number, to: number, timeZone?: string): string {
+  const parts = (ts: number) => {
+    const d = new Date(ts);
+    const wd = d.toLocaleDateString('nl-NL', { weekday: 'short', timeZone }).replace('.', '');
+    const day = d.toLocaleDateString('nl-NL', { day: 'numeric', timeZone });
+    const month = d.toLocaleDateString('nl-NL', { month: 'short', timeZone }).replace('.', '');
+    return { wd, day, month, key: d.toLocaleDateString('en-CA', { timeZone }) };
+  };
+  const a = parts(from);
+  const b = parts(to);
+  if (a.key === b.key) return `${a.wd} ${a.day} ${a.month}`;
+  if (a.month === b.month && a.key.slice(0, 4) === b.key.slice(0, 4)) return `${a.wd} ${a.day} – ${b.wd} ${b.day} ${b.month}`;
+  return `${a.wd} ${a.day} ${a.month} – ${b.wd} ${b.day} ${b.month}`;
+}
+
+/** Duration in days, or hours below a day: "3 dagen", "1 dag", "14 uur". */
+export function durationLabel(ms: number): string {
+  const hours = Math.round(ms / 3_600_000);
+  if (hours < 24) return `${Math.max(1, hours)} uur`;
+  const days = Math.round(ms / 86_400_000);
+  return `${days} ${days === 1 ? 'dag' : 'dagen'}`;
+}
+
+/** Temperature like "−2°" (with a real minus sign) or "–" when unknown. */
+export function tempShort(t: number | null): string {
+  if (t === null) return '–';
+  const r = Math.round(t);
+  return `${r < 0 ? '−' : ''}${Math.abs(r)}°`;
+}
+
+/** Temperature with one decimal and a real minus sign: "−5,6 °C". */
+export function tempC(t: number): string {
+  return `${num1(t).replace('-', '−')} °C`;
+}

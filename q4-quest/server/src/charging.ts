@@ -39,6 +39,8 @@ export interface ChargingResponse {
   /** Tiles, chart and sessions of the chosen period. */
   period: ChargePeriodView | null;
   hasSoc: boolean;
+  /** A temperature sensor is configured (for the range-vs-temperature chart). */
+  hasTemperature: boolean;
   records: ChargingRecords | null;
   /** All-time CO₂ saved and the next CO₂ badge of the Groen category (null: all reached). */
   greenProgress: {
@@ -54,6 +56,7 @@ export function chargingResponse(state: GameState, options: Options, mode: Charg
   const { timeZone, now } = state;
   const empty: ChargingResponse = {
     available, timeZone, batteryKwh: options.batteryKwh, period: null, hasSoc: options.entities.soc !== null,
+    hasTemperature: options.entities.temperature !== null,
     records: null, greenProgress: null,
   };
   if (!available) return empty;
@@ -74,6 +77,7 @@ export function chargingResponse(state: GameState, options: Options, mode: Charg
           petrolLPer100km: options.petrolLPer100km,
         },
         greenAll: state.green,
+        cycles: state.cycles,
       },
       mode,
       key,

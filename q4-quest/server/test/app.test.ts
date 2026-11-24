@@ -221,7 +221,7 @@ describe('weekly challenges, green and temperature', () => {
   it('creates a challenge for the current week and shows it on the cockpit', async () => {
     const { app } = make(MOCK_OPTIONS_RAW, true);
     const c = (await app.inject({ url: '/api/cockpit' })).json().challenge;
-    expect(['km', 'days', 'max_charges', 'consumption']).toContain(c.type);
+    expect(['km', 'days', 'max_charges', 'consumption', 'cycle_km', 'cycle_range']).toContain(c.type);
     expect(c.status).toBe('active');
     expect(c.daysLeft).toBeGreaterThanOrEqual(1);
     expect(c.daysLeft).toBeLessThanOrEqual(7);
@@ -419,5 +419,25 @@ describe('Laadbingo API', () => {
     const review = (await app.inject({ url: `/api/year/${year}?preview=1` })).json().review;
     expect(review.bingo.stamps).toBeGreaterThan(0);
     expect(review.bingo.card.stamped.length).toBeGreaterThan(0);
+  });
+});
+
+describe('Op één lading API', () => {
+  it('lists the cycles between charging sessions per period, and records in the history', async () => {
+    const { app } = make(MOCK_OPTIONS_RAW, true);
+    const p = (await app.inject({ url: '/api/charging' })).json();
+    const cycles = p.period.cycles;
+    expect(cycles.length).toBeGreaterThan(10);
+    // Newest first; the cycle since the last charge is the running one.
+    expect(cycles[0].start).toBeGreaterThan(cycles.at(-1).start);
+    expect(cycles.filter((c: { ongoing: boolean }) => c.ongoing).length).toBeLessThanOrEqual(1);
+    expect(cycles.some((c: { rangeKm: number | null }) => c.rangeKm !== null && c.rangeKm > 100)).toBe(true);
+    expect(cycles.some((c: { avgTemp: number | null }) => c.avgTemp !== null)).toBe(true);
+    expect(p.hasTemperature).toBe(true);
+    const month = (await app.inject({ url: '/api/charging?period=month' })).json().period.cycles;
+    expect(month.length).toBeLessThan(cycles.length);
+    const h = (await app.inject({ url: '/api/history' })).json();
+    expect(h.cycleRecords.longest.km).toBeGreaterThan(0);
+    expect(h.cycleRecords.bestRange.rangeKm).toBeGreaterThan(0);
   });
 });

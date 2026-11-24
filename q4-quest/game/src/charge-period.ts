@@ -3,6 +3,7 @@ import { periodEnergy, type EnergyInput } from './consumption.ts';
 import { greenTotals, type GreenFactors, type GreenTotals } from './green.ts';
 import { isViewPeriodMode, periodWindow, VIEW_PERIOD_MODES, type ViewPeriodMode } from './period-view.ts';
 import { dayKey, monthKey, zonedMidnight } from './time.ts';
+import type { DriveCycle } from './cycles.ts';
 
 /** Period choice on the charging screen (shared with the history screen). */
 export type ChargePeriodMode = ViewPeriodMode;
@@ -39,6 +40,8 @@ export interface ChargePeriodView {
   } | null;
   /** Sessions that started in the period, newest first. */
   sessions: ChargingSession[];
+  /** Cycles between charging sessions ("op één lading") that started in the period, newest first. */
+  cycles: DriveCycle[];
   /** Average charging power (kWh ÷ duration per session, averaged over the finished sessions). */
   power: { avgKw: number | null; acKw: number | null; dcKw: number | null };
   /** CO₂ saved, petrol not burned and trees over the period (null without odometer data or factors). */
@@ -56,6 +59,8 @@ export interface ChargePeriodInput {
   green?: GreenFactors;
   /** Override for the "all" period, so it matches the all-time totals exactly. */
   greenAll?: GreenTotals | null;
+  /** Cycles between charging sessions, oldest first. */
+  cycles?: DriveCycle[];
 }
 
 /**
@@ -108,6 +113,7 @@ export function chargePeriodView(input: ChargePeriodInput, mode: ChargePeriodMod
     totals: chargingTotals(sessions),
     consumption,
     sessions: [...sessions].reverse(),
+    cycles: (input.cycles ?? []).filter((c) => c.start >= from && c.start < to).reverse(),
     power: averagePower(sessions),
     green,
   };

@@ -2,8 +2,9 @@
   import { getJson, putJson } from '../lib/api';
   import BingoTile from '../lib/BingoTile.svelte';
   import ChargeKwhChart from '../lib/ChargeKwhChart.svelte';
-  import { dayNoYear, km, kw, monthTitle, num1, socRange as socSpan } from '../lib/format';
+  import { dayNoYear, dayRange, durationLabel, km, kw, monthTitle, num1, socRange as socSpan, tempC, tempShort } from '../lib/format';
   import PeriodPicker from '../lib/PeriodPicker.svelte';
+  import RangeTempChart from '../lib/RangeTempChart.svelte';
   import PixelIcon from '../lib/PixelIcon.svelte';
   import StatTile from '../lib/StatTile.svelte';
   import SocChart from '../lib/SocChart.svelte';
@@ -102,6 +103,15 @@
 
   const clamp = (v: number | null) => Math.max(0, Math.min(100, v ?? 0));
   let openSession = $state<number | null>(null);
+  /** Sessions card: the charging sessions or the cycles between them ("op één lading"); not saved. */
+  let view = $state<'sessions' | 'cycles'>('sessions');
+  let openCycle = $state<number | null>(null);
+  let shownCycles = $state(STEP);
+  function setView(v: 'sessions' | 'cycles') {
+    view = v;
+    openCycle = null;
+    shownCycles = STEP;
+  }
   /** Session list filter (not saved). */
   type TypeFilter = 'all' | 'AC' | 'DC';
   const TYPE_FILTERS: { id: TypeFilter; label: string }[] = [
@@ -286,53 +296,110 @@
 
   <section class="panel">
     <div class="panel-head">
-      <h3>Sessies{#if p}<span class="muted per">· {p.label}</span>{/if}</h3>
-      <div class="segmented small-seg" role="group" aria-label="Filter sessies">
-        {#each TYPE_FILTERS as f (f.id)}
-          <button class:active={typeFilter === f.id} aria-pressed={typeFilter === f.id} onclick={() => setTypeFilter(f.id)}>{f.label}</button>
-        {/each}
-      </div>
+      <h3>{view === 'sessions' ? 'Sessies' : 'Op één lading'}{#if p}<span class="muted per">· {p.label}</span>{/if}</h3>
+      {#if view === 'sessions'}
+        <div class="segmented small-seg" role="group" aria-label="Filter sessies">
+          {#each TYPE_FILTERS as f (f.id)}
+            <button class:active={typeFilter === f.id} aria-pressed={typeFilter === f.id} onclick={() => setTypeFilter(f.id)}>{f.label}</button>
+          {/each}
+        </div>
+      {/if}
     </div>
-    {#if !p || p.sessions.length === 0}
-      <p class="muted small">Geen laadsessies in deze periode.</p>
-    {:else if filtered.length === 0}
-      <p class="muted small">Geen {typeFilter}-sessies in deze periode.</p>
-    {:else}
-      {#each groups as g (g.title)}
-        <h4 class="month">{g.title}</h4>
-        <ul class="sessions">
-          {#each g.items as s (s.start)}
-            {@const open = openSession === s.start}
-            <li class:live={s.ongoing}>
-              <button class="srow" aria-expanded={open} onclick={() => (openSession = open ? null : s.start)}>
-                <span class="badge" class:dc={s.type === 'DC'}>{s.type}</span>
+    {#if data.hasSoc}
+      <div class="segmented view-seg" role="group" aria-label="Weergave">
+        <button class:active={view === 'sessions'} aria-pressed={view === 'sessions'} onclick={() => setView('sessions')}>Laadsessies</button>
+        <button class:active={view === 'cycles'} aria-pressed={view === 'cycles'} onclick={() => setView('cycles')}>Op één lading</button>
+      </div>
+    {/if}
+    {#if view === 'cycles'}
+      {@const cycles = p?.cycles ?? []}
+      {#if data.hasTemperature}
+        <h4 class="sub-h">Bereik vs. temperatuur</h4>
+        <RangeTempChart {cycles} />
+      {/if}
+      {#if cycles.length === 0}
+        <p class="muted small">Geen ladingen in deze periode.</p>
+      {:else}
+        <ul class="sessions cycles">
+          {#each cycles.slice(0, shownCycles) as c (c.start)}
+            {@const open = openCycle === c.start}
+            <li>
+              <button class="srow" aria-expanded={open} onclick={() => (openCycle = open ? null : c.start)}>
+                <span class="badge temp" class:frost={c.avgTemp !== null && c.avgTemp < 0}>{tempShort(c.avgTemp)}</span>
                 <span class="mid">
-                  <span class="l1">{dayNoYear(s.start, tz)}</span>
-                  <span class="l2">{time(s.start)} · {#if s.ongoing}<span class="now"><span class="dot" aria-hidden="true"></span>nu</span>{:else}{duration(s)}{/if}</span>
+                  <span class="l1">{c.ongoing ? `sinds ${dayNoYear(c.start, tz)}` : dayRange(c.start, c.end, tz)}</span>
+                  <span class="l2">{#if c.ongoing}<span class="now"><span class="dot" aria-hidden="true"></span>nu</span>{' · '}{/if}{durationLabel(c.end - c.start)} · {c.trips} {c.trips === 1 ? 'rit' : 'ritten'}</span>
                 </span>
                 <span class="end">
-                  <span class="l1 strong">{s.kwh === null ? '–' : `~${num1(s.kwh)} kWh`}</span>
-                  <span class="l2">{socSpan(s.socStart, s.socEnd)}</span>
+                  <span class="l1 strong">{km(c.km)} km</span>
+                  <span class="l2">{socSpan(c.socStart, c.socEnd)}</span>
                 </span>
               </button>
-              <span class="socbar" aria-hidden="true">
-                <span class="from" style:width="{clamp(s.socStart)}%"></span>
-                <span class="added" style:width="{Math.max(0, clamp(s.socEnd) - clamp(s.socStart))}%"></span>
+              <!-- Mirror image of the charging bar: what is left, and (faded red) what was used. -->
+              <span class="socbar used" aria-hidden="true">
+                <span class="from" style:width="{clamp(c.socEnd)}%"></span>
+                <span class="added" style:width="{Math.max(0, clamp(c.socStart) - clamp(c.socEnd))}%"></span>
               </span>
               {#if open}
                 <dl class="detail">
-                  <dt>Begin</dt><dd>{time(s.start)}</dd>
-                  <dt>Einde</dt><dd>{#if s.ongoing}<span class="now"><span class="dot" aria-hidden="true"></span>nu</span>{:else}{time(s.end)}{/if}</dd>
-                  <dt>Gemiddeld</dt><dd>{s.avgKw === null ? '–' : `${kw(s.avgKw)} kW`}</dd>
-                  <dt>Type</dt><dd>{s.type}</dd>
+                  <dt>Begin</dt><dd>{dayNoYear(c.start, tz)} {time(c.start)}</dd>
+                  <dt>Einde</dt><dd>{#if c.ongoing}<span class="now"><span class="dot" aria-hidden="true"></span>nu</span>{:else}{dayNoYear(c.end, tz)} {time(c.end)}{/if}</dd>
+                  <dt>Geschat bereik</dt><dd>{c.rangeKm !== null ? `${km(c.rangeKm)} km op een volle accu` : '– (minder dan 10% gebruikt)'}</dd>
+                  <dt>Per 10% accu</dt><dd>{c.rangeKm !== null ? `${num1(c.rangeKm / 10)} km` : '–'}</dd>
+                  <dt>Verbruik</dt><dd>{c.kwhPer100km !== null ? `${num1(c.kwhPer100km)} kWh/100 km` : '–'}</dd>
+                  <dt>Temperatuur</dt><dd>{c.avgTemp !== null ? `gem. ${tempC(c.avgTemp)} (ritten)` : '–'}</dd>
+                  <dt>Laagste accu</dt><dd>{c.minSoc !== null ? `${Math.round(c.minSoc)}%` : '–'}</dd>
                 </dl>
               {/if}
             </li>
           {/each}
         </ul>
-      {/each}
-      {#if shown < filtered.length}
-        <button class="more" onclick={() => (shown += STEP)}>Meer tonen</button>
+        {#if shownCycles < cycles.length}
+          <button class="more" onclick={() => (shownCycles += STEP)}>Meer tonen</button>
+        {/if}
+      {/if}
+    {:else}
+      {#if !p || p.sessions.length === 0}
+        <p class="muted small">Geen laadsessies in deze periode.</p>
+      {:else if filtered.length === 0}
+        <p class="muted small">Geen {typeFilter}-sessies in deze periode.</p>
+      {:else}
+        {#each groups as g (g.title)}
+          <h4 class="month">{g.title}</h4>
+          <ul class="sessions">
+            {#each g.items as s (s.start)}
+              {@const open = openSession === s.start}
+              <li class:live={s.ongoing}>
+                <button class="srow" aria-expanded={open} onclick={() => (openSession = open ? null : s.start)}>
+                  <span class="badge" class:dc={s.type === 'DC'}>{s.type}</span>
+                  <span class="mid">
+                    <span class="l1">{dayNoYear(s.start, tz)}</span>
+                    <span class="l2">{time(s.start)} · {#if s.ongoing}<span class="now"><span class="dot" aria-hidden="true"></span>nu</span>{:else}{duration(s)}{/if}</span>
+                  </span>
+                  <span class="end">
+                    <span class="l1 strong">{s.kwh === null ? '–' : `~${num1(s.kwh)} kWh`}</span>
+                    <span class="l2">{socSpan(s.socStart, s.socEnd)}</span>
+                  </span>
+                </button>
+                <span class="socbar" aria-hidden="true">
+                  <span class="from" style:width="{clamp(s.socStart)}%"></span>
+                  <span class="added" style:width="{Math.max(0, clamp(s.socEnd) - clamp(s.socStart))}%"></span>
+                </span>
+                {#if open}
+                  <dl class="detail">
+                    <dt>Begin</dt><dd>{time(s.start)}</dd>
+                    <dt>Einde</dt><dd>{#if s.ongoing}<span class="now"><span class="dot" aria-hidden="true"></span>nu</span>{:else}{time(s.end)}{/if}</dd>
+                    <dt>Gemiddeld</dt><dd>{s.avgKw === null ? '–' : `${kw(s.avgKw)} kW`}</dd>
+                    <dt>Type</dt><dd>{s.type}</dd>
+                  </dl>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+        {/each}
+        {#if shown < filtered.length}
+          <button class="more" onclick={() => (shown += STEP)}>Meer tonen</button>
+        {/if}
       {/if}
     {/if}
   </section>
@@ -586,6 +653,32 @@
     border: 1px solid var(--line);
     border-radius: 4px;
     color: var(--muted);
+  }
+  .view-seg {
+    display: flex;
+    margin: 0 0 10px;
+  }
+  .view-seg button {
+    flex: 1;
+  }
+  .sub-h {
+    margin: 4px 0 6px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .cycles {
+    margin-top: 10px;
+  }
+  .badge.temp {
+    font-size: 1rem;
+  }
+  .badge.temp.frost {
+    color: var(--text);
+  }
+  /* Used battery: faded red, what is left: muted. */
+  .socbar.used .added {
+    opacity: 0.4;
   }
   .badge.dc {
     color: var(--accent);

@@ -127,6 +127,13 @@ Uitwerking van "het eerste moment":
 
 Badges die op tijdstip gebaseerd zijn (`night_owl`, `early_bird`) tellen alleen voor ritblokken met minstens twee odometer-metingen. Een ritblok met één meting (begin = eind) zegt te weinig over het werkelijke vertrektijdstip.
 
+**Rijden – op één lading** (laad- en SoC-sensor nodig, met voortgang)
+
+| id | Naam | Voorwaarde | XP |
+|---|---|---|---|
+| cycle_300 | Lange adem | 300 km op één lading (ook de lopende) | 100 |
+| cycle_500 | Marathonlading | 500 km op één lading (ook de lopende) | 250 |
+
 **Laden** (alleen als de sensoren zijn ingesteld)
 
 | id | Naam | Voorwaarde | XP |
@@ -138,18 +145,22 @@ Badges die op tijdstip gebaseerd zijn (`night_owl`, `early_bird`) tellen alleen 
 | running_on_fumes | Op de valreep | SoC ≤ 10% gemeten | 75 |
 | dc_150 | Volle bak | gemiddeld ≥ 75 kW in één sessie | 100 |
 | mwh_1 | Eerste megawattuur | cumulatief ≥ 1.000 kWh geladen | 250 |
+| week_cycle | Eén keer per week | 7 dagen gereden zonder te laden, minstens 150 km (lopende lading telt mee) | 75 |
+| wise_charger | Wijze lader (verborgen) | 10 afgeronde ladingen op rij nooit onder de 20% (laagste gemeten SoC) | 150 |
 
 **Zuinigheid** (indicatief)
 
 | id | Naam | Voorwaarde | XP |
 |---|---|---|---|
 | eco_week | Zuinige week | weekschatting ≤ 17 kWh/100 km bij ≥ 150 km | 100 |
+| eco_cycle | Zuinige lading | een afgeronde lading met ≥ 30% gebruikt en een geschat bereik ≥ 115% van het gemiddelde van je eerdere ladingen (minstens 3) | 100 |
 
 **Rijden – temperatuur** (alleen met `temperature_entity`)
 
 | id | Naam | Voorwaarde | XP |
 |---|---|---|---|
 | ice_cold | IJskoud | ritblok gestart bij < 0 °C, met minstens twee odometer-metingen | 75 |
+| winter_king | Winterkoning | een afgeronde lading van ≥ 250 km bij gemiddeld < 5 °C (ook laad- en SoC-sensor nodig) | 150 |
 | winter_hard | Winterhard | afgeronde week met gemiddeld < 5 °C en verbruiksschatting < 20 kWh/100 km bij ≥ 150 km (ook laadsensoren nodig) | 150 |
 
 **Groen** (schattingen; zie Groen hieronder)
@@ -189,6 +200,18 @@ Alle nieuwe badges hebben een eigen pixel-art icoon en worden met terugwerkende 
 - De km zijn de gemeten km (som van de dagtotalen), niet de totale kilometerstand.
 - Getoond op het Laden-scherm (met "schatting"), in een slide van het jaaroverzicht en op de deelkaart. De bomen heten overal "Gelijk aan": waarde "X bomen", subtekst "die een jaar lang CO₂ opnemen".
 
+### Op één lading
+Alles wat je rijdt **tussen het einde van een laadsessie en de start van de volgende** heet een *lading*. Pure logica in `game/src/cycles.ts`, afgeleid uit de metingen (dus met terugwerkende kracht). Alleen met laadsensoren én een accupercentage-sensor.
+- **km** = kilometerstand bij de start van de volgende sessie − kilometerstand bij het einde van de vorige.
+- **Accu gebruikt** = eind-% van de vorige sessie − start-% van de volgende (bijv. 80% → 22% = 58%).
+- **Geschat bereik op een volle accu** = km ÷ gebruikte % × 100; **verbruik** = gebruikte % × `battery_kwh` ÷ km; **per 10% accu** = bereik ÷ 10.
+- **Temperatuur** = gemiddelde buitentemperatuur bij de start van de ritblokken die met de lading overlappen, gewogen naar hun km (alleen met `temperature_entity`).
+- Ook de duur, het aantal ritblokken en de laagste gemeten SoC worden bijgehouden.
+- De lading sinds de laatste keer laden is **lopend** (tot nu). Loopt er een laadsessie, dan is er geen lopende lading. De tijd vóór de eerste laadsessie telt niet (de start-SoC is onbekend).
+- Bij minder dan **10% accugebruik** is het bereik te onzeker: de lading wordt getoond, maar zonder bereik/verbruik, en telt niet mee voor records, de grafiek en de badges die het bereik gebruiken.
+- **Uitgangspunt:** we belonen ver komen en zuinig rijden per procent, **niet** het leegrijden van de accu (slecht voor de accu). Er zijn daarom geen badges of uitdagingen voor een lage eind-SoC; "Wijze lader" beloont juist het omgekeerde.
+- **Records** (Historie): Langste op één lading (km), Beste bereik (geschat) en Verste lading bij vorst (gemiddeld < 0 °C). De lopende lading telt niet mee.
+
 ### Weekuitdaging
 - Elke week (maandag 00:00 in de HA-tijdzone) wordt één uitdaging gekozen. De keuze gebeurt de eerste keer dat de app in die week rekent, met alleen de gegevens van vóór die maandag; een week waarin de app niet draait, krijgt geen uitdaging. Bij de eerste start na de update krijgt de lopende week meteen een uitdaging.
 - Pool (laaduitdagingen alleen met laadsensoren):
@@ -196,6 +219,8 @@ Alle nieuwe badges hebben een eigen pixel-art icoon en worden met terugwerkende 
   - **days** – rij op minstens X dagen. Doel = afgerond gemiddelde + 1 (tussen 2 en 7). Startwaarde 4.
   - **max_charges** – laad hooguit X keer. Doel = gemiddelde × 0,9, naar beneden (minimaal 1). Startwaarde 3.
   - **consumption** – verbruiksschatting ≤ X kWh/100 km bij minstens 100 km. Doel = gemiddelde × 0,95. Startwaarde 18.
+  - **cycle_km** "Op één lading" – rij deze week minstens X km op één lading (alleen met SoC-sensor). Per lading telt de afstand vanaf het latere van de start van de lading en maandag 00:00; gehaald zodra een lading het doel haalt. Doel = gemiddelde van de beste week-lading × 1,1, afgerond op 10 (minimaal 50). Startwaarde 150.
+  - **cycle_range** "Bereikjager" – haal deze week op een lading een geschat bereik van ≥ X km (alleen met SoC-sensor). Telt voor afgeronde ladingen die deze week eindigen (minstens 10% gebruikt); gehaald op het einde van die lading. Doel = gemiddeld bereik van de laatste 4 weken × 1,05, afgerond op 10, zodat het doel met het seizoen meegaat. Startwaarde 350.
 - Zonder 4 volledige weken meting worden de startwaarden gebruikt. Het type wordt deterministisch per week gekozen en is nooit hetzelfde als vorige week.
 - km- en dagen-uitdagingen zijn gehaald zodra het doel bereikt is; laad- en verbruiksuitdagingen worden aan het eind van de week beoordeeld. Gehaald = 100 bonus-XP (telt mee voor het level) en een item in het reveal-scherm. Niet gehaald aan het eind van de week = gemist.
 - Uitdagingen en resultaten staan in de database (tabel `challenges`) en blijven als geschiedenis zichtbaar in Historie. De cockpit toont de uitdaging van deze week met doel, voortgang en resterende dagen.
@@ -389,6 +414,10 @@ Navigatie met de tabs Cockpit, Badges, Historie en Laden (Laden alleen met laads
    - **Groen** over de gekozen periode: CO₂ bespaard, liters niet verbrand en "Gelijk aan X bomen" (zie Groen), berekend met dezelfde verbruikte energie als Verbruik (geladen kWh + verschil in accupercentage × accucapaciteit) en de km in de periode. Bij All-time zijn het precies de totalen sinds de start. Een rij pixel-boompjes volgt dezelfde waarde (één per boom, de laatste gedeeltelijk gevuld, max. 20 zichtbaar, daarna "+ X"). Uitleg achter een ⓘ. Daaronder een dunne voortgangsbalk die altijd het **totaal** toont: "Totaal X kg · nog Y kg tot <badgenaam>" (volgende CO₂-badge); zijn alle CO₂-badges gehaald, dan "Alle Groen-badges gehaald" (volle balk). De drie waarden staan als tegels in dezelfde opbouw als de andere tegels (label / waarde in het LCD-font met kleine eenheid / één gedempte regel), op gelijke hoogte en zonder afbreken: CO₂ "75 kg" / "bespaard", Benzine "51 liter" / "niet verbrand", Bomen "3,8" / "jaar CO₂-opname". Daaronder de pixel-boompjes en de badge-voortgang.
    - **Sessies**: alleen sessies die in de gekozen periode begonnen (datum, AC/DC, kWh-schatting, SoC van → naar), gegroepeerd per maand met een kop ("November 2026"); datums in de rijen zonder jaartal, kort ("ma 9 nov").
    - Rechts in de kop van de Sessies-kaart drie kleine segmentknoppen **Alle · AC · DC** (standaard Alle, niet bewaard). Ze filteren alleen de sessielijst binnen de gekozen periode; maandkoppen zonder sessies verdwijnen. Zijn er geen sessies van het gekozen type: "Geen AC-sessies in deze periode" (resp. DC).
+   - **Keuze "Laadsessies · Op één lading"** in de Sessies-kaart (onder de kop, volle breedte; niet bewaard; alleen met SoC-sensor). Bij "Op één lading" heet de kaart "Op één lading · <periode>", verdwijnt het AC/DC-filter en geldt de periodekeuze (ladingen die in de periode begonnen, nieuwste eerst, de lopende bovenaan).
+     - Bovenaan (met temperatuursensor) de grafiek **Bereik vs. temperatuur**: per afgeronde lading met ≥ 10% gebruikt een pixel-stip (x = gemiddelde temperatuur, y = geschat bereik), een gestippelde trendlijn (lineair, vanaf 5 ladingen over ≥ 5 °C) en eronder "Trend: bij −6 °C ~ 436 km · bij 24 °C ~ 432 km". Een tik op een stip toont temperatuur, bereik en km.
+     - Rijen in dezelfde opbouw als de laadsessies: links de gemiddelde temperatuur ("−2°", of "–"), midden de periode ("ma 9 – do 12 nov"; lopend: "sinds ma 23 nov" met "● nu") en "3 dagen · 12 ritten" (onder een dag: "14 uur"), rechts de **werkelijk gereden km** (vet) en het SoC-bereik "80% → 22%". Onder de rij een 4px-balk als spiegelbeeld van de laadbalk: wat over is in gedempte kleur, wat gebruikt is in vervaagd rood.
+     - Uitklapdetail (één tegelijk): begin, einde, geschat bereik op een volle accu, km per 10% accu, verbruik, gemiddelde temperatuur en laagste accu.
    - Elke rij is een grid met drie vaste kolommen en twee regels. Links het AC/DC-label (vaste breedte, verticaal gecentreerd). Midden: regel 1 de datum, regel 2 "HH:MM · duur" (gedempt). Rechts (rechts uitgelijnd): regel 1 "~X kWh" (vet), regel 2 het SoC-bereik "71% → 100%" (gedempt). Alles `white-space: nowrap`; niets springt naar een extra regel.
    - Onder elke rij een dunne (4px) balk over de volle breedte: gedempte kleur tot het startpercentage, rood van start tot eind, de rest leeg. Geen los accu-icoon in de rij.
    - **Lopende sessie:** dezelfde uitlijning als de andere rijen, zonder extra streep. In plaats van de duur (en bij Einde in het detail) staat "● nu": een klein rood bolletje (accentkleur) met een rustige pulsanimatie, gevolgd door "nu". Het rode deel van de SoC-balk krijgt een subtiele, langzaam bewegende glans. Bij `prefers-reduced-motion` staan beide animaties uit (bolletje en balk blijven statisch).

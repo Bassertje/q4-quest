@@ -155,8 +155,31 @@ export interface ChargePeriod {
   };
   consumption: { kwhPer100km: number | null; km: number; usedKwh: number } | null;
   sessions: ChargingSession[];
+  cycles: DriveCycle[];
   power: { avgKw: number | null; acKw: number | null; dcKw: number | null };
   green: GreenTotals | null;
+}
+
+/** Everything driven between two charging sessions ("op één lading"). */
+export interface DriveCycle {
+  start: number;
+  end: number;
+  ongoing: boolean;
+  socStart: number | null;
+  socEnd: number | null;
+  minSoc: number | null;
+  km: number;
+  usedPct: number | null;
+  rangeKm: number | null;
+  kwhPer100km: number | null;
+  avgTemp: number | null;
+  trips: number;
+}
+
+export interface CycleRecords {
+  longest: DriveCycle | null;
+  bestRange: DriveCycle | null;
+  frostLongest: DriveCycle | null;
 }
 
 export interface ChargingData {
@@ -165,6 +188,7 @@ export interface ChargingData {
   batteryKwh: number;
   period: ChargePeriod | null;
   hasSoc: boolean;
+  hasTemperature: boolean;
   records: ChargingRecords | null;
   greenProgress: {
     totalKg: number;
@@ -200,6 +224,7 @@ export interface HistoryData {
   } | null;
   period: HistoryPeriod | null;
   chargingRecords: ChargingRecords | null;
+  cycleRecords: CycleRecords | null;
   monthly: MonthStats[];
   dailyTemps: [string, number][];
   hasTemperature: boolean;

@@ -41,7 +41,9 @@ export function listChallenges(db: DatabaseSync): ChallengeResult[] {
 }
 
 /** Which challenge types are possible with the configured sensors. */
-export function availableTypes(charging: boolean): NormalChallengeType[] {
+export function availableTypes(charging: boolean, hasSoc = false): NormalChallengeType[] {
+  // "On one charge" challenges need the SoC at the start and end of a charge.
+  if (charging && hasSoc) return ['km', 'days', 'max_charges', 'consumption', 'cycle_km', 'cycle_range'];
   return charging ? ['km', 'days', 'max_charges', 'consumption'] : ['km', 'days'];
 }
 
@@ -73,9 +75,9 @@ export function syncChallenges(
       type = themed.type;
       target = themed.target;
     } else {
-      const normal = chooseChallengeType(week, availableTypes(ctx.charging), previous?.type ?? null);
+      const normal = chooseChallengeType(week, availableTypes(ctx.charging, ctx.hasSoc === true), previous?.type ?? null);
       type = normal;
-      target = challengeTarget(normal, historyWeeks(week, firstDay, ctx.dailyTotals, before, ctx.timeZone));
+      target = challengeTarget(normal, historyWeeks(week, firstDay, ctx.dailyTotals, before, ctx.timeZone, undefined, ctx.cycleData));
     }
     db.prepare(
       'INSERT INTO challenges (week, type, target, status, current, completed_ts, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
